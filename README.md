@@ -2,7 +2,7 @@
 
 This repository manages the **Infrastructure as Code (IaC)** for the Kuflink AWS environment(s), using Terraform.
 
-It is structured according to industry best practices for modular, layered Terraform architecture.
+It is structured to be modular, layered Terraform architecture.
 
 ---
 
@@ -20,7 +20,7 @@ infra-terraformcontrol/
 │   ├── acm-terraform/             # ACM certs for ALB/CloudFront
 │   ├── route53-terraform/         # Route53 Hosted Zones and Records
 ├── environments/                  
-│   ├── staging/                   # Staging environment only (for now)
+│   ├── staging/                   # Staging environment
 │   │   ├── networking/            # VPC + Subnets layer
 │   │   ├── compute/               # Bastion + EC2 layer
 │   │   ├── database/              # RDS layer
