@@ -13,6 +13,7 @@ output "db_instance_id" {
   value       = aws_db_instance.rds_db.id
 }
 
+
 output "db_instance_arn" {
   description = "The ARN of the database instance."
   value       = aws_db_instance.rds_db.arn

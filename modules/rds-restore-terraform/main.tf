@@ -3,7 +3,8 @@ data "aws_caller_identity" "current" {}
 
 # RDS Instance
 resource "aws_db_instance" "rds_db" {
-  db_name                    = var.db_test_database
+  db_name                    = null
+  snapshot_identifier        = var.db_test_snapshot_identifier
 
   allocated_storage          = var.allocated_storage
   storage_type               = var.storage_type
@@ -13,7 +14,7 @@ resource "aws_db_instance" "rds_db" {
   identifier                 = var.db_test_name_identifier
   username                   = var.db_test_username
   password                   = var.db_test_password
-
+  
   parameter_group_name       = var.db_parameter_group_name
   vpc_security_group_ids = [var.rds_sg_id]
   db_subnet_group_name   = var.db_subnet_group_name
