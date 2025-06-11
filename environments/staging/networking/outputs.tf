@@ -22,7 +22,4 @@ output "nat_gateway_public_ip" {
   value = module.vpc-terraform.nat_gateway_public_ip
 }
 
-output "security_group_id" {
-  value = module.vpc-terraform.security_group_id
-}
 

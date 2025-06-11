@@ -30,7 +30,3 @@ output "nat_gateway_public_ip" {
   value = try(aws_eip.nat_eip[0].public_ip, null)
 }
 
-output "security_group_id" {
-  value = aws_security_group.sg.id
-}
-

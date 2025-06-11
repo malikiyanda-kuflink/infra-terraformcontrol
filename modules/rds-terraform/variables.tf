@@ -1,3 +1,13 @@
+variable "vpc_id" {
+  description = "The VPC ID to deploy RDS and security group into"
+  type        = string
+}
+
+variable "private_subnet_ids" {
+  description = "List of private subnet IDs for RDS subnet group"
+  type        = list(string)
+}
+
 
 variable "db_parameter_group_name" {
   description = "RDS Parameter group to use"
@@ -57,17 +67,17 @@ variable "db_test_snapshot_identifier" {
 }
 
 variable "allocated_storage" {
-  description = "Amount of allocated storage in GB"
+  description = "Allocated storage size (in GB)"
   type        = number
 }
 
 variable "storage_type" {
-  description = "Storage type (standard, gp2, gp3, io1, etc)"
+  description = "Storage type (e.g. gp2, gp3)"
   type        = string
 }
 
 variable "engine" {
-  description = "Database engine type"
+  description = "Database engine (e.g. mysql, postgres)"
   type        = string
 }
 
@@ -77,7 +87,7 @@ variable "engine_version" {
 }
 
 variable "instance_class" {
-  description = "RDS instance class"
+  description = "Instance class (e.g. db.t3.medium)"
   type        = string
 }
 
@@ -87,7 +97,7 @@ variable "backup_retention_period" {
 }
 
 variable "skip_final_snapshot" {
-  description = "Whether to skip the final snapshot before deletion"
+  description = "Whether to skip final snapshot on destroy"
   type        = bool
 }
 
@@ -97,27 +107,27 @@ variable "auto_minor_version_upgrade" {
 }
 
 variable "publicly_accessible" {
-  description = "Whether the RDS instance should be publicly accessible"
+  description = "Whether the DB is publicly accessible"
   type        = bool
 }
 
 variable "deletion_protection" {
-  description = "Whether deletion protection is enabled"
+  description = "Whether to enable deletion protection"
   type        = bool
 }
 
 variable "multi_az" {
-  description = "Whether to deploy RDS in Multi-AZ mode"
+  description = "Whether to deploy Multi-AZ"
   type        = bool
 }
 
 variable "iam_database_authentication_enabled" {
-  description = "Whether IAM Database Authentication is enabled"
+  description = "Enable IAM authentication"
   type        = bool
 }
 
 variable "storage_encrypted" {
-  description = "Whether storage is encrypted"
+  description = "Whether to encrypt storage"
   type        = bool
 }
 

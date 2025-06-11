@@ -42,3 +42,68 @@ variable "enable_dns_support" {
   type        = bool
   default     = true
 }
+
+variable "allocated_storage" {
+  description = "Allocated storage size (in GB)"
+  type        = number
+}
+
+variable "storage_type" {
+  description = "Storage type (e.g. gp2, gp3)"
+  type        = string
+}
+
+variable "engine" {
+  description = "Database engine (e.g. mysql, postgres)"
+  type        = string
+}
+
+variable "engine_version" {
+  description = "Database engine version"
+  type        = string
+}
+
+variable "instance_class" {
+  description = "Instance class (e.g. db.t3.medium)"
+  type        = string
+}
+
+variable "backup_retention_period" {
+  description = "Number of days to retain backups"
+  type        = number
+}
+
+variable "skip_final_snapshot" {
+  description = "Whether to skip final snapshot on destroy"
+  type        = bool
+}
+
+variable "auto_minor_version_upgrade" {
+  description = "Whether to enable auto minor version upgrades"
+  type        = bool
+}
+
+variable "publicly_accessible" {
+  description = "Whether the DB is publicly accessible"
+  type        = bool
+}
+
+variable "deletion_protection" {
+  description = "Whether to enable deletion protection"
+  type        = bool
+}
+
+variable "multi_az" {
+  description = "Whether to deploy Multi-AZ"
+  type        = bool
+}
+
+variable "iam_database_authentication_enabled" {
+  description = "Enable IAM authentication"
+  type        = bool
+}
+
+variable "storage_encrypted" {
+  description = "Whether to encrypt storage"
+  type        = bool
+}
