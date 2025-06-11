@@ -34,3 +34,19 @@ Resources:
 
 → Any new RDS / EC2 instance can be added by adding their ARN to `resources`.
 
+---
+
+## KMS / DR Consideration
+
+→ By default, no `kms_key_arn` is set → AWS Backup Vault uses **AWS-managed KMS key** (`alias/aws/backup`).  
+→ This ensures **safe Disaster Recovery** — backups can be restored even if customer-managed KMS keys are missing or not available.
+
+→ If you choose to add a `kms_key_arn` (customer-managed KMS key), you must:
+- Manage the KMS key fully via Terraform.
+- Ensure the KMS key is **recreated first** in any DR recovery scenario.
+- If doing cross-account/cross-region restores → configure correct key policies and permissions.
+
+→ Failure to restore or pre-create the KMS key in DR can render backups **unrestorable**.
+
+---
+
