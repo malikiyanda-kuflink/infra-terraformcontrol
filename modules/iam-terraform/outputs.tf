@@ -15,3 +15,12 @@ output "ec2_test_instance_role_arn" {
 output "lambda_role_arn" {
   value = aws_iam_role.lambda_role.arn
 }
+
+output "eb_role_arn" {
+  value = aws_iam_role.eb_role.arn
+}
+
+output "eb_instance_profile_arn" {
+  value = aws_iam_instance_profile.eb_instance_profile.arn
+}
+

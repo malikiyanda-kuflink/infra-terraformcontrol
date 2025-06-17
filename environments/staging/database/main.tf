@@ -46,6 +46,25 @@ resource "aws_db_subnet_group" "rds_subnet_group" {
   }
 }
 
+
+
+data "aws_route53_zone" "brickfin" {
+  name         = "brickfin.co.uk."
+  private_zone = false
+}
+
+resource "aws_route53_record" "rds_cname" {
+  count   = var.restore_from_snapshot ? 1 : 0
+  zone_id = data.aws_route53_zone.brickfin.zone_id
+  name    = "db.staging"
+  type    = "CNAME"
+  ttl     = 60
+
+  records = [module.rds_restore[0].db_instance_endpoint]
+}
+
+
+
 # RDS Module - new DB create
 module "rds" {
   source = "../../../modules/rds-terraform"

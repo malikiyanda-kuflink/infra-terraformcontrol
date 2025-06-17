@@ -9,3 +9,5 @@ output "test_instance_id" {
 output "test_instance_arn" {
   value = aws_instance.test_instance.arn
 }
+
+

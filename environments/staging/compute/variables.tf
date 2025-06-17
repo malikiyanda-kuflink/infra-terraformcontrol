@@ -8,3 +8,17 @@ variable "ssh_key_parameter_name" {
   type        = string
 }
 
+variable "environment" {
+  type = string 
+}
+variable "ssl_certificate_arn" {
+  type        = string
+  description = "ACM ARN for HTTPS listener"
+}
+
+
+variable "redis_elastic_cache_password" {
+  type        = string
+  description = "Password for Redis authentication"
+}
+
