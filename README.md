@@ -10,59 +10,103 @@ It is structured to follow a **modular, layered Terraform architecture** for eas
 
 ```txt
 infra-terraformcontrol/
-├── modules/                      # Reusable Terraform modules (shared across envs)
-│   ├── vpc-terraform/             # VPC + Subnets + IGW + NAT + RTs
-│   ├── bastion-terraform/         # Bastion EC2 + SG + EIP + IAM role
-│   ├── rds-terraform/             # RDS instance/cluster
-│   ├── ecs-cluster-terraform/     # ECS Cluster, Services, ALB
-│   ├── iam-terraform/             # IAM roles and policies
-│   ├── s3-bucket-terraform/       # S3 buckets and policies
-│   ├── acm-terraform/             # ACM certs for ALB/CloudFront
-│   ├── route53-terraform/         # Route53 Hosted Zones and Records
-│   ├── backup-terraform/          # AWS Backup vaults + plans + rules
-├── environments/                  
-│   ├── staging/                   # Staging environment
-│   │   ├── networking/            # VPC + Subnets layer
-│   │   ├── iam/                   # IAM roles layer
-│   │   ├── compute/               # Bastion + EC2 layer
-│   │   ├── database/              # RDS layer
-│   │   ├── backup/                # AWS Backup layer
-│   │   ├── shared/                # ACM, S3, Route53 for staging account
-└── README.md                      # This file
+├── modules/                         # Reusable Terraform modules (shared across envs)
+│   ├── backup/                      # AWS Backup vaults + plans + rules
+│   ├── ec2-bastion/                 # Bastion EC2 + SG + EIP + IAM role
+│   ├── ec2-test/                    # EC2 test instance provisioning
+│   ├── elastic-cache-redis/        # ElastiCache Redis cluster + subnet groups
+│   ├── iam/                         # IAM roles and policies
+│   ├── parameter-store/            # SSM Parameter Store secrets/keys
+│   ├── rds/                         # RDS instance creation module
+│   ├── rds-restored/               # RDS restore-from-snapshot module
+│   ├── vpc/                         # VPC + Subnets + IGW + NAT + Route Tables
+│   └── web-app/                     # Web application EC2/Beanstalk config
+├── environments/
+│   └── staging/
+│       ├── networking/              # VPC + Subnets layer
+│       ├── iam/                     # IAM roles layer
+│       ├── compute/                 # EC2 + Bastion hosts
+│       ├── database/                # RDS + restore logic
+│       ├── backup/                  # AWS Backup plan + vault
+│       └── shared/                  # ACM, S3, Route53 records for staging
+├── build-all.sh                     # Script to build all layers
+├── destroy-all.sh                   # Script to destroy all layers in order
+├── run_terraform_fmt.sh             # Formats all Terraform code
+├── validate-all.sh                  # Validates all Terraform layers
+└── README.md                        # This file
+✅ Build & Destroy Order
+🔨 Build Order
+Apply layers in this order:
 
+1️⃣ Networking → VPC + subnets
+2️⃣ IAM → roles needed by EC2, RDS, Backup
+3️⃣ Compute → EC2s, Bastion hosts
+4️⃣ Database → RDS or Restored instance
+5️⃣ Backup → Plan, vaults, rules (needs EC2/RDS ARNs)
 
-Build & Destroy Order
-✅ Build Order
-→ You should apply layers in this order:
+Why this order?
 
-1️⃣ Networking → provides VPC and subnets
-2️⃣ IAM → creates roles needed by EC2, Backup, etc
-3️⃣ Compute → EC2 instances, Bastion
-4️⃣ Database → RDS instance
-5️⃣ Backup → AWS Backup Vault + Plan + Rules (needs EC2 + RDS ARNs)
+Backup must be applied after EC2 and RDS so it can target them.
 
-Reason: Backup must be applied after Database + Compute so it can attach to those resources.
+IAM must come before EC2, RDS, and Backup to provide necessary roles and policies.
 
-✅ Destroy Order
-→ You must destroy layers in this order:
+💣 Destroy Order
+Destroy layers in this order:
 
-1️⃣ Backup → first, so it detaches from RDS/EC2 cleanly
-2️⃣ Database → RDS instance
-3️⃣ Compute → EC2 instances, Bastion
-4️⃣ IAM → roles after Compute & Backup have been removed
-5️⃣ Networking → last, so VPC is not in use by anything
+1️⃣ Backup → Detach from EC2/RDS first
+2️⃣ Database → Deletes RDS instance
+3️⃣ Compute → EC2s, Bastion
+4️⃣ IAM → Remove only after EC2 + Backup
+5️⃣ Networking → Last, since all layers depend on VPC
 
-Reason:
+Why this order?
 
-Backup layer must be destroyed first → otherwise AWS Backup will hold references to RDS/EC2 resources.
+AWS Backup holds references that block RDS/EC2 deletion unless removed first.
 
-IAM must be destroyed after EC2 and Backup so roles are not in use.
+IAM roles might be attached to still-running EC2/RDS if destroyed early.
 
-Networking is destroyed last because everything depends on the VPC.
+Networking cannot be removed while anything depends on it.
 
-Notes
-Each layer is applied and managed separately → terraform init, terraform apply, terraform destroy per layer.
+📌 Notes
+Each layer is isolated and applied independently:
 
-Remote state is used (S3 + DynamoDB locking) to safely manage state per layer.
+bash
+Copy
+Edit
+terraform init
+terraform apply
+terraform destroy
+Remote state is stored in S3 with DynamoDB locking per environment and layer.
 
-Tags are consistent across layers for traceability.
+Tags are consistently applied for cost tracking and traceability.
+
+🌐 DNS CNAME for DB Connectivity
+To enable seamless cutovers between DB instances (e.g. during migrations or failovers), we use a Route 53 CNAME record like:
+
+Copy
+Edit
+db.staging.brickfin.co.uk → kuflink-prod.xxxxxx.rds.amazonaws.com
+🔧 How It Works
+Applications connect using the CNAME (db.staging.brickfin.co.uk), not the actual RDS hostname.
+
+Behind the scenes, the CNAME points to the active RDS instance.
+
+During a restore or blue/green deployment, you only update the DNS record — apps don’t need to change.
+
+✅ Benefits
+✅ No app config changes during DB migration or failover
+
+⚡ Fast switchovers — just update the CNAME value
+
+🔄 Rollback-friendly — repoint to the previous instance if needed
+
+💙 Enables Blue/Green DB flows or snapshot restore without downtime
+
+⏱️ TTL = 60s allows DNS changes to propagate quickly
+
+📌 Action Required (Pre-Migration)
+ Create CNAME in Route 53
+
+ Ensure all app environments (Elastic Beanstalk, EC2, etc) use this CNAME for DB connections
+
+ Verify connectivity from within VPC (especially if using private subnets)
