@@ -20,19 +20,14 @@ destroy_layer() {
   echo "🗑️ Destroying $LAYER_PATH..."
 
   cd "$LAYER_PATH"
-
   terraform init -upgrade
-  terraform plan -destroy -out=tfplan -input=false
 
-  read CREATED UPDATED DESTROYED <<< $(terraform show -json tfplan | jq '
-    .resource_changes | 
-    map(.change.actions) | 
-    flatten | 
-    reduce .[] as $a ({"create":0, "update":0, "delete":0};
-      if $a == "create" then .create += 1 
-      elif $a == "update" then .update += 1 
-      elif $a == "delete" then .delete += 1 else . end
-    ) | [.create, .update, .delete] | @sh' | tr -d "'")
+  PLAN_OUTPUT=$(terraform plan -destroy -no-color)
+  echo "$PLAN_OUTPUT" > tfplan.txt
+
+  CREATED=$(echo "$PLAN_OUTPUT" | grep -oP "(?<=Plan: )\d+(?= to add)" || echo 0)
+  UPDATED=$(echo "$PLAN_OUTPUT" | grep -oP "(?<=, )\d+(?= to change)" || echo 0)
+  DESTROYED=$(echo "$PLAN_OUTPUT" | grep -oP "(?<=, )\d+(?= to destroy)" || echo 0)
 
   echo "🧾 $LAYER_PATH → Created: $CREATED | Updated: $UPDATED | Destroyed: $DESTROYED"
 
@@ -40,7 +35,7 @@ destroy_layer() {
   TOTAL_UPDATED=$((TOTAL_UPDATED + UPDATED))
   TOTAL_DESTROYED=$((TOTAL_DESTROYED + DESTROYED))
 
-  terraform destroy -auto-approve tfplan
+  terraform destroy -auto-approve
   cd - > /dev/null
 }
 

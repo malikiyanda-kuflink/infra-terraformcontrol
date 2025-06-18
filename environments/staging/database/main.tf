@@ -60,7 +60,14 @@ resource "aws_route53_record" "rds_cname" {
   type    = "CNAME"
   ttl     = 60
 
-  records = [module.rds_restore[0].db_instance_endpoint]
+  records = [
+    replace(
+      module.rds_restore[0].db_instance_endpoint,
+      "/:[0-9]+$/",
+      ""
+    )
+  ]
+
 }
 
 
