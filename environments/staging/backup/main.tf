@@ -43,17 +43,17 @@ data "terraform_remote_state" "iam" {
 }
 
 # Call Backup Module
-# module "backup-terraform" {
-#   source = "../../../modules/backup-terraform"
+module "backup-terraform" {
+  source = "../../../modules/backup"
 
-#   backup_vault_name         = "kuflink-test-backup-vault"
-#   backup_plan_name          = "kuflink-test-backup-plan"
+  backup_vault_name         = "kuflink-test-backup-vault"
+  backup_plan_name          = "kuflink-test-backup-plan"
 
-#   # Now pass from remote state
-#   backup_service_role_arn   = data.terraform_remote_state.iam.outputs.backup_role_arn
+  # Now pass from remote state
+  backup_service_role_arn   = data.terraform_remote_state.iam.outputs.backup_role_arn
 
-#   rds_instance_arn          = data.terraform_remote_state.database.outputs.db_instance_arn
-#   ec2_instance_arn          = data.terraform_remote_state.compute.outputs.test_instance_arn
+  rds_instance_arn          = data.terraform_remote_state.database.outputs.db_instance_arn
+  ec2_instance_arn          = data.terraform_remote_state.compute.outputs.test_instance_arn
 
-#   environment               = "test"
-# }
+  environment               = "test"
+}

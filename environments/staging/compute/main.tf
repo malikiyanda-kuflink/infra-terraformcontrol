@@ -33,7 +33,7 @@ data "terraform_remote_state" "iam" {
 
 # Call bastion module
 module "bastion-terraform" {
-  source = "../../../modules/bastion-terraform"
+  source = "../../../modules/ec2-bastion"
 
   vpc_id                 = data.terraform_remote_state.networking.outputs.vpc_id
   public_subnet_id       = data.terraform_remote_state.networking.outputs.public_subnet_ids[0]
@@ -45,7 +45,7 @@ module "bastion-terraform" {
 
 
 module "ec2_test_instance" {
-  source = "../../../modules/ec2-test-terraform"
+  source = "../../../modules/ec2-test"
 
   vpc_id            = data.terraform_remote_state.networking.outputs.vpc_id
   private_subnet_id = data.terraform_remote_state.networking.outputs.private_subnet_ids[0]
@@ -57,7 +57,7 @@ module "ec2_test_instance" {
 }
 
 module "redis_elastic_cache" {
-  source             = "../../../modules/redis-elastic-cache"
+  source             = "../../../modules/elastic-cache-redis"
   vpc_id             = data.terraform_remote_state.networking.outputs.vpc_id
   private_subnet_ids = data.terraform_remote_state.networking.outputs.private_subnet_ids
 
@@ -70,7 +70,7 @@ module "redis_elastic_cache" {
 
 
 module "web_app" {
-  source = "../../../modules/web-app-terraform"
+  source = "../../../modules/web-app"
 
   environment             = var.environment
   bastion_private_ip      = module.bastion-terraform.bastion_private_id

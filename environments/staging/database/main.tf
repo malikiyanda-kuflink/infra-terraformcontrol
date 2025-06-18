@@ -56,7 +56,7 @@ data "aws_route53_zone" "brickfin" {
 resource "aws_route53_record" "rds_cname" {
   count   = var.restore_from_snapshot ? 1 : 0
   zone_id = data.aws_route53_zone.brickfin.zone_id
-  name    = "db.staging"
+  name    = "db.test"
   type    = "CNAME"
   ttl     = 60
 
@@ -67,7 +67,7 @@ resource "aws_route53_record" "rds_cname" {
 
 # RDS Module - new DB create
 module "rds" {
-  source = "../../../modules/rds-terraform"
+  source = "../../../modules/rds"
   count  = var.restore_from_snapshot ? 0 : 1
 
   db_test_username        = var.db_test_username
@@ -99,7 +99,7 @@ module "rds" {
 
 # RDS Restore Module - restore from snapshot
 module "rds_restore" {
-  source = "../../../modules/rds-restore-terraform"
+  source = "../../../modules/rds-restored"
   count  = var.restore_from_snapshot && var.db_test_snapshot_identifier != "" ? 1 : 0
 
   db_test_username            = var.db_test_username

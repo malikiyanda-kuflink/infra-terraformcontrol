@@ -24,12 +24,6 @@ variable "eb_instance_profile_name" {
   type        = string
 }
 
-variable "test_redis_instance_role" {
-  description = "Name for the Redis Instance Role"
-  type        = string
-}
-
-
 variable "tags" {
   description = "Tags to apply to IAM roles"
   type        = map(string)

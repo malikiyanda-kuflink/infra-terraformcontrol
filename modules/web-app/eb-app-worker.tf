@@ -1,15 +1,20 @@
-resource "aws_elastic_beanstalk_application" "kuflink_app" {
-  name        = "Kuflink-Test"
-  description = "Test Kuflink Laravel 9 Application"
-}
-
-resource "aws_elastic_beanstalk_environment" "kuflink_env" {
-  name                = "Kuflink-Test-Web"
+resource "aws_elastic_beanstalk_environment" "worker-env" {
+  name                = "Kuflink-Test-Worker"
   application         = aws_elastic_beanstalk_application.kuflink_app.name
   solution_stack_name = "64bit Amazon Linux 2023 v4.6.2 running PHP 8.4"
+  tier                = "Worker"
 
-  tags = {
-    Descriptpion = "ElasticBeanstalk Web Application"
+  # Assign the Service Role
+  setting {
+    namespace = "aws:elasticbeanstalk:environment"
+    name      = "ServiceRole"
+    value     = var.eb_role_arn
+  }
+
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "IamInstanceProfile"
+    value     = var.eb_instance_profile_arn
   }
 
   setting {
@@ -47,14 +52,16 @@ resource "aws_elastic_beanstalk_environment" "kuflink_env" {
   }
 
 
+  # -----------------------------------------------------------------#
+  # -----------------------------------------------------------------#
 
 
-
-  # setting {
-  #   namespace = "aws:ec2:metadata"
-  #   name      = "InstanceMetadataTags"
-  #   value     = "enabled"
-  # }
+  setting {
+    namespace = "aws:elasticbeanstalk:command"
+    name      = "DeploymentPolicy"
+    # value     = "Immutable"
+    value = "AllAtOnce"
+  }
 
   setting {
     namespace = "aws:elasticbeanstalk:sns:topics"
@@ -67,13 +74,6 @@ resource "aws_elastic_beanstalk_environment" "kuflink_env" {
     value     = "email"
   }
 
-  setting {
-    namespace = "aws:elasticbeanstalk:command"
-    name      = "DeploymentPolicy"
-    # value     = "Immutable"
-    value = "AllAtOnce"
-  }
-
   # Enable Log Streaming
   setting {
     namespace = "aws:elasticbeanstalk:cloudwatch:logs"
@@ -81,20 +81,12 @@ resource "aws_elastic_beanstalk_environment" "kuflink_env" {
     value     = "true"
   }
 
-
   # Specify how many days to keep logs in CloudWatch
   setting {
     namespace = "aws:elasticbeanstalk:cloudwatch:logs"
     name      = "RetentionInDays"
-    value     = "30"
+    value     = "14"
   }
-
-  # setting {
-  #   namespace = "aws:elasticbeanstalk:s3"
-  #   name      = "RotateLogs"
-  #   value     = "true"
-  # }
-
 
   # Ensure the EB Host Manager publishes logs
   setting {
@@ -103,22 +95,20 @@ resource "aws_elastic_beanstalk_environment" "kuflink_env" {
     value     = "true"
   }
 
-  # ------Service Access
   # NOTE:Change manually for security risks EB auto creating 
   # sg with ssh access from (0.0.0.0/0) with EC2KeyName option setting
   setting {
     namespace = "aws:autoscaling:launchconfiguration"
     name      = "EC2KeyName"
-    # value     = "Malik_kuflink"
-    value = "staging"
+    value     = "staging"
   }
 
   # This ensures EB uses only *your* SG, so it won't create or inject its own rules
-  setting {
-    namespace = "aws:autoscaling:launchconfiguration"
-    name      = "SecurityGroups"
-    value     = aws_security_group.elb_security_group.id
-  }
+  # setting {
+  #   namespace = "aws:autoscaling:launchconfiguration"
+  #   name      = "SecurityGroups"
+  #   value     = var.eb_ssh_sg_id
+  # }
 
   # Restricts SSH access to only the Bastion EC2 IP address
   setting {
@@ -126,22 +116,45 @@ resource "aws_elastic_beanstalk_environment" "kuflink_env" {
     name      = "SSHSourceRestriction"
     value     = "tcp,22,22,${var.bastion_private_ip}/32"
   }
-
-  setting {
-    namespace = "aws:autoscaling:launchconfiguration"
-    name      = "IamInstanceProfile"
-    value     = var.eb_instance_profile_arn
-  }
-
-  # Assign the Service Role
-  setting {
-    namespace = "aws:elasticbeanstalk:environment"
-    name      = "ServiceRole"
-    value     = var.eb_role_arn
-  }
-
-
   # ------Service Access
+  # ------Worker
+  setting {
+    namespace = "aws:elasticbeanstalk:sqsd"
+    name      = "WorkerQueueURL"
+    value     = aws_sqs_queue.worker_queue.url
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:sqsd"
+    name      = "HttpPath"
+    value     = "/worker/queue"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:sqsd"
+    name      = "HttpConnections"
+    value     = "100"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:sqsd"
+    name      = "VisibilityTimeout"
+    value     = "900"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:sqsd"
+    name      = "MaxRetries"
+    value     = "3"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:sqsd"
+    name      = "InactivityTimeout"
+    value     = "899"
+  }
+
+  # ------Worker
   # ------Networking and Databases
   setting {
     namespace = "aws:ec2:vpc"
@@ -160,57 +173,22 @@ resource "aws_elastic_beanstalk_environment" "kuflink_env" {
 
   setting {
     namespace = "aws:elasticbeanstalk:environment"
-    name      = "LoadBalancerType"
-    value     = "application"
-  }
-
-  # setting {
-  #   namespace = "aws:elbv2:loadbalancer"
-  #   name      = "SecurityGroups"
-  #   value     = var.elb_security_group_id
-  # }
-
-  setting {
-    namespace = "aws:ec2:vpc"
-    name      = "ELBSubnets"
-    value     = join(",", var.public_subnet_ids)
+    name      = "EnvironmentType"
+    value     = "SingleInstance"
   }
 
   setting {
-    namespace = "aws:elbv2:listener:default"
-    name      = "ListenerEnabled"
-    value     = "true"
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "InstanceType"
+    value     = "t3.large"
   }
 
-  setting {
-    namespace = "aws:elasticbeanstalk:environment:process:default"
-    name      = "Port"
-    value     = "80"
-  }
-
-  setting {
-    namespace = "aws:elbv2:listener:443"
-    name      = "Protocol"
-    value     = "HTTPS"
-  }
-
-  setting {
-    namespace = "aws:elbv2:listener:443"
-    name      = "SSLPolicy"
-    value     = "ELBSecurityPolicy-TLS-1-2-Ext-2018-06"
-  }
-
-  # Disable ALB sticky sessions (session stickiness)
-  setting {
-    namespace = "aws:elasticbeanstalk:environment:process:default"
-    name      = "StickinessEnabled"
-    value     = "false"
-  }
   setting {
     namespace = "aws:autoscaling:asg"
     name      = "MaxSize"
-    value     = "3"
+    value     = "4"
   }
+
 
   setting {
     namespace = "aws:autoscaling:asg"
@@ -218,100 +196,13 @@ resource "aws_elastic_beanstalk_environment" "kuflink_env" {
     value     = "1"
   }
 
-  # setting {
-  #   namespace = "aws:autoscaling:launchconfiguration"
-  #   name      = "ImageId"
-  #   # value     = "ami-015cbfa44225fa485" #8.2
-  #   # value     = "ami-066fcdb72b9631a84" #8.3
-  # }
-
-  setting {
-    namespace = "aws:autoscaling:launchconfiguration"
-    name      = "InstanceType"
-    value     = "t3.medium"
-    # value     = "t3.xlarge"
-  }
-
-  setting {
-    namespace = "aws:autoscaling:trigger"
-    name      = "MeasureName"
-    value     = "CPUUtilization"
-  }
-
-  setting {
-    namespace = "aws:autoscaling:trigger"
-    name      = "Statistic"
-    value     = "Average"
-  }
-
-  setting {
-    namespace = "aws:autoscaling:trigger"
-    name      = "Unit"
-    value     = "Percent"
-  }
-
-  setting {
-    namespace = "aws:autoscaling:trigger"
-    name      = "Period"
-    value     = "5"
-  }
-
-  setting {
-    namespace = "aws:autoscaling:trigger"
-    name      = "EvaluationPeriods"
-    value     = "2"
-  }
-
-  setting {
-    namespace = "aws:autoscaling:trigger"
-    name      = "BreachDuration"
-    value     = "20"
-  }
-
-  setting {
-    namespace = "aws:autoscaling:trigger"
-    name      = "UpperThreshold"
-    value     = "95"
-  }
-
-  setting {
-    namespace = "aws:autoscaling:trigger"
-    name      = "LowerThreshold"
-    value     = "10"
-  }
-
-  setting {
-    namespace = "aws:autoscaling:trigger"
-    name      = "UpperBreachScaleIncrement"
-    value     = "1"
-  }
-
-  setting {
-    namespace = "aws:autoscaling:trigger"
-    name      = "LowerBreachScaleIncrement"
-    value     = "-1"
-  }
-
-
 
   # ------Instance traffic and scaling 
   # ------Updates, monitoring, and logging 
-  # setting {
-  #   namespace = "aws:elasticbeanstalk:environment:monitoring"
-  #   name      = "LowerThreshold"
-  #   value     = "500000"
-  # }
-
   setting {
     namespace = "aws:elasticbeanstalk:container:php:phpini"
     name      = "document_root"
     value     = "/public"
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:environment:proxy"
-    name      = "ProxyServer"
-    value     = "nginx"
   }
 
   # Enable Managed Platform Updates
@@ -330,7 +221,7 @@ resource "aws_elastic_beanstalk_environment" "kuflink_env" {
   setting {
     namespace = "aws:elasticbeanstalk:managedactions"
     name      = "PreferredStartTime"
-    value     = "Sat:04:00" # Schedule updates at a preferred time
+    value     = "Sat:04:00"
   }
 
   # Update max_execution_time
@@ -347,29 +238,117 @@ resource "aws_elastic_beanstalk_environment" "kuflink_env" {
     value     = "2048M"
   }
 
+  #-------Environment properties---------#
+  # setting {
+  #   namespace = "aws:elasticbeanstalk:application:environment"
+  #   name      = "MANDRILL_APIKEY"
+  #   value     = var.mandrill_secret
+  # }
+
   setting {
-    namespace = "aws:elasticbeanstalk:healthreporting:system"
-    name      = "ConfigDocument"
-    value     = <<JSON
-{
-  "Version": 1,
-  "Rules": {
-    "Environment": {
-      "Application": {
-        "ApplicationRequests4xx": {
-          "Enabled": false
-        }
-      }
-    }
-  }
-}
-JSON
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "AWS_SQS_QUEUE"
+    value     = aws_sqs_queue.worker_queue.name
   }
 
+  #   #-------Environment properties---------#  
+  #   # All Remaining Environment Variables
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "AWS_ACCESS_KEY_ID"
+    value     = var.aws_access_key_id
+  }
 
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "AWS_SECRET_ACCESS_KEY"
+    value     = var.aws_secret_access_key
+  }
 
-  #-------Environment properties
-  ##-------------------------------------EB OPTION SETTINGS--------------------------------------------------##
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "APP_KEY"
+    value     = var.app_key
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "APP_ENV"
+    value     = var.app_env
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DB_HOST"
+    # value     = var.db_test_host
+    value     = "db.test.brickfin.co.uk"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DB_PORT"
+    value     = var.db_test_port
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DB_DATABASE"
+    value     = var.db_test_database
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DB_PASSWORD"
+    value     = var.db_test_password
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DB_CONNECTION"
+    value     = var.db_test_connection
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DB_USERNAME"
+    value     = var.db_test_username
+  }
+
+  # Redis Elastic Cache 
+  # ---------------------------------------------------------------#
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "REDIS_HOST"
+    value     = "tls://${var.redis_endpoint}"
+    # value     = var.redis_private_ip
+
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "REDIS_CLIENT"
+    value     = var.redis_elastic_cache_php_client
+    # value     = var.redis_client
+
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "REDIS_PASSWORD"
+    value     = var.redis_elastic_cache_password
+    # value     = var.redis_password
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "REDIS_PORT"
+    value     = var.redis_elastic_cache_port
+  }
+  # ---------------------------------------------------------------#
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "MANDRILL_SECRET"
+    value     = var.mandrill_secret
+  }
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
@@ -391,18 +370,6 @@ JSON
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "APP_ENV"
-    value     = var.app_env
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "APP_KEY"
-    value     = var.app_key
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
     name      = "APP_LOG_LEVEL"
     value     = var.app_log_level
   }
@@ -411,12 +378,6 @@ JSON
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "APP_URL"
     value     = var.app_url
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "AWS_ACCESS_KEY_ID"
-    value     = var.aws_access_key_id
   }
 
   setting {
@@ -439,12 +400,6 @@ JSON
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "AWS_SECRET_ACCESS_KEY"
-    value     = var.aws_secret_access_key
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
     name      = "AWS_SQS_DRIVER"
     value     = var.aws_sqs_driver
   }
@@ -453,12 +408,6 @@ JSON
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "AWS_SQS_PREFIX"
     value     = var.aws_sqs_prefix
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "AWS_SQS_QUEUE"
-    value     = aws_sqs_queue.worker_queue.name
   }
 
   # setting {
@@ -500,7 +449,7 @@ JSON
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "CAN_RUN_SCHEDULE"
-    value     = var.can_run_schedule
+    value     = var.worker_can_run_schedule
   }
 
   setting {
@@ -511,38 +460,20 @@ JSON
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "CONNECTED_STRIPE_ACCOUNT_ID"
-    value     = var.connected_stripe_account_id
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "CORPORATE_AGREEMENT_URL"
-    value     = var.corporate_agreement_url
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "DB_CONNECTION"
-    value     = var.db_test_connection
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
     name      = "DB_CONNECTION_AUDIT_NAME"
     value     = var.db_connection_audit_name
   }
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "DB_CONNECTION_STAGING_NAME"
-    value     = var.db_connection_staging_name
+    name      = "DB_CONNECTION_READONLY"
+    value     = var.db_connection_read_only
   }
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "DB_DATABASE"
-    value     = var.db_test_database
+    name      = "DB_CONNECTION_STAGING_NAME"
+    value     = var.db_connection_staging_name
   }
 
   setting {
@@ -565,18 +496,6 @@ JSON
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "DB_DATABASE_STAGING_TESTING"
-    value     = var.db_database_staging_testing
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "DB_HOST"
-    value     = var.db_test_host
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
     name      = "DB_HOST_AUDIT"
     value     = var.db_host_audit
   }
@@ -591,18 +510,6 @@ JSON
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "DB_HOST_STAGING"
     value     = var.db_host_staging
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "DB_HOST_STAGING_TESTING"
-    value     = var.db_host_staging_testing
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "DB_PASSWORD"
-    value     = var.db_test_password
   }
 
   setting {
@@ -625,12 +532,6 @@ JSON
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "DB_PORT"
-    value     = var.db_test_port
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
     name      = "DB_PORT_AUDIT"
     value     = var.db_port_audit
   }
@@ -649,18 +550,6 @@ JSON
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "DB_PORT_STAGING_TESTING"
-    value     = var.db_port_staging_testing
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "DB_USERNAME"
-    value     = var.db_test_username
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
     name      = "DB_USERNAME_AUDIT"
     value     = var.db_username_audit
   }
@@ -675,12 +564,6 @@ JSON
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "DB_USERNAME_STAGING"
     value     = var.db_username_staging
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "DB_USERNAME_STAGING_TESTING"
-    value     = var.db_username_staging_testing
   }
 
   setting {
@@ -745,18 +628,6 @@ JSON
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "MANDRILL_APIKEY"
-    value     = var.mandrill_apikey
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "MANDRILL_SECRET"
-    value     = var.mandrill_secret
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
     name      = "MANGOPAY_CLIENT"
     value     = var.mangopay_client
   }
@@ -799,7 +670,7 @@ JSON
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "ONFIDO_MOB_APPLICATION_ID"
+    name      = "ONFIDO_MOB_APPLICATION_IDONFID"
     value     = var.onfido_mob_application_id
   }
 
@@ -807,12 +678,6 @@ JSON
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "ONFIDO_WEB_API_KEY"
     value     = var.onfido_web_api_key
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "PERSONAL_AGREEMENT_URL"
-    value     = var.personal_agreement_url
   }
 
   setting {
@@ -830,9 +695,8 @@ JSON
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "REGISTER_WORKER_ROUTES"
-    value     = var.register_worker_routes
+    value     = var.worker_register_worker_routes
   }
-  # ---------------------------------------------------------------#
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
@@ -866,12 +730,6 @@ JSON
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "SESSION_SECURE_COOKIE"
-    value     = var.session_secure_cookie
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
     name      = "STRIPE_PUBLISHABLE_KEY"
     value     = var.stripe_publishable_key
   }
@@ -881,13 +739,6 @@ JSON
     name      = "STRIPE_SECRET_KEY"
     value     = var.stripe_secret_key
   }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "TELESCOPE_ENABLED"
-    value     = var.telescope_enabled
-  }
-
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
@@ -906,4 +757,8 @@ JSON
     name      = "GET_ADDRESS_LOCATION_KEY"
     value     = var.get_address_location_key
   }
+  #============================
+  # ------Updates, monitoring, and logging 
 }
+
+

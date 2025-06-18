@@ -14,7 +14,7 @@ provider "aws" {
 }
 
 module "vpc-terraform" {
-  source               = "../../../modules/vpc-terraform"
+  source               = "../../../modules/vpc"
   vpc_name             = "Kuflink-Test-VPC"
   vpc_cidr_block       = var.vpc_cidr_block
   public_subnet_cidrs  = var.public_subnet_cidrs
