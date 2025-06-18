@@ -13,6 +13,13 @@ variable "redis_elastic_cache_password" {
   type        = string
 }
 
+
+variable "redis_elastic_cache_port" {
+  description = "Redis Port"
+  type        = string
+}
+
+
 variable "redis_cluster_id" {
   description = "ID for the Redis replication group"
   type        = string

@@ -12,8 +12,6 @@ resource "aws_elastic_beanstalk_environment" "kuflink_env" {
   application         = aws_elastic_beanstalk_application.kuflink_app.name
   solution_stack_name = "64bit Amazon Linux 2023 v4.6.2 running PHP 8.4"
 
-  # version_label = aws_elastic_beanstalk_application_version.placeholder.name
-
   tags = {
       Descriptpion = "ElasticBeanstalk Web Application"
   }
@@ -23,6 +21,35 @@ resource "aws_elastic_beanstalk_environment" "kuflink_env" {
     name      = "SSLCertificateArns"
     value     = var.ssl_certificate_arn
   }
+
+    # Redis Elastic Cache 
+# ---------------------------------------------------------------#
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "REDIS_HOST"
+    value     = "tls://${var.redis_endpoint}"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "REDIS_CLIENT"
+    value     = var.redis_elastic_cache_php_client 
+    # value     = var.redis_client
+
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "REDIS_PASSWORD"
+    value     = var.redis_elastic_cache_password
+    # value     = var.redis_password
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "REDIS_PORT"
+    value     = var.redis_elastic_cache_port
+  }
+
 
 
 
@@ -801,36 +828,6 @@ JSON
 #     namespace = "aws:elasticbeanstalk:application:environment"
 #     name      = "QUEUE_DEFAULT"
 #     value     = var.queue_default
-#   }
-
-#   # Redis Elastic Cache 
-# # ---------------------------------------------------------------#
-#   setting {
-#     namespace = "aws:elasticbeanstalk:application:environment"
-#     name      = "REDIS_HOST"
-#     value     = "tls://${var.redis_elastic_cache_primary_endpoint}"
-#     # value     = var.redis_private_ip
-
-#   }
-
-#   setting {
-#     namespace = "aws:elasticbeanstalk:application:environment"
-#     name      = "REDIS_CLIENT"
-#     value     = var.redis_elastic_cache_php_client
-#     # value     = var.redis_client
-
-#   }
-#   setting {
-#     namespace = "aws:elasticbeanstalk:application:environment"
-#     name      = "REDIS_PASSWORD"
-#     value     = var.redis_elastic_cache_password
-#     # value     = var.redis_password
-#   }
-
-#   setting {
-#     namespace = "aws:elasticbeanstalk:application:environment"
-#     name      = "REDIS_PORT"
-#     value     = var.redis_elastic_cache_port
 #   }
 
 #   setting {

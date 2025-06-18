@@ -13,6 +13,30 @@ variable "ssl_certificate_arn" {
 }
 
 
+variable "redis_elastic_cache_password" {
+  description = "Auth token for Redis (must be 16–128 chars)"
+  type        = string
+}
+
+variable "redis_endpoint" {
+  description = "Redis Endpoint"
+  type        = string
+}
+
+variable "redis_elastic_cache_php_client" {
+  description = "Redis Client"
+  type        = string
+}
+
+
+variable "redis_elastic_cache_port" {
+  description = "Redis Port"
+  type        = string
+}
+
+
+
+
 
 
 # Networking

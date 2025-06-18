@@ -58,34 +58,46 @@ module "ec2_test_instance" {
 
 module "redis_elastic_cache" {
   source = "../../../modules/redis-elastic-cache"
-  vpc_id              = data.terraform_remote_state.networking.outputs.vpc_id
-
-
+  vpc_id                       = data.terraform_remote_state.networking.outputs.vpc_id
   private_subnet_ids           = data.terraform_remote_state.networking.outputs.private_subnet_ids
+
   redis_elastic_cache_password = data.terraform_remote_state.shared.outputs.redis_elastic_cache_password
+  redis_elastic_cache_port     = data.terraform_remote_state.shared.outputs.redis_elastic_cache_port 
 
   web_app_sg_id  = module.web_app.web_app_sg_id 
   bastion_sg_id = module.bastion-terraform.bastion_sg_id
 }
 
 
-
 module "web_app" { 
   source = "../../../modules/web-app-terraform"
 
+  environment             = var.environment 
   eb_role_arn             = data.terraform_remote_state.iam.outputs.eb_role_arn
   eb_instance_profile_arn = data.terraform_remote_state.iam.outputs.eb_instance_profile_arn
+
+  # SSL
+  ssl_certificate_arn     = var.ssl_certificate_arn
  
   # Networking
   vpc_id                  = data.terraform_remote_state.networking.outputs.vpc_id
-  private_subnet_ids  = data.terraform_remote_state.networking.outputs.private_subnet_ids  
-  public_subnet_ids   = data.terraform_remote_state.networking.outputs.public_subnet_ids
+  private_subnet_ids      = data.terraform_remote_state.networking.outputs.private_subnet_ids  
+  public_subnet_ids       = data.terraform_remote_state.networking.outputs.public_subnet_ids
   # elb_security_group_id = module.networking.alb_sg_id
-  # eb_ssh_sg_id        = module.iam.eb_instance_sg_id   
-  # ssl_certificate_arn = data.terraform_remote_state.shared.outputs.ssl_cert_arn 
-    # SSL
-  ssl_certificate_arn = var.ssl_certificate_arn
+  # eb_ssh_sg_id          = module.iam.eb_instance_sg_id    
+
+  # Redis
+  redis_endpoint  = module.redis_elastic_cache.redis_endpoint
+
   # Secrets from shared 
+  redis_elastic_cache_password    = data.terraform_remote_state.shared.outputs.redis_elastic_cache_password 
+  redis_elastic_cache_php_client  = data.terraform_remote_state.shared.outputs.redis_elastic_cache_php_client 
+  redis_elastic_cache_port        = data.terraform_remote_state.shared.outputs.redis_elastic_cache_port 
+
+
+
+
+
   # db_test_username     = data.terraform_remote_state.shared.outputs.db_test_username
   # db_test_password     = data.terraform_remote_state.shared.outputs.db_test_password
   # db_test_host         = data.terraform_remote_state.shared.outputs.db_test_host
@@ -99,7 +111,7 @@ module "web_app" {
   # App configuration
   # app_env              = var.app_env 
   # app_url              = var.app_url
-  environment          = var.environment
+  
 } 
 
 

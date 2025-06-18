@@ -40,3 +40,21 @@ output "web_app_eb_worker_environment_name" {
   description = "Elastic Beanstalk Worker environment name"
   value       = module.web_app.eb_worker_environment_name
 }
+
+# Redis Outputs
+
+output "redis_primary_endpoint_address" {
+  description = "Primary endpoint address for Redis ElastiCache"
+  value       = module.redis_elastic_cache.redis_endpoint
+}
+
+output "redis_elastic_cache_php_client" {
+  description = "Redis client connection string for PHP"
+  value       = "tcp://${module.redis_elastic_cache.redis_endpoint}:6379"
+}
+
+output "redis_elastic_cache_port" {
+  description = "Redis port"
+  value       = module.redis_elastic_cache.redis_port
+}
+

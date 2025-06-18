@@ -324,3 +324,14 @@ output "redis_elastic_cache_password" {
   value = module.secrets.redis_elastic_cache_password
   sensitive = true
 }
+output "redis_elastic_cache_php_client" {
+  value = module.secrets.redis_elastic_cache_php_client
+  sensitive = true
+}
+
+output "redis_elastic_cache_port" {
+  value = module.secrets.redis_elastic_cache_port
+  sensitive = true
+}
+
+
