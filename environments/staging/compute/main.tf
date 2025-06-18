@@ -106,8 +106,8 @@ module "web_app" {
   # codepipeline_artifacts_bucket_name = data.terraform_remote_state.shared.outputs.codepipeline_artifacts_bucket_name
   connected_stripe_account_id = data.terraform_remote_state.shared.outputs.connected_stripe_account_id 
   personal_agreement_url     = data.terraform_remote_state.shared.outputs.personal_agreement_url
-  corporate_agreement_url    = data.terraform_remote_state.shared.outputs.corporate_agreement_url   
-  bank_of_england_api_key    = data.terraform_remote_state.shared.outputs.bank_of_england_api_key
+  corporate_agreement_url    = data.terraform_remote_state.shared.outputs.corporate_agreement_url    
+  bank_of_england_api_key    = data.terraform_remote_state.shared.outputs.bank_of_england_api_key 
 
   # Mangopay
   mangopay_client                                 = data.terraform_remote_state.shared.outputs.mangopay_client
@@ -218,6 +218,7 @@ module "web_app" {
   aws_access_key_id     = data.terraform_remote_state.shared.outputs.aws_access_key_id
   aws_secret_access_key = data.terraform_remote_state.shared.outputs.aws_secret_access_key
   aws_default_region    = data.terraform_remote_state.shared.outputs.aws_default_region
+  kuflink_codestar_connection = data.terraform_remote_state.shared.outputs.kuflink_codestar_connection
 }
 
 

@@ -101,6 +101,10 @@ output "db_test_subnet_group_name" {
 #   value = module.secrets.codepipeline_artifacts_bucket_name
 # }
 
+output "kuflink_codestar_connection" {
+  value = module.secrets.kuflink_codestar_connection
+  sensitive = true
+}
 
 output "app_log_level" {
   value = module.secrets.app_log_level

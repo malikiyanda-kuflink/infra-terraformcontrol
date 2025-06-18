@@ -1,3 +1,13 @@
+variable "kuflink_codestar_connection" {
+  type = string
+}
+
+variable "github_branch" {
+  description = "The GitHub branch name"
+  type        = string
+  default = "main"
+}
+
 variable "worker_register_worker_routes" {
   type        = string
   description = "Register worker routes for worker"
