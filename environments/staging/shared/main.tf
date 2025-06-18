@@ -10,5 +10,5 @@ data "terraform_remote_state" "compute" {
 
 
 module "secrets" {
-  source     = "../../../modules/secrets-manager-terraform"
-} 
+  source = "../../../modules/secrets-manager-terraform"
+}

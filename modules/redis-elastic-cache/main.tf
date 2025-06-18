@@ -24,20 +24,20 @@ resource "aws_cloudwatch_log_group" "redis_slow_log" {
 }
 
 resource "aws_elasticache_replication_group" "redis" {
-  replication_group_id          = var.redis_cluster_id
-  description                   = "Redis replication group for Kuflink"
-  engine                        = "redis"
-  engine_version                = "6.x"
-  node_type                     = var.node_type
-  port                          = var.redis_elastic_cache_port
-  num_node_groups               = 1
-  replicas_per_node_group       = 0
-  automatic_failover_enabled    = false
-  subnet_group_name             = aws_elasticache_subnet_group.redis_subnet_group.name
-  security_group_ids            = [aws_security_group.redis_sg.id]
-  transit_encryption_enabled    = true
-  auth_token                    = var.redis_elastic_cache_password
-  apply_immediately             = true
+  replication_group_id       = var.redis_cluster_id
+  description                = "Redis replication group for Kuflink"
+  engine                     = "redis"
+  engine_version             = "6.x"
+  node_type                  = var.node_type
+  port                       = var.redis_elastic_cache_port
+  num_node_groups            = 1
+  replicas_per_node_group    = 0
+  automatic_failover_enabled = false
+  subnet_group_name          = aws_elasticache_subnet_group.redis_subnet_group.name
+  security_group_ids         = [aws_security_group.redis_sg.id]
+  transit_encryption_enabled = true
+  auth_token                 = var.redis_elastic_cache_password
+  apply_immediately          = true
 
   log_delivery_configuration {
     destination_type = "cloudwatch-logs"

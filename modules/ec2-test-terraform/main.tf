@@ -6,7 +6,7 @@ resource "aws_security_group" "test_instance_sg" {
     from_port       = 22
     to_port         = 22
     protocol        = "tcp"
-    security_groups = [var.bastion_sg_id]   # only Bastion allowed to SSH
+    security_groups = [var.bastion_sg_id] # only Bastion allowed to SSH
   }
 
   egress {

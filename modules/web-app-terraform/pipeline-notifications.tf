@@ -40,7 +40,7 @@ resource "aws_sns_topic_policy" "pipeline_notifications_policy" {
 resource "aws_sns_topic_subscription" "codepipeline_email_subscription" {
   topic_arn = aws_sns_topic.pipeline_notifications.arn
   protocol  = "email"
-  endpoint  = "m.iyanda@kuflink.com"  
+  endpoint  = "m.iyanda@kuflink.com"
 }
 
 resource "aws_codestarnotifications_notification_rule" "pipeline_notification" {
@@ -57,7 +57,7 @@ resource "aws_codestarnotifications_notification_rule" "pipeline_notification" {
   ]
 
   target {
-    address = aws_sns_topic.pipeline_notifications.arn 
+    address = aws_sns_topic.pipeline_notifications.arn
   }
 }
 

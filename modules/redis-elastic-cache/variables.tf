@@ -1,4 +1,4 @@
- variable "private_subnet_ids" {
+variable "private_subnet_ids" {
   description = "Private subnet IDs for ElastiCache"
   type        = list(string)
 }

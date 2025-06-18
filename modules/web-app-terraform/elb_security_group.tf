@@ -27,8 +27,8 @@ resource "aws_security_group" "elb_security_group" {
   }
 
   tags = {
-      Name = "ELB Security Group"
-    }
+    Name = "ELB Security Group"
+  }
 
 }
 

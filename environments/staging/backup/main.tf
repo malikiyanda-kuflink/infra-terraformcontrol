@@ -6,7 +6,7 @@ data "terraform_remote_state" "networking" {
     key            = "staging/networking/terraform.tfstate"
     region         = "eu-west-2"
     dynamodb_table = "terraform-locks"
-  } 
+  }
 }
 
 # Reference database outputs
@@ -48,7 +48,7 @@ data "terraform_remote_state" "iam" {
 
 #   backup_vault_name         = "kuflink-test-backup-vault"
 #   backup_plan_name          = "kuflink-test-backup-plan"
-  
+
 #   # Now pass from remote state
 #   backup_service_role_arn   = data.terraform_remote_state.iam.outputs.backup_role_arn
 

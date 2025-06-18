@@ -26,7 +26,7 @@ variable "eb_instance_profile_name" {
 
 variable "test_redis_instance_role" {
   description = "Name for the Redis Instance Role"
-  type        = string 
+  type        = string
 }
 
 

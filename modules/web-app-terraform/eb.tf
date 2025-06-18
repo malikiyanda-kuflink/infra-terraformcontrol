@@ -9,7 +9,7 @@ resource "aws_elastic_beanstalk_environment" "kuflink_env" {
   solution_stack_name = "64bit Amazon Linux 2023 v4.6.2 running PHP 8.4"
 
   tags = {
-      Descriptpion = "ElasticBeanstalk Web Application"
+    Descriptpion = "ElasticBeanstalk Web Application"
   }
 
   setting {
@@ -18,8 +18,8 @@ resource "aws_elastic_beanstalk_environment" "kuflink_env" {
     value     = var.ssl_certificate_arn
   }
 
-    # Redis Elastic Cache 
-# ---------------------------------------------------------------#
+  # Redis Elastic Cache 
+  # ---------------------------------------------------------------#
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "REDIS_HOST"
@@ -29,7 +29,7 @@ resource "aws_elastic_beanstalk_environment" "kuflink_env" {
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "REDIS_CLIENT"
-    value     = var.redis_elastic_cache_php_client 
+    value     = var.redis_elastic_cache_php_client
     # value     = var.redis_client
 
   }
@@ -55,7 +55,7 @@ resource "aws_elastic_beanstalk_environment" "kuflink_env" {
   #   name      = "InstanceMetadataTags"
   #   value     = "enabled"
   # }
-  
+
   setting {
     namespace = "aws:elasticbeanstalk:sns:topics"
     name      = "Notification Endpoint"
@@ -71,38 +71,38 @@ resource "aws_elastic_beanstalk_environment" "kuflink_env" {
     namespace = "aws:elasticbeanstalk:command"
     name      = "DeploymentPolicy"
     # value     = "Immutable"
-    value     = "AllAtOnce"
+    value = "AllAtOnce"
   }
 
-    # Enable Log Streaming
+  # Enable Log Streaming
   setting {
-    namespace  = "aws:elasticbeanstalk:cloudwatch:logs"
-    name = "StreamLogs"
-    value       = "true"
+    namespace = "aws:elasticbeanstalk:cloudwatch:logs"
+    name      = "StreamLogs"
+    value     = "true"
   }
 
 
   # Specify how many days to keep logs in CloudWatch
   setting {
-    namespace  = "aws:elasticbeanstalk:cloudwatch:logs"
-    name        = "RetentionInDays"
-    value       = "30"
+    namespace = "aws:elasticbeanstalk:cloudwatch:logs"
+    name      = "RetentionInDays"
+    value     = "30"
   }
 
-# setting {
-#   namespace = "aws:elasticbeanstalk:s3"
-#   name      = "RotateLogs"
-#   value     = "true"
-# }
+  # setting {
+  #   namespace = "aws:elasticbeanstalk:s3"
+  #   name      = "RotateLogs"
+  #   value     = "true"
+  # }
 
 
   # Ensure the EB Host Manager publishes logs
   setting {
-    namespace  = "aws:elasticbeanstalk:hostmanager"
-    name =     "LogPublicationControl"
-    value       = "true"
+    namespace = "aws:elasticbeanstalk:hostmanager"
+    name      = "LogPublicationControl"
+    value     = "true"
   }
-   
+
   # ------Service Access
   # NOTE:Change manually for security risks EB auto creating 
   # sg with ssh access from (0.0.0.0/0) with EC2KeyName option setting
@@ -110,7 +110,7 @@ resource "aws_elastic_beanstalk_environment" "kuflink_env" {
     namespace = "aws:autoscaling:launchconfiguration"
     name      = "EC2KeyName"
     # value     = "Malik_kuflink"
-    value     = "staging" 
+    value = "staging"
   }
 
   # This ensures EB uses only *your* SG, so it won't create or inject its own rules
@@ -347,7 +347,7 @@ resource "aws_elastic_beanstalk_environment" "kuflink_env" {
     value     = "2048M"
   }
 
-setting {
+  setting {
     namespace = "aws:elasticbeanstalk:healthreporting:system"
     name      = "ConfigDocument"
     value     = <<JSON
@@ -364,7 +364,7 @@ setting {
   }
 }
 JSON
-}
+  }
 
 
 
@@ -888,22 +888,22 @@ JSON
     value     = var.telescope_enabled
   }
 
-  
+
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name = "TWILIO_ACCOUNT_SID"
-    value = var.twilio_account_sid
+    name      = "TWILIO_ACCOUNT_SID"
+    value     = var.twilio_account_sid
   }
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name = "TWILIO_AUTH_TOKEN"
-    value = var.twilio_auth_token 
+    name      = "TWILIO_AUTH_TOKEN"
+    value     = var.twilio_auth_token
   }
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name = "GET_ADDRESS_LOCATION_KEY"
-    value = var.get_address_location_key   
+    name      = "GET_ADDRESS_LOCATION_KEY"
+    value     = var.get_address_location_key
   }
 }

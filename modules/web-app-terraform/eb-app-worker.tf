@@ -23,8 +23,8 @@ resource "aws_elastic_beanstalk_environment" "worker-env" {
     value     = var.ssl_certificate_arn
   }
 
-      # Redis Elastic Cache 
-# ---------------------------------------------------------------#
+  # Redis Elastic Cache 
+  # ---------------------------------------------------------------#
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "REDIS_HOST"
@@ -34,7 +34,7 @@ resource "aws_elastic_beanstalk_environment" "worker-env" {
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "REDIS_CLIENT"
-    value     = var.redis_elastic_cache_php_client 
+    value     = var.redis_elastic_cache_php_client
     # value     = var.redis_client
 
   }
@@ -52,15 +52,15 @@ resource "aws_elastic_beanstalk_environment" "worker-env" {
   }
 
 
-# -----------------------------------------------------------------#
-# -----------------------------------------------------------------#
+  # -----------------------------------------------------------------#
+  # -----------------------------------------------------------------#
 
 
   setting {
     namespace = "aws:elasticbeanstalk:command"
     name      = "DeploymentPolicy"
     # value     = "Immutable"
-    value     = "AllAtOnce"
+    value = "AllAtOnce"
   }
 
   setting {
@@ -74,25 +74,25 @@ resource "aws_elastic_beanstalk_environment" "worker-env" {
     value     = "email"
   }
 
-      # Enable Log Streaming
+  # Enable Log Streaming
   setting {
-    namespace  = "aws:elasticbeanstalk:cloudwatch:logs"
-    name = "StreamLogs"
-    value       = "true"
+    namespace = "aws:elasticbeanstalk:cloudwatch:logs"
+    name      = "StreamLogs"
+    value     = "true"
   }
 
   # Specify how many days to keep logs in CloudWatch
   setting {
-    namespace  = "aws:elasticbeanstalk:cloudwatch:logs"
-    name        = "RetentionInDays"
-    value       = "14"
+    namespace = "aws:elasticbeanstalk:cloudwatch:logs"
+    name      = "RetentionInDays"
+    value     = "14"
   }
 
   # Ensure the EB Host Manager publishes logs
   setting {
-    namespace  = "aws:elasticbeanstalk:hostmanager"
-    name = "LogPublicationControl"
-    value       = "true"
+    namespace = "aws:elasticbeanstalk:hostmanager"
+    name      = "LogPublicationControl"
+    value     = "true"
   }
 
   # NOTE:Change manually for security risks EB auto creating 
@@ -100,7 +100,7 @@ resource "aws_elastic_beanstalk_environment" "worker-env" {
   setting {
     namespace = "aws:autoscaling:launchconfiguration"
     name      = "EC2KeyName"
-    value     = "staging" 
+    value     = "staging"
   }
 
   # This ensures EB uses only *your* SG, so it won't create or inject its own rules
@@ -251,8 +251,8 @@ resource "aws_elastic_beanstalk_environment" "worker-env" {
     value     = aws_sqs_queue.worker_queue.name
   }
 
-#   #-------Environment properties---------#  
-#   # All Remaining Environment Variables
+  #   #-------Environment properties---------#  
+  #   # All Remaining Environment Variables
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "AWS_ACCESS_KEY_ID"
@@ -314,7 +314,7 @@ resource "aws_elastic_beanstalk_environment" "worker-env" {
   }
 
   # Redis Elastic Cache 
-# ---------------------------------------------------------------#
+  # ---------------------------------------------------------------#
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "REDIS_HOST"
@@ -459,7 +459,7 @@ resource "aws_elastic_beanstalk_environment" "worker-env" {
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "DB_CONNECTION_AUDIT_NAME" 
+    name      = "DB_CONNECTION_AUDIT_NAME"
     value     = var.db_connection_audit_name
   }
 
@@ -693,7 +693,7 @@ resource "aws_elastic_beanstalk_environment" "worker-env" {
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "REGISTER_WORKER_ROUTES" 
+    name      = "REGISTER_WORKER_ROUTES"
     value     = var.worker_register_worker_routes
   }
 
@@ -741,20 +741,20 @@ resource "aws_elastic_beanstalk_environment" "worker-env" {
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name = "TWILIO_ACCOUNT_SID"
-    value = var.twilio_account_sid
+    name      = "TWILIO_ACCOUNT_SID"
+    value     = var.twilio_account_sid
   }
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name = "TWILIO_AUTH_TOKEN"
-    value = var.twilio_auth_token 
+    name      = "TWILIO_AUTH_TOKEN"
+    value     = var.twilio_auth_token
   }
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name = "GET_ADDRESS_LOCATION_KEY"
-    value = var.get_address_location_key   
+    name      = "GET_ADDRESS_LOCATION_KEY"
+    value     = var.get_address_location_key
   }
   #============================
   # ------Updates, monitoring, and logging 

@@ -12,9 +12,9 @@ resource "aws_wafv2_web_acl_association" "backend_waf_assoc" {
 # Create WAF ACL (REGIONAL for ALB)
 resource "aws_wafv2_web_acl" "backend_waf" {
   name        = "test-api-waf"
-  scope       = "REGIONAL"  # Required for ALB (Elastic Beanstalk)
+  scope       = "REGIONAL" # Required for ALB (Elastic Beanstalk)
   description = "TEST WAF for Kuflink API backend"
-  
+
   default_action {
     allow {}
   }
@@ -22,12 +22,12 @@ resource "aws_wafv2_web_acl" "backend_waf" {
 
 
 
-# Add AWS Managed Rule Groups
+  # Add AWS Managed Rule Groups
 
 
 
 
-# AWSManagedRulesCommonRuleSet-> All Blocked(Except SizeRestrictions_BODY Counted)
+  # AWSManagedRulesCommonRuleSet-> All Blocked(Except SizeRestrictions_BODY Counted)
   # rule {
   #   name     = "AWSManagedRulesCommonRuleSet"
   #   priority = 1
@@ -54,253 +54,253 @@ resource "aws_wafv2_web_acl" "backend_waf" {
   # }
 
 
-# AWSManagedRulesCommonRuleSet -> All Counted
-rule {
-  name     = "AWSManagedRulesCommonRuleSet"
-  priority = 1
-  override_action {
-    none {} # Allow overrides below to work at sub-rule level
-  }
-  statement {
-    managed_rule_group_statement {
-      name        = "AWSManagedRulesCommonRuleSet"
-      vendor_name = "AWS"
+  # AWSManagedRulesCommonRuleSet -> All Counted
+  rule {
+    name     = "AWSManagedRulesCommonRuleSet"
+    priority = 1
+    override_action {
+      none {} # Allow overrides below to work at sub-rule level
+    }
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
 
-      rule_action_override {
-        name = "CrossSiteScripting_URIPATH"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "CrossSiteScripting_URIPATH"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "CrossSiteScripting_BODY"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "CrossSiteScripting_BODY"
+          action_to_use {
+            count {}
+          }
         }
-      }
-      rule_action_override {
-        name = "CrossSiteScripting_QUERYARGUMENTS"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "CrossSiteScripting_QUERYARGUMENTS"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "CrossSiteScripting_COOKIE"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "CrossSiteScripting_COOKIE"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "SizeRestrictions_Cookie_HEADER"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "SizeRestrictions_Cookie_HEADER"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "NoUserAgent_HEADER"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "NoUserAgent_HEADER"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "UserAgent_BadBots_HEADER"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "UserAgent_BadBots_HEADER"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "SizeRestrictions_QUERYSTRING"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "SizeRestrictions_QUERYSTRING"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "SizeRestrictions_COOKIE_HEADER"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "SizeRestrictions_COOKIE_HEADER"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "SizeRestrictions_BODY"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "SizeRestrictions_BODY"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "SizeRestrictions_URIPATH"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "SizeRestrictions_URIPATH"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "EC2MetaDataSSRF_BODY"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "EC2MetaDataSSRF_BODY"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "EC2MetaDataSSRF_COOKIE"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "EC2MetaDataSSRF_COOKIE"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "EC2MetaDataSSRF_URIPATH"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "EC2MetaDataSSRF_URIPATH"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "EC2MetaDataSSRF_QUERYARGUMENTS"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "EC2MetaDataSSRF_QUERYARGUMENTS"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "GenericLFI_QUERYARGUMENTS"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "GenericLFI_QUERYARGUMENTS"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "GenericLFI_URIPATH"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "GenericLFI_URIPATH"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "GenericLFI_BODY"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "GenericLFI_BODY"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "RestrictedExtensions_URIPATH"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "RestrictedExtensions_URIPATH"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "RestrictedExtensions_QUERYARGUMENTS"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "RestrictedExtensions_QUERYARGUMENTS"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "GenericRFI_QUERYARGUMENTS"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "GenericRFI_QUERYARGUMENTS"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "GenericRFI_BODY"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "GenericRFI_BODY"
+          action_to_use {
+            count {}
+          }
         }
-      }
 
-      rule_action_override {
-        name = "GenericRFI_URIPATH"
-        action_to_use {
-          count {}
+        rule_action_override {
+          name = "GenericRFI_URIPATH"
+          action_to_use {
+            count {}
+          }
         }
       }
     }
-  }
-  visibility_config {
-    cloudwatch_metrics_enabled = true
-    metric_name                = "CoreRuleSet"
-    sampled_requests_enabled   = true
-  }
-}
-
-
-# AWSManagedRulesAmazonIpReputationList -> All Blocked
-rule {
-  name     = "AWSManagedRulesAmazonIpReputationList"
-  priority = 2
-
-  override_action {
-    none {} # Use the default action from the rule group (block)
-  }
-
-  statement {
-    managed_rule_group_statement {
-      name        = "AWSManagedRulesAmazonIpReputationList"
-      vendor_name = "AWS"
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "CoreRuleSet"
+      sampled_requests_enabled   = true
     }
   }
 
-  visibility_config {
-    cloudwatch_metrics_enabled = true
-    metric_name                = "AmazonIpReputation"
-    sampled_requests_enabled   = true
+
+  # AWSManagedRulesAmazonIpReputationList -> All Blocked
+  rule {
+    name     = "AWSManagedRulesAmazonIpReputationList"
+    priority = 2
+
+    override_action {
+      none {} # Use the default action from the rule group (block)
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesAmazonIpReputationList"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AmazonIpReputation"
+      sampled_requests_enabled   = true
+    }
   }
-}
 
-# AWSManagedRulesAmazonIpReputationList -> All Counted
-# rule {
-#   name     = "AWSManagedRulesAmazonIpReputationList"
-#   priority = 2
-#   override_action {
-#     none {} # Allow subrule overrides below to work
-#   }
-#   statement {
-#     managed_rule_group_statement {
-#       name        = "AWSManagedRulesAmazonIpReputationList"
-#       vendor_name = "AWS"
+  # AWSManagedRulesAmazonIpReputationList -> All Counted
+  # rule {
+  #   name     = "AWSManagedRulesAmazonIpReputationList"
+  #   priority = 2
+  #   override_action {
+  #     none {} # Allow subrule overrides below to work
+  #   }
+  #   statement {
+  #     managed_rule_group_statement {
+  #       name        = "AWSManagedRulesAmazonIpReputationList"
+  #       vendor_name = "AWS"
 
-#       rule_action_override {
-#         name = "AWSManagedIPReputationList"
-#         action_to_use {
-#           count {}
-#         }
-#       }
+  #       rule_action_override {
+  #         name = "AWSManagedIPReputationList"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
 
-#       rule_action_override {
-#         name = "AWSManagedReconnaissanceList"
-#         action_to_use {
-#           count {}
-#         }
-#       }
+  #       rule_action_override {
+  #         name = "AWSManagedReconnaissanceList"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
 
-#       rule_action_override {
-#         name = "AWSManagedIPDDoSList"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#     }
-#   }
-#   visibility_config {
-#     cloudwatch_metrics_enabled = true
-#     metric_name                = "AmazonIpReputation"
-#     sampled_requests_enabled   = true
-#   }
-# }
+  #       rule_action_override {
+  #         name = "AWSManagedIPDDoSList"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #     }
+  #   }
+  #   visibility_config {
+  #     cloudwatch_metrics_enabled = true
+  #     metric_name                = "AmazonIpReputation"
+  #     sampled_requests_enabled   = true
+  #   }
+  # }
 
-# AWSManagedRulesKnownBadInputsRuleSet -> All Blocked 
-rule {
+  # AWSManagedRulesKnownBadInputsRuleSet -> All Blocked 
+  rule {
     name     = "AWSManagedRulesKnownBadInputsRuleSet" # Blocks bad input patterns
     priority = 3
     override_action {
@@ -317,325 +317,325 @@ rule {
       metric_name                = "KnownBadInputs"
       sampled_requests_enabled   = true
     }
-}
-
-# AWSManagedRulesKnownBadInputsRuleSet - All Counted
-# rule {
-#   name     = "AWSManagedRulesKnownBadInputsRuleSet"
-#   priority = 3
-#   override_action {
-#     none {} # Allow individual rule overrides
-#   }
-#   statement {
-#     managed_rule_group_statement {
-#       name        = "AWSManagedRulesKnownBadInputsRuleSet"
-#       vendor_name = "AWS"
-
-#       rule_action_override {
-#         name = "JavaDeserializationRCE_BODY"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#       rule_action_override {
-#         name = "JavaDeserializationRCE_URIPATH"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#       rule_action_override {
-#         name = "JavaDeserializationRCE_QUERYSTRING"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#       rule_action_override {
-#         name = "JavaDeserializationRCE_HEADER"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#       rule_action_override {
-#         name = "Host_localhost_HEADER"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#       rule_action_override {
-#         name = "PROPFIND_METHOD"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#       rule_action_override {
-#         name = "ExploitablePaths_URIPATH"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#       rule_action_override {
-#         name = "Log4JRCE_QUERYSTRING"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#       rule_action_override {
-#         name = "Log4JRCE_BODY"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#       rule_action_override {
-#         name = "Log4JRCE_URIPATH"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#       rule_action_override {
-#         name = "Log4JRCE_HEADER"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#     }
-#   }
-#   visibility_config {
-#     cloudwatch_metrics_enabled = true
-#     metric_name                = "KnownBadInputs"
-#     sampled_requests_enabled   = true
-#   }
-# }
-
-# AWSManagedRulesLinuxRuleSet -> All Blocked
-rule {
-  name     = "AWSManagedRulesLinuxRuleSet"
-  priority = 4
-
-  override_action {
-    none {} # Use the default behavior (block)
   }
 
-  statement {
-    managed_rule_group_statement {
-      name        = "AWSManagedRulesLinuxRuleSet"
-      vendor_name = "AWS"
+  # AWSManagedRulesKnownBadInputsRuleSet - All Counted
+  # rule {
+  #   name     = "AWSManagedRulesKnownBadInputsRuleSet"
+  #   priority = 3
+  #   override_action {
+  #     none {} # Allow individual rule overrides
+  #   }
+  #   statement {
+  #     managed_rule_group_statement {
+  #       name        = "AWSManagedRulesKnownBadInputsRuleSet"
+  #       vendor_name = "AWS"
+
+  #       rule_action_override {
+  #         name = "JavaDeserializationRCE_BODY"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #       rule_action_override {
+  #         name = "JavaDeserializationRCE_URIPATH"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #       rule_action_override {
+  #         name = "JavaDeserializationRCE_QUERYSTRING"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #       rule_action_override {
+  #         name = "JavaDeserializationRCE_HEADER"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #       rule_action_override {
+  #         name = "Host_localhost_HEADER"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #       rule_action_override {
+  #         name = "PROPFIND_METHOD"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #       rule_action_override {
+  #         name = "ExploitablePaths_URIPATH"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #       rule_action_override {
+  #         name = "Log4JRCE_QUERYSTRING"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #       rule_action_override {
+  #         name = "Log4JRCE_BODY"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #       rule_action_override {
+  #         name = "Log4JRCE_URIPATH"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #       rule_action_override {
+  #         name = "Log4JRCE_HEADER"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #     }
+  #   }
+  #   visibility_config {
+  #     cloudwatch_metrics_enabled = true
+  #     metric_name                = "KnownBadInputs"
+  #     sampled_requests_enabled   = true
+  #   }
+  # }
+
+  # AWSManagedRulesLinuxRuleSet -> All Blocked
+  rule {
+    name     = "AWSManagedRulesLinuxRuleSet"
+    priority = 4
+
+    override_action {
+      none {} # Use the default behavior (block)
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesLinuxRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "LinuxOSProtection"
+      sampled_requests_enabled   = true
     }
   }
 
-  visibility_config {
-    cloudwatch_metrics_enabled = true
-    metric_name                = "LinuxOSProtection"
-    sampled_requests_enabled   = true
-  }
-}
+  # AWSManagedRulesLinuxRuleSet -> All Counted
+  # rule {
+  #   name     = "AWSManagedRulesLinuxRuleSet"
+  #   priority = 4
+  #   override_action {
+  #     none {} # Allow individual overrides
+  #   }
+  #   statement {
+  #     managed_rule_group_statement {
+  #       name        = "AWSManagedRulesLinuxRuleSet"
+  #       vendor_name = "AWS"
 
-# AWSManagedRulesLinuxRuleSet -> All Counted
-# rule {
-#   name     = "AWSManagedRulesLinuxRuleSet"
-#   priority = 4
-#   override_action {
-#     none {} # Allow individual overrides
-#   }
-#   statement {
-#     managed_rule_group_statement {
-#       name        = "AWSManagedRulesLinuxRuleSet"
-#       vendor_name = "AWS"
+  #       rule_action_override {
+  #         name = "LFI_URIPATH"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #       rule_action_override {
+  #         name = "LFI_QUERYSTRING"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #       rule_action_override {
+  #         name = "LFI_HEADER"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #     }
+  #   }
+  #   visibility_config {
+  #     cloudwatch_metrics_enabled = true
+  #     metric_name                = "LinuxOSProtection"
+  #     sampled_requests_enabled   = true
+  #   }
+  # }
 
-#       rule_action_override {
-#         name = "LFI_URIPATH"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#       rule_action_override {
-#         name = "LFI_QUERYSTRING"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#       rule_action_override {
-#         name = "LFI_HEADER"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#     }
-#   }
-#   visibility_config {
-#     cloudwatch_metrics_enabled = true
-#     metric_name                = "LinuxOSProtection"
-#     sampled_requests_enabled   = true
-#   }
-# }
+  # AWSManagedRulesPHPRuleSet -> All Blocked
+  rule {
+    name     = "AWSManagedRulesPHPRuleSet"
+    priority = 5
 
-# AWSManagedRulesPHPRuleSet -> All Blocked
-rule {
-  name     = "AWSManagedRulesPHPRuleSet"
-  priority = 5
+    override_action {
+      none {} # Use default action from the managed rule set (which is block)
+    }
 
-  override_action {
-    none {} # Use default action from the managed rule set (which is block)
-  }
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesPHPRuleSet"
+        vendor_name = "AWS"
+      }
+    }
 
-  statement {
-    managed_rule_group_statement {
-      name        = "AWSManagedRulesPHPRuleSet"
-      vendor_name = "AWS"
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "PHPProtection"
+      sampled_requests_enabled   = true
     }
   }
 
-  visibility_config {
-    cloudwatch_metrics_enabled = true
-    metric_name                = "PHPProtection"
-    sampled_requests_enabled   = true
-  }
-}
+  # AWSManagedRulesSQLiRuleSet ->  All Blocked
+  rule {
+    name     = "AWSManagedRulesSQLiRuleSet"
+    priority = 6
 
-# AWSManagedRulesSQLiRuleSet ->  All Blocked
-rule {
-  name     = "AWSManagedRulesSQLiRuleSet"
-  priority = 6
+    override_action {
+      none {} # No per-rule overrides; all rules will use default action (BLOCK)
+    }
 
-  override_action {
-    none {} # No per-rule overrides; all rules will use default action (BLOCK)
-  }
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesSQLiRuleSet"
+        vendor_name = "AWS"
+      }
+    }
 
-  statement {
-    managed_rule_group_statement {
-      name        = "AWSManagedRulesSQLiRuleSet"
-      vendor_name = "AWS"
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "SQLDatabase"
+      sampled_requests_enabled   = true
     }
   }
 
-  visibility_config {
-    cloudwatch_metrics_enabled = true
-    metric_name                = "SQLDatabase"
-    sampled_requests_enabled   = true
-  }
-}
+  # AWSManagedRulesPHPRuleSet -> All Counted
+  # rule {
+  #   name     = "AWSManagedRulesPHPRuleSet"
+  #   priority = 5
+  #   override_action {
+  #     none {} # Allow per-rule override
+  #   }
+  #   statement {
+  #     managed_rule_group_statement {
+  #       name        = "AWSManagedRulesPHPRuleSet"
+  #       vendor_name = "AWS"
 
-# AWSManagedRulesPHPRuleSet -> All Counted
-# rule {
-#   name     = "AWSManagedRulesPHPRuleSet"
-#   priority = 5
-#   override_action {
-#     none {} # Allow per-rule override
-#   }
-#   statement {
-#     managed_rule_group_statement {
-#       name        = "AWSManagedRulesPHPRuleSet"
-#       vendor_name = "AWS"
+  #       rule_action_override {
+  #         name = "PHPHighRiskMethodsVariables_HEADER"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #       rule_action_override {
+  #         name = "PHPHighRiskMethodsVariables_QUERYSTRING"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #       rule_action_override {
+  #         name = "PHPHighRiskMethodsVariables_BODY"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #     }
+  #   }
+  #   visibility_config {
+  #     cloudwatch_metrics_enabled = true
+  #     metric_name                = "PHPProtection"
+  #     sampled_requests_enabled   = true
+  #   }
+  # }
 
-#       rule_action_override {
-#         name = "PHPHighRiskMethodsVariables_HEADER"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#       rule_action_override {
-#         name = "PHPHighRiskMethodsVariables_QUERYSTRING"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#       rule_action_override {
-#         name = "PHPHighRiskMethodsVariables_BODY"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#     }
-#   }
-#   visibility_config {
-#     cloudwatch_metrics_enabled = true
-#     metric_name                = "PHPProtection"
-#     sampled_requests_enabled   = true
-#   }
-# }
+  # AWSManagedRulesSQLiRuleSet -> Blocked (Except SQLiBody)
+  # rule {
+  #   name     = "AWSManagedRulesSQLiRuleSet"
+  #   priority = 6
 
-# AWSManagedRulesSQLiRuleSet -> Blocked (Except SQLiBody)
-# rule {
-#   name     = "AWSManagedRulesSQLiRuleSet"
-#   priority = 6
+  #   override_action {
+  #     none {} # Use per-rule overrides instead of allowing all
+  #   }
 
-#   override_action {
-#     none {} # Use per-rule overrides instead of allowing all
-#   }
+  #   statement {
+  #     managed_rule_group_statement {
+  #       name        = "AWSManagedRulesSQLiRuleSet"
+  #       vendor_name = "AWS"
 
-#   statement {
-#     managed_rule_group_statement {
-#       name        = "AWSManagedRulesSQLiRuleSet"
-#       vendor_name = "AWS"
+  #       # Only override SQLi_BODY to count; all others will block
+  #       rule_action_override {
+  #         name = "SQLi_BODY"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #     }
+  #   }
+  #   visibility_config {
+  #     cloudwatch_metrics_enabled = true
+  #     metric_name                = "SQLDatabase"
+  #     sampled_requests_enabled   = true
+  #   }
+  # }
 
-#       # Only override SQLi_BODY to count; all others will block
-#       rule_action_override {
-#         name = "SQLi_BODY"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#     }
-#   }
-#   visibility_config {
-#     cloudwatch_metrics_enabled = true
-#     metric_name                = "SQLDatabase"
-#     sampled_requests_enabled   = true
-#   }
-# }
+  # AWSManagedRulesSQLiRuleSet -> All Counted
+  # rule {
+  #   name     = "AWSManagedRulesSQLiRuleSet"
+  #   priority = 6
+  #   override_action {
+  #     none {} # Allow per-rule override
+  #   }
+  #   statement {
+  #     managed_rule_group_statement {
+  #       name        = "AWSManagedRulesSQLiRuleSet"
+  #       vendor_name = "AWS"
 
-# AWSManagedRulesSQLiRuleSet -> All Counted
-# rule {
-#   name     = "AWSManagedRulesSQLiRuleSet"
-#   priority = 6
-#   override_action {
-#     none {} # Allow per-rule override
-#   }
-#   statement {
-#     managed_rule_group_statement {
-#       name        = "AWSManagedRulesSQLiRuleSet"
-#       vendor_name = "AWS"
+  #       rule_action_override {
+  #         name = "SQLiExtendedPatterns_QUERYARGUMENTS"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #       rule_action_override {
+  #         name = "SQLi_QUERYARGUMENTS"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #       rule_action_override {
+  #         name = "SQLi_BODY"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #       rule_action_override {
+  #         name = "SQLi_COOKIE"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #       rule_action_override {
+  #         name = "SQLi_URIPATH"
+  #         action_to_use {
+  #           count {}
+  #         }
+  #       }
+  #     }
+  #   }
+  #   visibility_config {
+  #     cloudwatch_metrics_enabled = true
+  #     metric_name                = "SQLDatabase"
+  #     sampled_requests_enabled   = true
+  #   }
+  # }
 
-#       rule_action_override {
-#         name = "SQLiExtendedPatterns_QUERYARGUMENTS"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#       rule_action_override {
-#         name = "SQLi_QUERYARGUMENTS"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#       rule_action_override {
-#         name = "SQLi_BODY"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#       rule_action_override {
-#         name = "SQLi_COOKIE"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#       rule_action_override {
-#         name = "SQLi_URIPATH"
-#         action_to_use {
-#           count {}
-#         }
-#       }
-#     }
-#   }
-#   visibility_config {
-#     cloudwatch_metrics_enabled = true
-#     metric_name                = "SQLDatabase"
-#     sampled_requests_enabled   = true
-#   }
-# }
-
-#BlockAdminPathsNotFromTrustedIPs -> Blocked
-rule {
+  #BlockAdminPathsNotFromTrustedIPs -> Blocked
+  rule {
     name     = "BlockAdminPathsNotFromTrustedIPs"
     priority = 7
 
@@ -690,7 +690,7 @@ rule {
 
 resource "aws_wafv2_web_acl_logging_configuration" "api_waf_logging" {
   resource_arn = aws_wafv2_web_acl.backend_waf.arn
- 
+
   log_destination_configs = [
     aws_cloudwatch_log_group.waf_log_group.arn
   ]
@@ -703,7 +703,7 @@ resource "aws_cloudwatch_log_group" "waf_log_group" {
 
 data "aws_iam_policy_document" "allow_waf_logging_doc" {
   statement {
-    sid = "AWSWAFLoggingPermissions"
+    sid    = "AWSWAFLoggingPermissions"
     effect = "Allow"
 
     principals {
@@ -718,7 +718,7 @@ data "aws_iam_policy_document" "allow_waf_logging_doc" {
       "logs:DescribeLogStreams"
     ]
     resources = ["${aws_cloudwatch_log_group.waf_log_group.arn}:*"]
- 
+
   }
 }
 
@@ -738,8 +738,8 @@ resource "aws_wafv2_regex_pattern_set" "admin_uri_regex" {
 }
 
 resource "aws_wafv2_ip_set" "office_vpn_ip" {
-  name        = "OfficeVPN-IP-Test"
-  scope       = "REGIONAL"
+  name               = "OfficeVPN-IP-Test"
+  scope              = "REGIONAL"
   ip_address_version = "IPV4"
 
   addresses = [

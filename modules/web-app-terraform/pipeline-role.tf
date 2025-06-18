@@ -56,7 +56,7 @@ resource "aws_iam_policy" "codepipeline_policy" {
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
-            {
+      {
         Effect : "Allow",
         Action : "lambda:InvokeFunction",
         Resource : "*"
@@ -273,7 +273,7 @@ resource "aws_iam_policy" "codepipeline_policy" {
       # Permissions for SNS
       {
         "Effect" : "Allow",
-        "Action": "sns:*",
+        "Action" : "sns:*",
         # "Action" : [
         #   "sns:Publish",
         #   "sns:CreateTopic",

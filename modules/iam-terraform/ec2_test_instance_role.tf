@@ -13,7 +13,7 @@ resource "aws_iam_role" "ec2_test_instance_role" {
       }
     ]
   })
- 
+
   tags = var.tags
 }
 

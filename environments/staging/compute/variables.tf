@@ -9,7 +9,7 @@ variable "ssh_key_parameter_name" {
 }
 
 variable "environment" {
-  type = string 
+  type = string
 }
 variable "ssl_certificate_arn" {
   type        = string

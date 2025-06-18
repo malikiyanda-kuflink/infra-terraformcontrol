@@ -1,5 +1,5 @@
 output "get_address_location_key" {
-  value = module.secrets.GET_ADDRESS_LOCATION_KEY
+  value     = module.secrets.GET_ADDRESS_LOCATION_KEY
   sensitive = true
 }
 
@@ -7,93 +7,93 @@ output "get_address_location_key" {
 
 
 output "app_env" {
-  value = module.secrets.app_env
+  value     = module.secrets.app_env
   sensitive = true
 
 }
 
 output "app_key" {
-  value = module.secrets.app_key
+  value     = module.secrets.app_key
   sensitive = true
 }
 
 output "app_url" {
-  value = module.secrets.app_url
+  value     = module.secrets.app_url
   sensitive = true
 
 }
 
 output "aws_access_key_id" {
-  value = module.secrets.aws_access_key_id
+  value     = module.secrets.aws_access_key_id
   sensitive = true
 }
 
 output "aws_secret_access_key" {
-  value = module.secrets.aws_secret_access_key
+  value     = module.secrets.aws_secret_access_key
   sensitive = true
 }
 
 output "aws_default_region" {
-  value = module.secrets.aws_default_region
-    sensitive = true
+  value     = module.secrets.aws_default_region
+  sensitive = true
 
 }
 
 output "aws_region" {
-  value = module.secrets.aws_region
-    sensitive = true
+  value     = module.secrets.aws_region
+  sensitive = true
 
 }
 
 output "broadcast_driver" {
-  value = module.secrets.broadcast_driver
-    sensitive = true
+  value     = module.secrets.broadcast_driver
+  sensitive = true
 
 }
 
 output "cache_driver" {
-  value = module.secrets.cache_driver
-    sensitive = true
+  value     = module.secrets.cache_driver
+  sensitive = true
 
 }
 
 output "db_test_connection" {
-  value = module.secrets.db_test_connection
-    sensitive = true
+  value     = module.secrets.db_test_connection
+  sensitive = true
 
 }
 
 output "db_test_port" {
-  value = module.secrets.db_test_port
-    sensitive = true
+  value     = module.secrets.db_test_port
+  sensitive = true
 
 }
 
 output "db_test_username" {
-  value = module.secrets.db_test_username
+  value     = module.secrets.db_test_username
   sensitive = true
 }
 
 output "db_test_password" {
-  value = module.secrets.db_test_password
+  value     = module.secrets.db_test_password
   sensitive = true
 }
 
 output "db_test_database" {
-  value = module.secrets.db_test_database
-    sensitive = true
+  value     = module.secrets.db_test_database
+  sensitive = true
 
 }
 
 output "db_test_host" {
-  value = module.secrets.db_test_host
-    sensitive = true
+  value     = module.secrets.db_test_host
+  sensitive = true
 
 }
 
 output "db_test_subnet_group_name" {
-  value = module.secrets.db_test_subnet_group_name
-    sensitive = true
+  value     = module.secrets.db_test_subnet_group_name
+  sensitive = true
 
 }
 
@@ -102,114 +102,114 @@ output "db_test_subnet_group_name" {
 # }
 
 output "kuflink_codestar_connection" {
-  value = module.secrets.kuflink_codestar_connection
+  value     = module.secrets.kuflink_codestar_connection
   sensitive = true
 }
 
 output "app_log_level" {
-  value = module.secrets.app_log_level
-    sensitive = true
+  value     = module.secrets.app_log_level
+  sensitive = true
 
 }
 
 output "app_debug" {
-  value = module.secrets.app_debug
-    sensitive = true
+  value     = module.secrets.app_debug
+  sensitive = true
 
 }
 
 output "activity_logger_enabled" {
-  value = module.secrets.activity_logger_enabled
-    sensitive = true
+  value     = module.secrets.activity_logger_enabled
+  sensitive = true
 
 }
 
 output "activity_logger_db_connection" {
-  value = module.secrets.activity_logger_db_connection
-    sensitive = true
+  value     = module.secrets.activity_logger_db_connection
+  sensitive = true
 
 }
 
 output "docusign_account_id" {
-  value = module.secrets.docusign_account_id
-    sensitive = true
+  value     = module.secrets.docusign_account_id
+  sensitive = true
 
 }
 
 output "docusign_client_id" {
-  value = module.secrets.docusign_client_id
-    sensitive = true
+  value     = module.secrets.docusign_client_id
+  sensitive = true
 
 }
 
 output "docusign_client_secret" {
-  value = module.secrets.docusign_client_secret
+  value     = module.secrets.docusign_client_secret
   sensitive = true
 }
 
 output "docusign_api_url" {
-  value = module.secrets.docusign_api_url
-    sensitive = true
+  value     = module.secrets.docusign_api_url
+  sensitive = true
 
 }
 
 output "docusign_base_url" {
-  value = module.secrets.docusign_base_url
-    sensitive = true
+  value     = module.secrets.docusign_base_url
+  sensitive = true
 
 }
 
 output "twilio_account_sid" {
-  value = module.secrets.twilio_account_sid
-    sensitive = true
+  value     = module.secrets.twilio_account_sid
+  sensitive = true
 
 }
 
 output "twilio_auth_token" {
-  value = module.secrets.twilio_auth_token
+  value     = module.secrets.twilio_auth_token
   sensitive = true
 }
 
 output "hubspot_access_token" {
-  value = module.secrets.hubspot_access_token
+  value     = module.secrets.hubspot_access_token
   sensitive = true
 }
 
 output "mail_username" {
-  value = module.secrets.mail_username
-    sensitive = true
+  value     = module.secrets.mail_username
+  sensitive = true
 
 }
 
 output "mandrill_apikey" {
-  value = module.secrets.mandrill_apikey
+  value     = module.secrets.mandrill_apikey
   sensitive = true
 }
 
 output "ses_key" {
-  value = module.secrets.ses_key
+  value     = module.secrets.ses_key
   sensitive = true
 }
 
 output "ses_secret" {
-  value = module.secrets.ses_secret
+  value     = module.secrets.ses_secret
   sensitive = true
 }
 
 output "ses_region" {
-  value = module.secrets.ses_region
+  value     = module.secrets.ses_region
   sensitive = true
 
 }
 
 output "onfido_mob_api_key" {
-  value = module.secrets.onfido_mob_api_key
+  value     = module.secrets.onfido_mob_api_key
   sensitive = true
 
 }
 
 output "onfido_mob_application_id" {
-  value = module.secrets.onfido_mob_application_id
+  value     = module.secrets.onfido_mob_application_id
   sensitive = true
 
 }
@@ -219,7 +219,7 @@ output "onfido_mob_application_id" {
 
 
 
-output "onfido_web_api_key"               {
+output "onfido_web_api_key" {
   value     = module.secrets.onfido_web_api_key
   sensitive = true
 }
@@ -542,16 +542,16 @@ output "session_secure_cookie" {
 }
 
 output "redis_elastic_cache_password" {
-  value = module.secrets.redis_elastic_cache_password
+  value     = module.secrets.redis_elastic_cache_password
   sensitive = true
 }
 output "redis_elastic_cache_php_client" {
-  value = module.secrets.redis_elastic_cache_php_client
+  value     = module.secrets.redis_elastic_cache_php_client
   sensitive = true
 }
 
 output "redis_elastic_cache_port" {
-  value = module.secrets.redis_elastic_cache_port
+  value     = module.secrets.redis_elastic_cache_port
   sensitive = true
 }
 

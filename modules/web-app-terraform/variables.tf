@@ -3,13 +3,13 @@ variable "kuflink_codestar_connection" {
 }
 
 variable "bastion_private_ip" {
-  type = string 
+  type = string
 }
 
 variable "github_branch" {
   description = "The GitHub branch name"
   type        = string
-  default = "main"
+  default     = "main"
 }
 
 variable "worker_register_worker_routes" {

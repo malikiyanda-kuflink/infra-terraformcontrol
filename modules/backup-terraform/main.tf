@@ -2,15 +2,15 @@
 
 # Daily Rule
 resource "aws_backup_plan" "backup_plan" {
-  name = "${var.backup_plan_name}"
+  name = var.backup_plan_name
 
   rule {
     rule_name         = "${var.backup_plan_name}-daily"
     target_vault_name = aws_backup_vault.backup_vault.name
-    schedule          = "cron(0 5 * * ? *)"  # Every day at 05:00 UTC
+    schedule          = "cron(0 5 * * ? *)" # Every day at 05:00 UTC
 
     lifecycle {
-      delete_after = 35  # Keep for 35 days
+      delete_after = 35 # Keep for 35 days
     }
   }
 
@@ -18,10 +18,10 @@ resource "aws_backup_plan" "backup_plan" {
   rule {
     rule_name         = "${var.backup_plan_name}-weekly"
     target_vault_name = aws_backup_vault.backup_vault.name
-    schedule          = "cron(0 6 ? * 2 *)"  # Every Monday 06:00 UTC
+    schedule          = "cron(0 6 ? * 2 *)" # Every Monday 06:00 UTC
 
     lifecycle {
-      delete_after = 84  # 12 weeks ≈ 84 days
+      delete_after = 84 # 12 weeks ≈ 84 days
     }
   }
 
@@ -29,10 +29,10 @@ resource "aws_backup_plan" "backup_plan" {
   rule {
     rule_name         = "${var.backup_plan_name}-monthly"
     target_vault_name = aws_backup_vault.backup_vault.name
-    schedule          = "cron(0 7 1 * ? *)"  # 1st of month 07:00 UTC
+    schedule          = "cron(0 7 1 * ? *)" # 1st of month 07:00 UTC
 
     lifecycle {
-      delete_after = 365  # 12 months
+      delete_after = 365 # 12 months
     }
   }
 
@@ -40,10 +40,10 @@ resource "aws_backup_plan" "backup_plan" {
   rule {
     rule_name         = "${var.backup_plan_name}-yearly"
     target_vault_name = aws_backup_vault.backup_vault.name
-    schedule          = "cron(0 8 1 1 ? *)"  # January 1st 08:00 UTC
+    schedule          = "cron(0 8 1 1 ? *)" # January 1st 08:00 UTC
 
     lifecycle {
-      delete_after = 2555  # 7 years ≈ 2555 days
+      delete_after = 2555 # 7 years ≈ 2555 days
     }
   }
 
