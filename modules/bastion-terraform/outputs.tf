@@ -9,3 +9,7 @@ output "bastion_sg_id" {
 output "bastion_instance_id" {
   value = aws_instance.bastion_host.id
 }
+
+output "bastion_private_id" {
+  value = aws_instance.bastion_host.private_ip
+}

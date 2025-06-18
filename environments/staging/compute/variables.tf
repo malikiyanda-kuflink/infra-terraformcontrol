@@ -22,3 +22,5 @@ variable "redis_elastic_cache_password" {
   description = "Password for Redis authentication"
 }
 
+
+

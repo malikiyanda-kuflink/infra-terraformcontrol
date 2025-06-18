@@ -25,6 +25,12 @@ output "bastion_instance_id" {
   value       = module.bastion-terraform.bastion_instance_id
 }
 
+output "bastion_private_id" {
+  description = "Private IP of the Bastion EC2 instance"
+  value       = module.bastion-terraform.bastion_private_id
+}
+
+
 # Web App Outputs
 output "web_app_env_name" {
   description = "Elastic Beanstalk Web environment name"

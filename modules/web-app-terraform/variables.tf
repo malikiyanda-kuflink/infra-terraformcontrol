@@ -2,6 +2,10 @@ variable "kuflink_codestar_connection" {
   type = string
 }
 
+variable "bastion_private_ip" {
+  type = string 
+}
+
 variable "github_branch" {
   description = "The GitHub branch name"
   type        = string

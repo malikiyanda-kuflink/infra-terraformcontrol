@@ -73,7 +73,8 @@ module "web_app" {
   source = "../../../modules/web-app-terraform"
 
   environment             = var.environment
-  eb_role_arn             = data.terraform_remote_state.iam.outputs.eb_role_arn
+  bastion_private_ip      = module.bastion-terraform.bastion_private_id  
+  eb_role_arn             = data.terraform_remote_state.iam.outputs.eb_role_arn 
   eb_instance_profile_arn = data.terraform_remote_state.iam.outputs.eb_instance_profile_arn
 
   # SSL
@@ -102,7 +103,7 @@ module "web_app" {
   mandrill_secret            = data.terraform_remote_state.shared.outputs.mandrill_secret
   bank_of_england_api_url    = data.terraform_remote_state.shared.outputs.bank_of_england_api_url
   send_local_emails          = data.terraform_remote_state.shared.outputs.send_local_emails
-  get_address_location_key   = data.terraform_remote_state.shared.outputs.get_address_location_key
+  get_address_location_key   = data.terraform_remote_state.shared.outputs.get_address_location_key 
   # codepipeline_artifacts_bucket_name = data.terraform_remote_state.shared.outputs.codepipeline_artifacts_bucket_name
   connected_stripe_account_id = data.terraform_remote_state.shared.outputs.connected_stripe_account_id 
   personal_agreement_url     = data.terraform_remote_state.shared.outputs.personal_agreement_url

@@ -120,10 +120,11 @@ resource "aws_elastic_beanstalk_environment" "kuflink_env" {
     value     = aws_security_group.elb_security_group.id
   }
 
+  # Restricts SSH access to only the Bastion EC2 IP address
   setting {
     namespace = "aws:autoscaling:launchconfiguration"
     name      = "SSHSourceRestriction"
-    value     = "tcp,22,22,35.176.203.87/32"
+    value     = "tcp,22,22,${var.bastion_private_ip}/32"
   }
 
   setting {
