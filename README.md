@@ -70,9 +70,6 @@ Networking cannot be removed while anything depends on it.
 📌 Notes
 Each layer is isolated and applied independently:
 
-bash
-Copy
-Edit
 terraform init
 terraform apply
 terraform destroy
@@ -83,8 +80,7 @@ Tags are consistently applied for cost tracking and traceability.
 🌐 DNS CNAME for DB Connectivity
 To enable seamless cutovers between DB instances (e.g. during migrations or failovers), we use a Route 53 CNAME record like:
 
-Copy
-Edit
+
 db.staging.brickfin.co.uk → kuflink-prod.xxxxxx.rds.amazonaws.com
 🔧 How It Works
 Applications connect using the CNAME (db.staging.brickfin.co.uk), not the actual RDS hostname.
