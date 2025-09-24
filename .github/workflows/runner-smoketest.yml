@@ -1,0 +1,15 @@
+name: runner-smoketest
+on: workflow_dispatch
+jobs:
+  whoami:
+    runs-on: [self-hosted, tf-runner]
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::137167813802:role/kuflink-test-github-oidc-terraform
+          aws-region: eu-west-2
+      - run: aws sts get-caller-identity

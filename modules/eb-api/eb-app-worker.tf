@@ -1,0 +1,602 @@
+# =================================================================================================
+# SQS Queue
+# =================================================================================================
+resource "aws_sqs_queue" "worker_queue" {
+  name                       = var.aws_sqs_queue_name
+  visibility_timeout_seconds = var.sqsd_visibility_timeout
+  tags                       = var.tags
+
+  lifecycle {
+    prevent_destroy = false
+  }
+}
+
+# =================================================================================================
+# Elastic Beanstalk: Kuflink-${var.environment} WORKER (AL2023 PHP 8.4)
+# =================================================================================================
+resource "aws_elastic_beanstalk_environment" "worker_env" {
+  name                = var.worker_env_name
+  application         = aws_elastic_beanstalk_application.kuflink_app.name
+  solution_stack_name = var.solution_stack_name
+  tier                = var.tier
+
+  lifecycle {
+    ignore_changes = [setting] # TEMPORARY; remove once stable
+  }
+
+  # -------------------------------------------
+  # Service Access (roles, profiles, key, SGs, SSH)
+  # -------------------------------------------
+  setting {
+    namespace = "aws:elasticbeanstalk:environment"
+    name      = "ServiceRole"
+    value     = var.eb_role_arn
+  }
+
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "IamInstanceProfile"
+    value     = var.eb_instance_profile_arn
+  }
+
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "EC2KeyName"
+    value     = var.ec2_key_name
+  }
+
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "SecurityGroups"
+    value     = var.eb_web_app_sg_id
+  }
+
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "SSHSourceRestriction"
+    value     = var.ssh_source_restriction # e.g. "tcp,22,22,${var.office_ip}"
+  }
+
+  # -------------------------------------------
+  # Load Balancer / HTTPS (listener 443 cert)
+  # -------------------------------------------
+  # setting {
+  #   namespace = "aws:elbv2:listener:443"
+  #   name      = "SSLCertificateArns"
+  #   value     = var.ssl_certificate_arn
+  # }
+
+  # -------------------------------------------
+  # Notifications (SNS)
+  # -------------------------------------------
+  setting {
+    namespace = "aws:elasticbeanstalk:sns:topics"
+    name      = "Notification Endpoint"
+    value     = var.notification_endpoint
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:sns:topics"
+    name      = "Notification Protocol"
+    value     = var.notification_protocol
+  }
+
+  # -------------------------------------------
+  # Logs & Monitoring
+  # -------------------------------------------
+  setting {
+    namespace = "aws:elasticbeanstalk:cloudwatch:logs"
+    name      = "StreamLogs"
+    value     = var.stream_logs ? "true" : "false"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:cloudwatch:logs"
+    name      = "RetentionInDays"
+    value     = tostring(var.log_retention_in_days)
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:hostmanager"
+    name      = "LogPublicationControl"
+    value     = var.log_publication_control ? "true" : "false"
+  }
+
+  # -------------------------------------------
+  # Deployment policy
+  # -------------------------------------------
+  setting {
+    namespace = "aws:elasticbeanstalk:command"
+    name      = "DeploymentPolicy"
+    value     = var.deployment_policy
+  }
+
+  # -------------------------------------------
+  # Worker (SQSD) settings
+  # -------------------------------------------
+  setting {
+    namespace = "aws:elasticbeanstalk:sqsd"
+    name      = "WorkerQueueURL"
+    value     = aws_sqs_queue.worker_queue.url
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:sqsd"
+    name      = "HttpPath"
+    value     = var.sqsd_http_path
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:sqsd"
+    name      = "HttpConnections"
+    value     = tostring(var.sqsd_http_connections)
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:sqsd"
+    name      = "VisibilityTimeout"
+    value     = tostring(var.sqsd_visibility_timeout)
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:sqsd"
+    name      = "MaxRetries"
+    value     = tostring(var.sqsd_max_retries)
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:sqsd"
+    name      = "InactivityTimeout"
+    value     = tostring(var.sqsd_inactivity_timeout)
+  }
+
+  # -------------------------------------------
+  # Networking (VPC & Subnets)
+  # -------------------------------------------
+  setting {
+    namespace = "aws:ec2:vpc"
+    name      = "VPCId"
+    value     = var.vpc_id
+  }
+
+  setting {
+    namespace = "aws:ec2:vpc"
+    name      = "Subnets"
+    value     = join(",", sort(var.private_subnet_ids))
+  }
+
+  # -------------------------------------------
+  # Instance & Scaling (type, ASG, env type)
+  # -------------------------------------------
+  setting {
+    namespace = "aws:elasticbeanstalk:environment"
+    name      = "EnvironmentType"
+    value     = var.worker_environment_type
+  }
+
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "InstanceType"
+    value     = var.worker_instance_type
+  }
+
+  # setting {
+  #   namespace = "aws:autoscaling:asg"
+  #   name      = "MaxSize"
+  #   value     = tostring(var.asg_max_size)
+  # }
+
+  # setting {
+  #   namespace = "aws:autoscaling:asg"
+  #   name      = "MinSize"
+  #   value     = tostring(var.asg_min_size)
+  # }
+
+  # -------------------------------------------
+  # PHP / Proxy settings (php.ini)
+  # -------------------------------------------
+  setting {
+    namespace = "aws:elasticbeanstalk:container:php:phpini"
+    name      = "document_root"
+    value     = var.document_root
+  }
+
+  # setting {
+  #   namespace = "aws:elasticbeanstalk:container:php:phpini"
+  #   name      = "max_execution_time"
+  #   value     = var.php_max_execution_time
+  # }
+
+  # setting {
+  #   namespace = "aws:elasticbeanstalk:container:php:phpini"
+  #   name      = "memory_limit"
+  #   value     = var.php_memory_limit
+  # }
+
+  # -------------------------------------------
+  # Managed Platform Updates
+  # -------------------------------------------
+  setting {
+    namespace = "aws:elasticbeanstalk:managedactions"
+    name      = "ManagedActionsEnabled"
+    value     = var.managed_actions_enabled ? "true" : "false"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:managedactions:platformupdate"
+    name      = "UpdateLevel"
+    value     = var.managed_update_level
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:managedactions"
+    name      = "PreferredStartTime"
+    value     = var.managed_preferred_start_time
+  }
+
+  # ================================================================================================
+  # ENVIRONMENT VARIABLES (aws:elasticbeanstalk:application:environment)
+  # ================================================================================================
+  # Core env vars
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "AWS_SQS_QUEUE"
+    value     = aws_sqs_queue.worker_queue.name
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "AWS_ACCESS_KEY_ID"
+    value     = var.aws_access_key_id
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "AWS_SECRET_ACCESS_KEY"
+    value     = var.aws_secret_access_key
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "APP_KEY"
+    value     = var.app_key
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "region"
+    value     = var.aws_region
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "AWS_REGION"
+    value     = var.aws_region
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "AWS_DEFAULT_REGION"
+    value     = var.aws_region
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "APP_ENV"
+    value     = var.app_env
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "COMPOSER_HOME"
+    value     = var.composer_home
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "MANDRILL_APIKEY"
+    value     = var.mandrill_apikey
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "MANDRILL_SECRET"
+    value     = var.mandrill_secret
+  }
+
+  # ================================================================================================
+  # Redis EC2 Instance
+  # ================================================================================================
+
+  # Redis EC2 Instance
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "REDIS_HOST"
+    value     = var.redis_private_ip
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "REDIS_PORT"
+    value     = var.redis_port
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "REDIS_CLIENT"
+    value     = var.redis_client
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "REDIS_PASSWORD"
+    value     = var.redis_password
+  }
+
+  # ================================================================================================
+  # Database Parameters 
+  # ================================================================================================
+
+  # Database Parameters
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DB_CONNECTION"
+    value     = var.db_connection
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DB_CONNECTION_READONLY"
+    value     = var.db_connection_readonly
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DB_DATABASE"
+    value     = var.db_database
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DB_HOST"
+    value     = var.db_host
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DB_HOST_READONLY"
+    value     = var.db_host_readonly
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DB_PASSWORD"
+    value     = var.db_password
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DB_PORT"
+    value     = var.db_port
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DB_USERNAME"
+    value     = var.db_username
+  }
+
+  # ================================================================================================
+  # Additional environment variables 
+  # ================================================================================================
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "ACTIVITY_LOGGER_DB_CONNECTION"
+    value     = var.activity_logger_db_connection
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "ACTIVITY_LOGGER_ENABLED"
+    value     = var.activity_logger_enabled
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "APP_DEBUG"
+    value     = var.app_debug
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "APP_LOG_LEVEL"
+    value     = var.app_log_level
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "APP_URL"
+    value     = var.app_url
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "AWS_SQS_DRIVER"
+    value     = var.aws_sqs_driver
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "AWS_SQS_PREFIX"
+    value     = var.aws_sqs_prefix
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "AWS_SQS_REGION"
+    value     = var.aws_sqs_region
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "BANK_OF_ENGLAND_API_KEY"
+    value     = var.bank_of_england_api_key
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "BANK_OF_ENGLAND_API_URL"
+    value     = var.bank_of_england_api_url
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "BROADCAST_DRIVER"
+    value     = var.broadcast_driver
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "CACHE_DRIVER"
+    value     = var.cache_driver
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "CAN_RUN_SCHEDULE"
+    value     = var.worker_can_run_schedule
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DOCUSIGN_ACCOUNT_ID"
+    value     = var.docusign_account_id
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DOCUSIGN_API_URL"
+    value     = var.docusign_api_url
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DOCUSIGN_BASE_URL"
+    value     = var.docusign_base_url
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DOCUSIGN_CLIENT_ID"
+    value     = var.docusign_client_id
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DOCUSIGN_CLIENT_SECRET"
+    value     = var.docusign_client_secret
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "HUBSPOT_ACCESS_TOKEN"
+    value     = var.hubspot_access_token
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "INTERCOM_INTEGRATION"
+    value     = var.intercom_integration
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "LOG_CHANNEL"
+    value     = var.log_channel
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "MAIL_DRIVER"
+    value     = var.mail_driver
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "MAIL_PORT"
+    value     = var.mail_port
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "MANGOPAY_CLIENT"
+    value     = var.mangopay_client
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "MANGOPAY_MAX_FUNDS_PER_TRANSACTION_FOR_TOPUP"
+    value     = var.mangopay_max_funds_per_transaction_for_topup
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "MANGOPAY_PASSPHRASE"
+    value     = var.mangopay_passphrase
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "MANGOPAY_REDIRECT_URL"
+    value     = var.mangopay_redirect_url
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "MANGOPAY_TOPUP_FUNDS_LIMIT_WITHOUT_MANGOPAY_AML"
+    value     = var.mangopay_topup_funds_limit_without_mangopay_aml
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "MANGOPAY_URL"
+    value     = var.mangopay_url
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "ONFIDO_MOB_API_KEY"
+    value     = var.onfido_mob_api_key
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "ONFIDO_MOB_APPLICATION_ID"
+    value     = var.onfido_mob_application_id
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "ONFIDO_WEB_API_KEY"
+    value     = var.onfido_web_api_key
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "QUEUE_CONNECTION"
+    value     = var.queue_connection
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "QUEUE_DEFAULT"
+    value     = var.queue_default
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "REGISTER_WORKER_ROUTES"
+    value     = var.worker_register_worker_routes
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "SEND_LOCAL_EMAILS"
+    value     = var.send_local_emails
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "SES_KEY"
+    value     = var.ses_key
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "SES_REGION"
+    value     = var.ses_region
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "SES_SECRET"
+    value     = var.ses_secret
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "SESSION_DRIVER"
+    value     = var.session_driver
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "STRIPE_PUBLISHABLE_KEY"
+    value     = var.stripe_publishable_key
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "STRIPE_SECRET_KEY"
+    value     = var.stripe_secret_key
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "TWILIO_ACCOUNT_SID"
+    value     = var.twilio_account_sid
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "TWILIO_AUTH_TOKEN"
+    value     = var.twilio_auth_token
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "GET_ADDRESS_LOCATION_KEY"
+    value     = var.get_address_location_key
+  }
+
+}
+
+
+
+

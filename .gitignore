@@ -1,0 +1,19 @@
+# Terraform files
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+terraform.tfvars
+terraform.tfvars.json
+crash.log
+override.tf
+override.tf.json
+terraform.rc
+AWS Imports & Exports.sh
+importing_vpc.sh
+# Backup files
+*~ 
+# Terraform plan output files
+*.tfplan
+*.tfplan.txt
+
