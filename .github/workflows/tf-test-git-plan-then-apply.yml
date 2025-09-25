@@ -2,7 +2,7 @@ name: tf-test-git-layered
 
 on:
   push:
-    branches: [ test-git ]
+    # branches: [  ]
     paths:
       - environments/test-git/**
       - modules/**
