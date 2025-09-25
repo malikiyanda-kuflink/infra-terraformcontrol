@@ -73,17 +73,19 @@ jobs:
           
           Write-Host "Terraform plan exit code: $exitCode" -ForegroundColor Yellow
           
-          # Set outputs
+          # Set outputs and exit appropriately for GitHub Actions
           if ($exitCode -eq 2) {
             Write-Host "Plan has changes" -ForegroundColor Green
             "has_changes=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            exit 0  # Exit success for GitHub Actions
           } elseif ($exitCode -eq 0) {
             Write-Host "Plan has no changes" -ForegroundColor Green  
             "has_changes=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            exit 0  # Exit success for GitHub Actions
           } else {
             Write-Host "Plan failed with exit code $exitCode" -ForegroundColor Red
             "has_changes=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            exit $exitCode
+            exit 1  # Exit failure for GitHub Actions
           }
 
       - name: Generate Plan Summary
@@ -102,9 +104,9 @@ jobs:
             $summary += ""
             
             if ("${{ steps.plan.outputs.has_changes }}" -eq "true") {
-              $summary += "Plan successful - has changes"
+              $summary += "✅ Plan successful - has changes"
             } else {
-              $summary += "Plan successful - no changes needed"
+              $summary += "✅ Plan successful - no changes needed"
             }
             
             # Add resource counts if available
@@ -124,9 +126,9 @@ jobs:
             
           } else {
             # Plan failed
-            $summary += "Terraform Plan Failed"
+            $summary += "## Terraform Plan Failed"
             $summary += ""
-            $summary += "Plan failed - check terraform logs in previous step"
+            $summary += "❌ Plan failed - check terraform logs in previous step"
           }
           
           # Write summary safely
