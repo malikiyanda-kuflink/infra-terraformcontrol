@@ -101,9 +101,9 @@ jobs:
             $summary += ""
 
             if ("${{ steps.plan.outputs.has_changes }}" -eq "true") {
-              $summary += "✅ Plan successful - has changes"
+              $summary += "Plan successful - has changes"
             } else {
-              $summary += "✅ Plan successful - no changes needed"
+              $summary += "Plan successful - no changes needed"
             }
 
             if (Test-Path "tfplan.json") {
@@ -122,7 +122,7 @@ jobs:
           } else {
             $summary += "## Terraform Plan Failed"
             $summary += ""
-            $summary += "❌ Plan failed - check terraform logs in previous step"
+            $summary += "Plan failed - check terraform logs in previous step"
           }
 
           $summaryText = $summary -join "`r`n"
