@@ -1,6 +1,11 @@
 name: foundation-test
 
 on:
+  pull_request:
+    branches: [ test-git ]
+    paths:
+      - environments/test-git/foundation/**
+      - modules/**
   push:
     branches: [ test-git ]
     paths:
@@ -137,11 +142,14 @@ jobs:
             ${{ env.TF_WORKDIR }}/tfplan.bin
             ${{ env.TF_WORKDIR }}/tfplan.txt
             ${{ env.TF_WORKDIR }}/tfplan.json
-          if-no-files-found: warn   # <-- prevents job failure if a file is missing
+          if-no-files-found: warn
           retention-days: 7
 
+      # ⬇️ Apply only after merge (i.e., push to the base branch)
       - name: Terraform Apply
-        if: steps.plan.outputs.has_changes == 'true' && github.event_name == 'workflow_dispatch' && github.event.inputs.auto_apply == 'true'
+        if: steps.plan.outputs.has_changes == 'true' &&
+            github.event_name == 'push' &&
+            github.ref == 'refs/heads/test-git'
         working-directory: ${{ env.TF_WORKDIR }}
         shell: powershell
         run: |
