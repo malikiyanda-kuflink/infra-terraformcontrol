@@ -55,25 +55,6 @@ jobs:
             -backend-config="dynamodb_table=$env:TF_LOCK_TABLE" `
             -backend-config="encrypt=true"
 
-      - name: Debug SSM Parameters
-        working-directory: ${{ env.TF_WORKDIR }}
-        shell: powershell
-        run: |
-          Write-Host "=== Debugging SSM Parameters ===" -ForegroundColor Yellow
-          
-          # Create temp file with terraform console commands
-          @"
-          data.aws_ssm_parameter.office_ips.value
-          data.aws_ssm_parameter.dbt_cloud_ips.value
-          data.aws_ssm_parameter.fivetran_gcp_ip.value
-          "@ | Out-File -FilePath "debug_commands.txt" -Encoding ASCII
-          
-          Write-Host "Running terraform console to check parameter values..." -ForegroundColor Cyan
-          & "$env:TERRAFORM_PATH" console < debug_commands.txt
-          
-          Remove-Item "debug_commands.txt" -Force
-          Write-Host "=== End Debug ===" -ForegroundColor Yellow
-
       - name: Terraform Plan
         id: plan
         working-directory: ${{ env.TF_WORKDIR }}

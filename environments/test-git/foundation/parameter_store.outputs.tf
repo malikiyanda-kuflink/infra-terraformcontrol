@@ -58,6 +58,7 @@ output "redshift_port" {
 output "kuflink_office_ips" {
   value       = local.kuflink_office_ips
   description = "List of Kuflink office IPs with description and CIDR"
+  sensitive = true
 }
 
 output "kuflink_office_ip_cidrs" {
