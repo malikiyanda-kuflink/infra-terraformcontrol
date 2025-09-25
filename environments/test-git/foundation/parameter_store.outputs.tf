@@ -67,12 +67,14 @@ output "kuflink_office_ip_cidrs" {
 
 output "dbt_cloud_ips" {
   value       = local.dbt_cloud_ips
+  sensitive = true
   description = "List of DBT Cloud IPs with description and CIDR"
 }
 
 
 output "fivetran_gcp_ips" {
   value       = local.fivetran_gcp
+  sensitive = true
   description = "List of DBT Cloud IPs with description and CIDR"
 }
 
