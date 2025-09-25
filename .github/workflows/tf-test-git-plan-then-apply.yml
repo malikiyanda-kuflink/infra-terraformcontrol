@@ -140,25 +140,23 @@ jobs:
               $summary += "- Adds: $adds, Changes: $updates, Destroys: $deletes, Replacements: $repl"
             }
 
-            # Parse outputs but filter sensitive ones
             if ($tf.output_changes) {
-              # Collect non-sensitive outputs and group them
-              $iamOutputs = @()
               $vpcOutputs = @()
+              $iamOutputs = @()
+              $dbOutputs = @()
+              $computeOutputs = @()
               $otherOutputs = @()
               $sensitiveCount = 0
               
               foreach ($outputName in $tf.output_changes.PSObject.Properties.Name) {
                 $outputChange = $tf.output_changes.$outputName
                 
-                # CRITICAL: Skip sensitive outputs for security
                 if ($outputChange.after_sensitive -eq $true) {
                   $sensitiveCount++
                   continue
                 }
                 
                 if ($outputChange.after -ne $null) {
-                  # Format the value
                   if ($outputChange.after -is [string]) {
                     $displayValue = $outputChange.after
                   } elseif ($outputChange.after -is [array]) {
@@ -169,11 +167,14 @@ jobs:
                   
                   $outputLine = "- $outputName = $displayValue"
                   
-                  # Group outputs by type based on name patterns
-                  if ($outputName -match "role_arn|instance_profile|iam_") {
-                    $iamOutputs += $outputLine
-                  } elseif ($outputName -match "vpc_|subnet|gateway|route|cidr") {
+                  if ($outputName -match "vpc|subnet|gateway|route|cidr|network") {
                     $vpcOutputs += $outputLine
+                  } elseif ($outputName -match "role_arn|instance_profile|iam_") {
+                    $iamOutputs += $outputLine
+                  } elseif ($outputName -match "db_|database|rds_|redshift|dms_") {
+                    $dbOutputs += $outputLine
+                  } elseif ($outputName -match "ami|instance|ec2_") {
+                    $computeOutputs += $outputLine
                   } else {
                     $otherOutputs += $outputLine
                   }
@@ -181,38 +182,49 @@ jobs:
               }
               
               $totalOutputs = ($tf.output_changes.PSObject.Properties | Measure-Object).Count
+              $visibleOutputs = $totalOutputs - $sensitiveCount
               $summary += ""
-              $summary += "**Planned Outputs ($($totalOutputs - $sensitiveCount) shown, $sensitiveCount sensitive hidden):**"
+              $summary += "**Planned Outputs ($visibleOutputs shown, $sensitiveCount sensitive hidden):**"
               
-              # Display grouped outputs
               if ($vpcOutputs.Count -gt 0) {
                 $summary += ""
-                $summary += "**🌐 VPC & Networking:**"
+                $summary += "**VPC and Networking ($($vpcOutputs.Count)):**"
                 $summary += $vpcOutputs
               }
               
               if ($iamOutputs.Count -gt 0) {
                 $summary += ""
-                $summary += "**🔐 IAM Roles & Policies:**"
+                $summary += "**IAM Roles and Policies ($($iamOutputs.Count)):**"
                 $summary += $iamOutputs
+              }
+              
+              if ($dbOutputs.Count -gt 0) {
+                $summary += ""
+                $summary += "**Database Resources ($($dbOutputs.Count)):**"
+                $summary += $dbOutputs
+              }
+              
+              if ($computeOutputs.Count -gt 0) {
+                $summary += ""
+                $summary += "**Compute Resources ($($computeOutputs.Count)):**"
+                $summary += $computeOutputs
               }
               
               if ($otherOutputs.Count -gt 0) {
                 $summary += ""
-                $summary += "**📋 Other Resources:**"
+                $summary += "**Other Resources ($($otherOutputs.Count)):**"
                 $summary += $otherOutputs
               }
               
             } else {
               $summary += ""
-              $summary += "**No output changes found in JSON**"
+              $summary += "**No output changes found**"
             }
 
           } else {
             $summary += "- **ERROR: tfplan.json not found**"
           }
 
-          # Collapsed full plan
           if (Test-Path "tfplan.txt") {
             $summary += ""
             $summary += "<details><summary>Full text plan (click to expand)</summary>"
@@ -220,7 +232,7 @@ jobs:
             $summary += '```'
             $t = Get-Content tfplan.txt -Raw
             if ($t.Length -gt 15000) { 
-              $t = $t.Substring(0,15000) + "`n... (truncated - download artifact for full plan) ..." 
+              $t = $t.Substring(0,15000) + "`n... (truncated) ..." 
             }
             $summary += $t
             $summary += '```'
@@ -228,96 +240,6 @@ jobs:
           }
 
           $summary -join "`n" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          working-directory: ${{ env.TF_WORKDIR }}
-          shell: powershell
-          run: |
-            $summary = @()
-            $summary += "### Plan - $($env:LAYER)"
-            $summary += ""
-            $summary += "- Changes: ${{ steps.plan.outputs.has_changes }}"
-
-            if (Test-Path "tfplan.json") {
-              $tf = (Get-Content tfplan.json -Raw) | ConvertFrom-Json
-              
-              if ($tf.resource_changes) {
-                $rc = $tf.resource_changes
-                $adds     = ($rc | Where-Object { ($_.change.actions -join ',') -eq 'create' }).Count
-                $updates  = ($rc | Where-Object { ($_.change.actions -join ',') -eq 'update' }).Count
-                $deletes  = ($rc | Where-Object { ($_.change.actions -join ',') -eq 'delete' }).Count
-                $repl     = ($rc | Where-Object { ($_.change.actions -contains 'create') -and ($_.change.actions -contains 'delete') }).Count
-                $summary += "- Adds: $adds, Changes: $updates, Destroys: $deletes, Replacements: $repl"
-              }
-
-              # Try to parse outputs from output_changes (most common location)
-              $outputsFound = $false
-              if ($tf.output_changes) {
-                $outputCount = ($tf.output_changes.PSObject.Properties | Measure-Object).Count
-                $summary += ""
-                $summary += "**Planned Outputs ($outputCount found):**"
-                
-                foreach ($outputName in $tf.output_changes.PSObject.Properties.Name) {
-                  $outputChange = $tf.output_changes.$outputName
-                  if ($outputChange.after -ne $null) {
-                    # Handle different types of output values
-                    if ($outputChange.after -is [string]) {
-                      $summary += "- $outputName = $($outputChange.after)"
-                    } elseif ($outputChange.after -is [array]) {
-                      $summary += "- $outputName = [$($outputChange.after -join ', ')]"
-                    } else {
-                      $summary += "- $outputName = $($outputChange.after | ConvertTo-Json -Compress)"
-                    }
-                    $outputsFound = $true
-                  }
-                }
-              }
-              
-              # Fallback: try planned_values.outputs if output_changes didn't work
-              if (-not $outputsFound -and $tf.planned_values -and $tf.planned_values.outputs) {
-                $outputCount = ($tf.planned_values.outputs.PSObject.Properties | Measure-Object).Count
-                $summary += ""
-                $summary += "**Planned Outputs from planned_values ($outputCount found):**"
-                
-                foreach ($outputName in $tf.planned_values.outputs.PSObject.Properties.Name) {
-                  $outputValue = $tf.planned_values.outputs.$outputName
-                  if ($outputValue.value -ne $null) {
-                    if ($outputValue.value -is [string]) {
-                      $summary += "- $outputName = $($outputValue.value)"
-                    } elseif ($outputValue.value -is [array]) {
-                      $summary += "- $outputName = [$($outputValue.value -join ', ')]"
-                    } else {
-                      $summary += "- $outputName = $($outputValue.value | ConvertTo-Json -Compress)"
-                    }
-                    $outputsFound = $true
-                  }
-                }
-              }
-              
-              if (-not $outputsFound) {
-                $summary += ""
-                $summary += "**No output values found in JSON**"
-              }
-
-            } else {
-              $summary += "- **ERROR: tfplan.json not found**"
-            }
-
-            # Collapsed full plan
-            if (Test-Path "tfplan.txt") {
-              $summary += ""
-              $summary += "<details><summary>Full text plan (click to expand)</summary>"
-              $summary += ""
-              $summary += '```'
-              $t = Get-Content tfplan.txt -Raw
-              if ($t.Length -gt 15000) { 
-                $t = $t.Substring(0,15000) + "`n... (truncated - download artifact for full plan) ..." 
-              }
-              $summary += $t
-              $summary += '```'
-              $summary += "</details>"
-            }
-
-            $summary -join "`n" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-
       - name: Upload plan artifact
         uses: actions/upload-artifact@v4
         with:
