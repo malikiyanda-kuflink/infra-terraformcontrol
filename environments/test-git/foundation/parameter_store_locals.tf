@@ -1,6 +1,6 @@
 data "aws_ssm_parameter" "fivetran_gcp_ip" { name = "fivetran_gcp_ip" }
 data "aws_ssm_parameter" "office_ips" { name = "kuflink_office_ips"}
-data "aws_ssm_parameter" "dbt_cloud_ips" { name = "/dbt/cloud_ips"}
+data "aws_ssm_parameter" "dbt_cloud_ips" { name = "dbt_cloud_ips"}
 
 
 locals {
