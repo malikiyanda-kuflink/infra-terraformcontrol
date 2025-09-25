@@ -1,0 +1,21 @@
+{
+  "Version":"2012-10-17",
+  "Statement":[
+    {
+      "Effect":"Allow",
+      "Action":[ "s3:ListBucket" ],
+      "Resource":"arn:aws:s3:::kuflink-test-states",
+      "Condition":{"StringLike":{"s3:prefix":["test-git/*"]}}
+    },
+    {
+      "Effect":"Allow",
+      "Action":[ "s3:GetObject","s3:PutObject","s3:DeleteObject" ],
+      "Resource":"arn:aws:s3:::kuflink-test-states/test-git/*"
+    },
+    {
+      "Effect":"Allow",
+      "Action":[ "dynamodb:DescribeTable","dynamodb:GetItem","dynamodb:PutItem","dynamodb:DeleteItem" ],
+      "Resource":"arn:aws:dynamodb:eu-west-2:137167813802:table/kuflink-tf-locks-test"
+    }
+  ]
+}
