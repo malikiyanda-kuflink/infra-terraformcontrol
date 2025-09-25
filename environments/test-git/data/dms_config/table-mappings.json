@@ -1,0 +1,26 @@
+{
+  "rules": [
+    {
+      "rule-type": "selection",
+      "rule-id": "1",
+      "rule-name": "select_kufflinks",
+      "object-locator": {
+        "schema-name": "kufflinks",
+        "table-name": "%"
+      },
+      "rule-action": "include",
+      "filters": []
+    },
+    {
+      "rule-type": "selection",
+      "rule-id": "2",
+      "rule-name": "select_kufflinks_audit",
+      "object-locator": {
+        "schema-name": "kufflinks_audit",
+        "table-name": "%"
+      },
+      "rule-action": "include",
+      "filters": []
+    }
+  ]
+}   
