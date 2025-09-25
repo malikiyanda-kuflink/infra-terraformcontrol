@@ -1,10 +1,10 @@
-name: platform-test
+name: foundation-test
 
 on:
   push:
     branches: [ test-git ]
     paths:
-      - environments/test-git/platform/**
+      - environments/test-git/foundation/**
       - modules/**
   workflow_dispatch:
     inputs:
@@ -27,15 +27,15 @@ env:
   TERRAFORM_PATH: "C:\\terraform\\terraform.exe"
 
 jobs:
-  # ===== PLATFORM =====
-  platform:
-    name: platform
+  # ===== FOUNDATION =====
+  foundation:
+    name: foundation
     runs-on: [self-hosted, tf-runner]
     permissions: { id-token: write, contents: read }
     env:
-      LAYER: platform
-      TF_WORKDIR: environments/test-git/platform
-      TF_STATE_KEY: test-git/platform/terraform.tfstate
+      LAYER: foundation
+      TF_WORKDIR: environments/test-git/foundation
+      TF_STATE_KEY: test-git/foundation/terraform.tfstate
     steps:
       - uses: actions/checkout@v4
 
