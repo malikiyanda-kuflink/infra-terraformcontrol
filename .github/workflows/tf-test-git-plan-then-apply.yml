@@ -242,12 +242,18 @@ jobs:
           $summary -join "`n" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
       - name: Upload plan artifact
         uses: actions/upload-artifact@v4
+        # Always run this step, even if previous steps failed
+        if: always()
         with:
           name: tfplan-${{ env.LAYER }}-${{ github.sha }}
+          # Use a more flexible path pattern that includes error outputs
           path: |
             ${{ env.TF_WORKDIR }}/tfplan.bin
             ${{ env.TF_WORKDIR }}/tfplan.txt
             ${{ env.TF_WORKDIR }}/tfplan.json
+            ${{ env.TF_WORKDIR }}/plan.output.txt
+          # Don't fail the job if some files are missing
+          if-no-files-found: warn
           retention-days: 7
 
       - name: Terraform Apply (only if changes)

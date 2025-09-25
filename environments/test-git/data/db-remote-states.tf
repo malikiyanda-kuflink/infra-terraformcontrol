@@ -1,4 +1,4 @@
-# Platform layer trying to reference foundation outputs
+# Platform layer trying to reference foundation output
 data "terraform_remote_state" "foundation" {
   backend = "s3"
   config = {
