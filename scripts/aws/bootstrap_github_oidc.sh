@@ -9,9 +9,10 @@ set -euo pipefail
 AWS_REGION="eu-west-2"
 ACCOUNT_ID="137167813802"
 
-ORG="malikiyanda-kuflink"
-REPO="infra-terraformcontrol"
+# --- CONFIG BLOCK ---
+REPOS=("malikiyanda-kuflink/infra-terraformcontrol" "kuflink/infra-terraformcontrol")
 BRANCH="test-git"
+
 
 ROLE_NAME="kuflink-test-github-oidc-terraform"
 STATE_BUCKET="kuflink-test-states"
@@ -97,7 +98,19 @@ write_json() {
 }
 
 trust_policy_json() {
-cat <<JSON
+  # Build the StringLike->sub array for both repos
+  local subs=()
+  for r in "${REPOS[@]}"; do
+    subs+=("repo:${r}:ref:refs/heads/*")
+    subs+=("repo:${r}:pull_request")
+  done
+
+  # Join into JSON array
+  local sub_json
+  sub_json="$(printf '"%s",' "${subs[@]}")"
+  sub_json="[${sub_json%,}]"
+
+  cat <<JSON
 {
   "Version":"2012-10-17",
   "Statement":[
@@ -106,14 +119,19 @@ cat <<JSON
       "Principal":{"Federated":"arn:aws:iam::${ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com"},
       "Action":"sts:AssumeRoleWithWebIdentity",
       "Condition":{
-        "StringEquals":{"token.actions.githubusercontent.com:aud":"sts.amazonaws.com"},
-        "StringLike":{"token.actions.githubusercontent.com:sub":"repo:${ORG}/${REPO}:ref:refs/heads/${BRANCH}"}
+        "StringEquals":{
+          "token.actions.githubusercontent.com:aud":"sts.amazonaws.com"
+        },
+        "StringLike":{
+          "token.actions.githubusercontent.com:sub": ${sub_json}
+        }
       }
     }
   ]
 }
 JSON
 }
+
 
 ensure_role_and_trust() {
   say "Ensuring role ${ROLE_NAME} exists with correct trust policy"

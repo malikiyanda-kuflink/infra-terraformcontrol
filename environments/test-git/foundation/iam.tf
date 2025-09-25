@@ -6,7 +6,7 @@ module "iam" {
   # -------------------------------------------------
   # Feature toggles 
   # -------------------------------------------------
-  enable_redis_role                    = false
+  enable_redis_role                    = true
   enable_backup_role                   = true
   enable_bastion_role                  = true
   enable_ec2_test_instance_role        = true
