@@ -102,9 +102,9 @@ jobs:
             $summary += ""
             
             if ("${{ steps.plan.outputs.has_changes }}" -eq "true") {
-              $summary += "✅ Plan successful - has changes"
+              $summary += "Plan successful - has changes"
             } else {
-              $summary += "✅ Plan successful - no changes needed"
+              $summary += "Plan successful - no changes needed"
             }
             
             # Add resource counts if available
@@ -124,9 +124,9 @@ jobs:
             
           } else {
             # Plan failed
-            $summary += "## Terraform Plan Failed"
+            $summary += "Terraform Plan Failed"
             $summary += ""
-            $summary += "❌ Plan failed - check terraform logs in previous step"
+            $summary += "Plan failed - check terraform logs in previous step"
           }
           
           # Write summary safely
