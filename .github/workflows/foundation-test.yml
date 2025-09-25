@@ -152,19 +152,28 @@ jobs:
           Write-Host "Terraform plan completed with exit code: $code after $retryCount attempt(s)" -ForegroundColor $(if ($code -eq 0 -or $code -eq 2) { 'Green' } else { 'Red' })
           "Terraform plan completed with exit code: $code after $retryCount attempt(s)" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
 
+          # CRITICAL DEBUG - Output exit code prominently
+          Write-Host "=============================================" -ForegroundColor Magenta
+          Write-Host "CRITICAL DEBUG: EXIT CODE = $code" -ForegroundColor Magenta  
+          Write-Host "=============================================" -ForegroundColor Magenta
+          "====== CRITICAL DEBUG: EXIT CODE = $code ======" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
+
           # Set outputs based on exit code
           if ($code -eq 2) {
             'has_changes=true'  | Out-File -FilePath $env:GITHUB_OUTPUT -Append
             'plan_ok=true'      | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            Write-Host "Plan has changes - will apply if auto_apply is true" -ForegroundColor Green
+            Write-Host "Setting: has_changes=true, plan_ok=true (EXIT CODE 2)" -ForegroundColor Green
+            "Setting: has_changes=true, plan_ok=true (EXIT CODE 2)" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
           } elseif ($code -eq 0) {
             'has_changes=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Append
             'plan_ok=true'      | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            Write-Host "Plan has no changes" -ForegroundColor Green
+            Write-Host "Setting: has_changes=false, plan_ok=true (EXIT CODE 0)" -ForegroundColor Green  
+            "Setting: has_changes=false, plan_ok=true (EXIT CODE 0)" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
           } else {
             'has_changes=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Append
             'plan_ok=false'     | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            Write-Host "Terraform plan failed with exit code $code - check plan.output.txt for details" -ForegroundColor Red
+            Write-Host "Setting: has_changes=false, plan_ok=false (EXIT CODE $code - ERROR)" -ForegroundColor Red
+            "Setting: has_changes=false, plan_ok=false (EXIT CODE $code - ERROR)" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
           }
 
           # Only produce views if plan file exists
@@ -373,19 +382,21 @@ jobs:
             $summary += "</details>"
           }
 
-          # Always show raw terraform output if available
-          if (Test-Path "plan.output.txt") {
+          # Show raw terraform output only if plan succeeded (to avoid duplication)
+          if ('${{ steps.plan.outputs.plan_ok }}' -eq 'true' -and (Test-Path "plan.output.txt")) {
             $rawOutput = Get-Content "plan.output.txt" -Raw -Encoding ASCII
             if ($rawOutput -and $rawOutput.Trim()) {
               $summary += ""
-              $summary += "<details><summary>Raw Terraform Output (click to expand)</summary>"
+              $summary += "<details><summary>Full Terraform Output (click to expand)</summary>"
               $summary += ""
               $summary += '```'
-              if ($rawOutput.Length -gt 12000) { 
-                $rawOutput = $rawOutput.Substring(0,12000) + "`n... (truncated) ..." 
+              # Even smaller truncation to prevent issues
+              if ($rawOutput.Length -gt 8000) { 
+                $rawOutput = $rawOutput.Substring(0,8000) + "`n... (truncated for summary) ..." 
               }
-              # Clean up any encoding issues with proper ASCII conversion
-              $rawOutput = [System.Text.Encoding]::ASCII.GetString([System.Text.Encoding]::ASCII.GetBytes($rawOutput))
+              # Convert to clean ASCII
+              $bytes = [System.Text.Encoding]::UTF8.GetBytes($rawOutput)
+              $rawOutput = [System.Text.Encoding]::ASCII.GetString($bytes) -replace '[^\x20-\x7E\r\n\t]', ''
               $summary += $rawOutput
               $summary += '```'
               $summary += "</details>"
