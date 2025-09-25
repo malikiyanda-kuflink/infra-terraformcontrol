@@ -62,7 +62,6 @@ jobs:
         run: |
           $exitCode = 0
           try {
-            # Use array syntax to avoid argument parsing issues
             $planArgs = @('plan', '-no-color', '-input=false', '-out=tfplan.bin', '-detailed-exitcode')
             & "$env:TERRAFORM_PATH" @planArgs
             $exitCode = $LASTEXITCODE
@@ -70,22 +69,21 @@ jobs:
             Write-Host "Exception during terraform plan: $($_.Exception.Message)" -ForegroundColor Red
             $exitCode = 1
           }
-          
+
           Write-Host "Terraform plan exit code: $exitCode" -ForegroundColor Yellow
-          
-          # Set outputs and exit appropriately for GitHub Actions
+
           if ($exitCode -eq 2) {
             Write-Host "Plan has changes" -ForegroundColor Green
             "has_changes=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            exit 0  # Exit success for GitHub Actions
+            exit 0
           } elseif ($exitCode -eq 0) {
-            Write-Host "Plan has no changes" -ForegroundColor Green  
+            Write-Host "Plan has no changes" -ForegroundColor Green
             "has_changes=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            exit 0  # Exit success for GitHub Actions
+            exit 0
           } else {
             Write-Host "Plan failed with exit code $exitCode" -ForegroundColor Red
             "has_changes=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            exit 1  # Exit failure for GitHub Actions
+            exit 1
           }
 
       - name: Generate Plan Summary
@@ -94,44 +92,39 @@ jobs:
         shell: powershell
         run: |
           $summary = @()
-          
+
           if (Test-Path "tfplan.bin") {
-            # Plan succeeded
             & "$env:TERRAFORM_PATH" show -no-color tfplan.bin > tfplan.txt
             & "$env:TERRAFORM_PATH" show -json tfplan.bin > tfplan.json
-            
+
             $summary += "## Terraform Plan - $env:LAYER"
             $summary += ""
-            
+
             if ("${{ steps.plan.outputs.has_changes }}" -eq "true") {
-              $summary += "Plan successful - has changes"
+              $summary += "✅ Plan successful - has changes"
             } else {
-              $summary += "Plan successful - no changes needed"
+              $summary += "✅ Plan successful - no changes needed"
             }
-            
-            # Add resource counts if available
+
             if (Test-Path "tfplan.json") {
               $plan = Get-Content "tfplan.json" -Raw | ConvertFrom-Json
               if ($plan.resource_changes) {
-                $adds = ($plan.resource_changes | Where-Object { $_.change.actions -contains "create" }).Count
+                $adds    = ($plan.resource_changes | Where-Object { $_.change.actions -contains "create" }).Count
                 $changes = ($plan.resource_changes | Where-Object { $_.change.actions -contains "update" }).Count
                 $deletes = ($plan.resource_changes | Where-Object { $_.change.actions -contains "delete" }).Count
                 $summary += ""
                 $summary += "**Resource Changes:**"
                 $summary += "- Add: $adds"
-                $summary += "- Change: $changes" 
+                $summary += "- Change: $changes"
                 $summary += "- Delete: $deletes"
               }
             }
-            
           } else {
-            # Plan failed
             $summary += "## Terraform Plan Failed"
             $summary += ""
-            $summary += "Plan failed - check terraform logs in previous step"
+            $summary += "❌ Plan failed - check terraform logs in previous step"
           }
-          
-          # Write summary safely
+
           $summaryText = $summary -join "`r`n"
           Set-Content -Path $env:GITHUB_STEP_SUMMARY -Value $summaryText -Encoding UTF8
 
@@ -144,6 +137,7 @@ jobs:
             ${{ env.TF_WORKDIR }}/tfplan.bin
             ${{ env.TF_WORKDIR }}/tfplan.txt
             ${{ env.TF_WORKDIR }}/tfplan.json
+          if-no-files-found: warn   # <-- prevents job failure if a file is missing
           retention-days: 7
 
       - name: Terraform Apply
