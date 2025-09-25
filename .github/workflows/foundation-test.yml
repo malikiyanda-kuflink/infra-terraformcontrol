@@ -71,30 +71,52 @@ jobs:
         run: |
           Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
 
+          # Initialize output file
+          "" | Out-File -FilePath "plan.output.txt" -Encoding ASCII
+
           # Run plan with no-color flag and capture all outputs
           $planArgs = @('plan', '-no-color', '-input=false', '-out=tfplan.bin', '-detailed-exitcode')
           
           Write-Host "Running terraform plan with args: $($planArgs -join ' ')" -ForegroundColor Yellow
+          "Running terraform plan with args: $($planArgs -join ' ')" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
           
           try {
-            # Capture both stdout and stderr
-            $output = & "$env:TERRAFORM_PATH" @planArgs 2>&1
-            $code = $LASTEXITCODE
+            # Run terraform and capture output
+            $process = Start-Process -FilePath "$env:TERRAFORM_PATH" -ArgumentList $planArgs -WorkingDirectory (Get-Location) -RedirectStandardOutput "tf_stdout.txt" -RedirectStandardError "tf_stderr.txt" -Wait -PassThru -NoNewWindow
+            $code = $process.ExitCode
             
-            # Write all output to both console and file
-            $output | ForEach-Object { 
-              Write-Host $_ 
-              $_ | Out-File -FilePath "plan.output.txt" -Append -Encoding utf8
+            # Read and display stdout
+            if (Test-Path "tf_stdout.txt") {
+              $stdout = Get-Content "tf_stdout.txt" -Raw -Encoding UTF8
+              if ($stdout) {
+                Write-Host "STDOUT:" -ForegroundColor Green
+                Write-Host $stdout
+                "=== TERRAFORM STDOUT ===" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
+                $stdout | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
+              }
+            }
+            
+            # Read and display stderr
+            if (Test-Path "tf_stderr.txt") {
+              $stderr = Get-Content "tf_stderr.txt" -Raw -Encoding UTF8
+              if ($stderr) {
+                Write-Host "STDERR:" -ForegroundColor Red
+                Write-Host $stderr
+                "=== TERRAFORM STDERR ===" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
+                $stderr | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
+              }
             }
             
           } catch {
             $code = 1
             $errorMsg = "PowerShell exception: $($_.Exception.Message)"
             Write-Host $errorMsg -ForegroundColor Red
-            $errorMsg | Out-File -FilePath "plan.output.txt" -Append -Encoding utf8
+            "=== POWERSHELL EXCEPTION ===" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
+            $errorMsg | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
           }
 
           Write-Host "Terraform plan completed with exit code: $code" -ForegroundColor $(if ($code -eq 0 -or $code -eq 2) { 'Green' } else { 'Red' })
+          "Terraform plan completed with exit code: $code" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
 
           # Set outputs based on exit code
           if ($code -eq 2) {
@@ -120,12 +142,16 @@ jobs:
               Write-Host "Plan views generated successfully" -ForegroundColor Green
             } catch {
               Write-Host "Failed to generate plan views: $($_.Exception.Message)" -ForegroundColor Red
-              "Failed to generate plan views: $($_.Exception.Message)" | Out-File -FilePath "plan.output.txt" -Append
+              "Failed to generate plan views: $($_.Exception.Message)" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
             }
           } else {
             Write-Host "tfplan.bin not found - plan likely failed" -ForegroundColor Red
-            "tfplan.bin not found - plan likely failed" | Out-File -FilePath "plan.output.txt" -Append
+            "tfplan.bin not found - check stderr above for terraform error details" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
           }
+
+          # Clean up temp files
+          if (Test-Path "tf_stdout.txt") { Remove-Item "tf_stdout.txt" -Force }
+          if (Test-Path "tf_stderr.txt") { Remove-Item "tf_stderr.txt" -Force }
 
           # Always exit successfully so subsequent steps can run and show the summary
           Write-Host "Step completed - check outputs and summary for results" -ForegroundColor Blue
@@ -150,17 +176,39 @@ jobs:
             $summary += "## ❌ Plan Failed"
             
             if (Test-Path "plan.output.txt") {
-              $summary += ""
-              $summary += "<details><summary>❗ Error Output (click to expand)</summary>"
-              $summary += ""
-              $summary += '```'
-              $errorContent = Get-Content "plan.output.txt" -Raw
-              if ($errorContent.Length -gt 10000) { 
-                $errorContent = $errorContent.Substring(0,10000) + "`n... (truncated) ..." 
+              # Read with ASCII encoding to avoid character issues
+              $errorContent = Get-Content "plan.output.txt" -Raw -Encoding ASCII
+              if ($errorContent -and $errorContent.Trim()) {
+                $summary += ""
+                $summary += "<details><summary>❗ Error Details (click to expand)</summary>"
+                $summary += ""
+                
+                # Look for terraform stderr section specifically
+                if ($errorContent -match "=== TERRAFORM STDERR ===\s*(.+?)(?==== |$)") {
+                  $summary += "**Terraform Error:**"
+                  $summary += '```'
+                  $terraformError = $matches[1].Trim()
+                  if ($terraformError.Length -gt 8000) { 
+                    $terraformError = $terraformError.Substring(0,8000) + "`n... (truncated) ..." 
+                  }
+                  $summary += $terraformError
+                  $summary += '```'
+                  $summary += ""
+                }
+                
+                $summary += "**Full Output:**"
+                $summary += '```'
+                if ($errorContent.Length -gt 10000) { 
+                  $errorContent = $errorContent.Substring(0,10000) + "`n... (truncated) ..." 
+                }
+                # Clean up any remaining encoding issues
+                $errorContent = $errorContent -replace '[^\x00-\x7F]', '?'
+                $summary += $errorContent
+                $summary += '```'
+                $summary += "</details>"
+              } else {
+                $summary += "- **Error log file is empty**"
               }
-              $summary += $errorContent
-              $summary += '```'
-              $summary += "</details>"
             } else {
               $summary += "- **No error log found in plan.output.txt**"
             }
@@ -284,17 +332,21 @@ jobs:
 
           # Always show raw terraform output if available
           if (Test-Path "plan.output.txt") {
-            $summary += ""
-            $summary += "<details><summary>Raw Terraform Output (click to expand)</summary>"
-            $summary += ""
-            $summary += '```'
-            $rawOutput = Get-Content "plan.output.txt" -Raw
-            if ($rawOutput.Length -gt 15000) { 
-              $rawOutput = $rawOutput.Substring(0,15000) + "`n... (truncated) ..." 
+            $rawOutput = Get-Content "plan.output.txt" -Raw -Encoding ASCII
+            if ($rawOutput -and $rawOutput.Trim()) {
+              $summary += ""
+              $summary += "<details><summary>Raw Terraform Output (click to expand)</summary>"
+              $summary += ""
+              $summary += '```'
+              if ($rawOutput.Length -gt 12000) { 
+                $rawOutput = $rawOutput.Substring(0,12000) + "`n... (truncated) ..." 
+              }
+              # Clean up any encoding issues
+              $rawOutput = $rawOutput -replace '[^\x00-\x7F]', '?'
+              $summary += $rawOutput
+              $summary += '```'
+              $summary += "</details>"
             }
-            $summary += $rawOutput
-            $summary += '```'
-            $summary += "</details>"
           }
 
           $summary -join "`n" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
