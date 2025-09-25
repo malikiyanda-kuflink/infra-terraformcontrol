@@ -55,6 +55,20 @@ jobs:
             -backend-config="dynamodb_table=$env:TF_LOCK_TABLE" `
             -backend-config="encrypt=true"
 
+      - name: Debug SSM Parameters
+        working-directory: ${{ env.TF_WORKDIR }}
+        shell: powershell
+        run: |
+          Write-Host "=== Debugging SSM Parameters ===" -ForegroundColor Yellow
+          
+          # Check what terraform sees
+          & "$env:TERRAFORM_PATH" console <<EOF
+          data.aws_ssm_parameter.office_ips.value
+          data.aws_ssm_parameter.dbt_cloud_ips.value
+          EOF
+          
+          Write-Host "=== End Debug ===" -ForegroundColor Yellow
+
       - name: Terraform Plan
         id: plan
         working-directory: ${{ env.TF_WORKDIR }}
@@ -91,54 +105,47 @@ jobs:
         working-directory: ${{ env.TF_WORKDIR }}
         shell: powershell
         run: |
+          $summary = @()
+          
           if (Test-Path "tfplan.bin") {
+            # Plan succeeded
             & "$env:TERRAFORM_PATH" show -no-color tfplan.bin > tfplan.txt
             & "$env:TERRAFORM_PATH" show -json tfplan.bin > tfplan.json
             
-            # Create summary with proper encoding
-            $summary = @()
             $summary += "## Terraform Plan - $env:LAYER"
             $summary += ""
             
             if ("${{ steps.plan.outputs.has_changes }}" -eq "true") {
-              $summary += "✅ **Plan successful - has changes**"
+              $summary += "✅ Plan successful - has changes"
             } else {
-              $summary += "✅ **Plan successful - no changes needed**" 
+              $summary += "✅ Plan successful - no changes needed"
             }
-            $summary += ""
             
-            # Add plan details if available
+            # Add resource counts if available
             if (Test-Path "tfplan.json") {
               $plan = Get-Content "tfplan.json" -Raw | ConvertFrom-Json
               if ($plan.resource_changes) {
                 $adds = ($plan.resource_changes | Where-Object { $_.change.actions -contains "create" }).Count
-                $changes = ($plan.resource_changes | Where-Object { $_.change.actions -contains "update" }).Count  
+                $changes = ($plan.resource_changes | Where-Object { $_.change.actions -contains "update" }).Count
                 $deletes = ($plan.resource_changes | Where-Object { $_.change.actions -contains "delete" }).Count
-                $summary += "**Changes:** $adds to add, $changes to change, $deletes to destroy"
                 $summary += ""
+                $summary += "**Resource Changes:**"
+                $summary += "- Add: $adds"
+                $summary += "- Change: $changes" 
+                $summary += "- Delete: $deletes"
               }
             }
             
-            $summary += "<details><summary>Full Plan Output</summary>"
-            $summary += ""
-            $summary += "```terraform"
-            $planText = Get-Content "tfplan.txt" -Raw -Encoding UTF8
-            # Truncate if too long
-            if ($planText.Length -gt 10000) {
-              $planText = $planText.Substring(0,10000) + "`n... (truncated)"
-            }
-            $summary += $planText
-            $summary += "```"
-            $summary += "</details>"
-            
-            # Write with UTF8 encoding
-            $summaryText = $summary -join "`n"
-            [System.IO.File]::WriteAllText("$env:GITHUB_STEP_SUMMARY", $summaryText, [System.Text.Encoding]::UTF8)
           } else {
             # Plan failed
-            $summary = "❌ **Plan failed** - check logs above"
-            [System.IO.File]::WriteAllText("$env:GITHUB_STEP_SUMMARY", $summary, [System.Text.Encoding]::UTF8)
+            $summary += "## Terraform Plan Failed"
+            $summary += ""
+            $summary += "❌ Plan failed - check terraform logs in previous step"
           }
+          
+          # Write summary safely
+          $summaryText = $summary -join "`r`n"
+          Set-Content -Path $env:GITHUB_STEP_SUMMARY -Value $summaryText -Encoding UTF8
 
       - name: Upload Plan Artifact
         if: always()
