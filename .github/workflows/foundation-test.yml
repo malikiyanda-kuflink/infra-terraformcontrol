@@ -62,19 +62,27 @@ jobs:
         run: |
           $exitCode = 0
           try {
-            & "$env:TERRAFORM_PATH" plan -no-color -input=false -out=tfplan.bin -detailed-exitcode
+            # Use array syntax to avoid argument parsing issues
+            $planArgs = @('plan', '-no-color', '-input=false', '-out=tfplan.bin', '-detailed-exitcode')
+            & "$env:TERRAFORM_PATH" @planArgs
             $exitCode = $LASTEXITCODE
           } catch {
+            Write-Host "Exception during terraform plan: $($_.Exception.Message)" -ForegroundColor Red
             $exitCode = 1
           }
           
+          Write-Host "Terraform plan exit code: $exitCode" -ForegroundColor Yellow
+          
           # Set outputs
           if ($exitCode -eq 2) {
-            echo "has_changes=true" >> $env:GITHUB_OUTPUT
+            Write-Host "Plan has changes" -ForegroundColor Green
+            "has_changes=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           } elseif ($exitCode -eq 0) {
-            echo "has_changes=false" >> $env:GITHUB_OUTPUT
+            Write-Host "Plan has no changes" -ForegroundColor Green  
+            "has_changes=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           } else {
-            Write-Error "Terraform plan failed"
+            Write-Host "Plan failed with exit code $exitCode" -ForegroundColor Red
+            "has_changes=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
             exit $exitCode
           }
 
@@ -87,35 +95,49 @@ jobs:
             & "$env:TERRAFORM_PATH" show -no-color tfplan.bin > tfplan.txt
             & "$env:TERRAFORM_PATH" show -json tfplan.bin > tfplan.json
             
-            # Create summary
-            $summary = "## Terraform Plan - $env:LAYER`n`n"
+            # Create summary with proper encoding
+            $summary = @()
+            $summary += "## Terraform Plan - $env:LAYER"
+            $summary += ""
             
             if ("${{ steps.plan.outputs.has_changes }}" -eq "true") {
-              $summary += "✅ **Plan successful - has changes**`n`n"
+              $summary += "✅ **Plan successful - has changes**"
             } else {
-              $summary += "✅ **Plan successful - no changes needed**`n`n"
+              $summary += "✅ **Plan successful - no changes needed**" 
             }
+            $summary += ""
             
             # Add plan details if available
             if (Test-Path "tfplan.json") {
               $plan = Get-Content "tfplan.json" -Raw | ConvertFrom-Json
               if ($plan.resource_changes) {
                 $adds = ($plan.resource_changes | Where-Object { $_.change.actions -contains "create" }).Count
-                $changes = ($plan.resource_changes | Where-Object { $_.change.actions -contains "update" }).Count
+                $changes = ($plan.resource_changes | Where-Object { $_.change.actions -contains "update" }).Count  
                 $deletes = ($plan.resource_changes | Where-Object { $_.change.actions -contains "delete" }).Count
-                $summary += "**Changes:** $adds to add, $changes to change, $deletes to destroy`n`n"
+                $summary += "**Changes:** $adds to add, $changes to change, $deletes to destroy"
+                $summary += ""
               }
             }
             
-            $summary += "<details><summary>Full Plan Output</summary>`n`n"
-            $summary += "````terraform`n"
-            $summary += Get-Content "tfplan.txt" -Raw
-            $summary += "`n````"
-            $summary += "`n</details>"
+            $summary += "<details><summary>Full Plan Output</summary>"
+            $summary += ""
+            $summary += "```terraform"
+            $planText = Get-Content "tfplan.txt" -Raw -Encoding UTF8
+            # Truncate if too long
+            if ($planText.Length -gt 10000) {
+              $planText = $planText.Substring(0,10000) + "`n... (truncated)"
+            }
+            $summary += $planText
+            $summary += "```"
+            $summary += "</details>"
             
-            $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8
+            # Write with UTF8 encoding
+            $summaryText = $summary -join "`n"
+            [System.IO.File]::WriteAllText("$env:GITHUB_STEP_SUMMARY", $summaryText, [System.Text.Encoding]::UTF8)
           } else {
-            "❌ **Plan failed** - check logs above" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8
+            # Plan failed
+            $summary = "❌ **Plan failed** - check logs above"
+            [System.IO.File]::WriteAllText("$env:GITHUB_STEP_SUMMARY", $summary, [System.Text.Encoding]::UTF8)
           }
 
       - name: Upload Plan Artifact
