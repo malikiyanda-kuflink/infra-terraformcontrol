@@ -1,10 +1,10 @@
-name: foundation-test
+name: apps-test
 
 on:
   push:
     branches: [ test-git ]
     paths:
-      - environments/test-git/foundation/**
+      - environments/test-git/apps/**
       - modules/**
   workflow_dispatch:
     inputs:
@@ -27,15 +27,15 @@ env:
   TERRAFORM_PATH: "C:\\terraform\\terraform.exe"
 
 jobs:
-  # ===== FOUNDATION =====
-  foundation:
-    name: foundation
+  # ===== PLATFORM =====
+  apps:
+    name: apps
     runs-on: [self-hosted, tf-runner]
     permissions: { id-token: write, contents: read }
     env:
-      LAYER: foundation
-      TF_WORKDIR: environments/test-git/foundation
-      TF_STATE_KEY: test-git/foundation/terraform.tfstate
+      LAYER: apps
+      TF_WORKDIR: environments/test-git/apps
+      TF_STATE_KEY: test-git/apps/terraform.tfstate
     steps:
       - uses: actions/checkout@v4
 
@@ -80,77 +80,43 @@ jobs:
           Write-Host "Running terraform plan with args: $($planArgs -join ' ')" -ForegroundColor Yellow
           "Running terraform plan with args: $($planArgs -join ' ')" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
           
-          $maxRetries = 2
-          $retryCount = 0
-          $code = 1
-          $lastStderr = ""
-          
-          do {
-            if ($retryCount -gt 0) {
-              Write-Host "Retry attempt $retryCount of $maxRetries" -ForegroundColor Yellow
-              "=== RETRY ATTEMPT $retryCount ===" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
-              Start-Sleep -Seconds 30  # Wait 30 seconds between retries
+          try {
+            # Run terraform and capture output
+            $process = Start-Process -FilePath "$env:TERRAFORM_PATH" -ArgumentList $planArgs -WorkingDirectory (Get-Location) -RedirectStandardOutput "tf_stdout.txt" -RedirectStandardError "tf_stderr.txt" -Wait -PassThru -NoNewWindow
+            $code = $process.ExitCode
+            
+            # Read and display stdout
+            if (Test-Path "tf_stdout.txt") {
+              $stdout = Get-Content "tf_stdout.txt" -Raw -Encoding UTF8
+              if ($stdout) {
+                Write-Host "STDOUT:" -ForegroundColor Green
+                Write-Host $stdout
+                "=== TERRAFORM STDOUT ===" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
+                $stdout | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
+              }
             }
             
-            try {
-              # Run terraform and capture output
-              $process = Start-Process -FilePath "$env:TERRAFORM_PATH" -ArgumentList $planArgs -WorkingDirectory (Get-Location) -RedirectStandardOutput "tf_stdout.txt" -RedirectStandardError "tf_stderr.txt" -Wait -PassThru -NoNewWindow
-              $code = $process.ExitCode
-              
-              # Read and display stdout
-              $stdout = ""
-              if (Test-Path "tf_stdout.txt") {
-                $stdout = Get-Content "tf_stdout.txt" -Raw -Encoding UTF8
-                if ($stdout) {
-                  Write-Host "STDOUT:" -ForegroundColor Green
-                  Write-Host $stdout
-                  "=== TERRAFORM STDOUT ===" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
-                  $stdout | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
-                }
+            # Read and display stderr
+            if (Test-Path "tf_stderr.txt") {
+              $stderr = Get-Content "tf_stderr.txt" -Raw -Encoding UTF8
+              if ($stderr) {
+                Write-Host "STDERR:" -ForegroundColor Red
+                Write-Host $stderr
+                "=== TERRAFORM STDERR ===" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
+                $stderr | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
               }
-              
-              # Read and display stderr
-              $stderr = ""
-              if (Test-Path "tf_stderr.txt") {
-                $stderr = Get-Content "tf_stderr.txt" -Raw -Encoding UTF8
-                $lastStderr = $stderr  # Store for retry logic
-                if ($stderr) {
-                  Write-Host "STDERR:" -ForegroundColor Red
-                  Write-Host $stderr
-                  "=== TERRAFORM STDERR ===" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
-                  $stderr | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
-                  
-                  # Check if this is a state lock error that might resolve with retry
-                  if ($stderr -match "Error acquiring the state lock" -and $retryCount -lt $maxRetries) {
-                    Write-Host "State lock detected, will retry after delay..." -ForegroundColor Yellow
-                    "State lock detected, will retry after delay..." | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
-                  }
-                }
-              }
-              
-              # Debug output for exit code
-              Write-Host "DEBUG: Terraform exit code = $code, stdout length = $($stdout.Length), stderr length = $($stderr.Length)" -ForegroundColor Cyan
-              "DEBUG: Terraform exit code = $code, stdout length = $($stdout.Length), stderr length = $($stderr.Length)" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
-              
-            } catch {
-              $code = 1
-              $errorMsg = "PowerShell exception: $($_.Exception.Message)"
-              Write-Host $errorMsg -ForegroundColor Red
-              "=== POWERSHELL EXCEPTION ===" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
-              $errorMsg | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
             }
             
-            # Clean up temp files for next iteration
-            if (Test-Path "tf_stdout.txt") { Remove-Item "tf_stdout.txt" -Force }
-            if (Test-Path "tf_stderr.txt") { Remove-Item "tf_stderr.txt" -Force }
-            
-            $retryCount++
-            
-            # Continue if we got a state lock error and haven't exceeded retries
-          } while ($code -eq 1 -and $lastStderr -match "Error acquiring the state lock" -and $retryCount -le $maxRetries)
+          } catch {
+            $code = 1
+            $errorMsg = "PowerShell exception: $($_.Exception.Message)"
+            Write-Host $errorMsg -ForegroundColor Red
+            "=== POWERSHELL EXCEPTION ===" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
+            $errorMsg | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
+          }
 
-          Write-Host "Terraform plan completed with exit code: $code after $retryCount attempt(s)" -ForegroundColor $(if ($code -eq 0 -or $code -eq 2) { 'Green' } else { 'Red' })
-          "Terraform plan completed with exit code: $code after $retryCount attempt(s)" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
+          Write-Host "Terraform plan completed with exit code: $code" -ForegroundColor $(if ($code -eq 0 -or $code -eq 2) { 'Green' } else { 'Red' })
+          "Terraform plan completed with exit code: $code" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
 
           # Set outputs based on exit code
           if ($code -eq 2) {
@@ -182,6 +148,10 @@ jobs:
             Write-Host "tfplan.bin not found - plan likely failed" -ForegroundColor Red
             "tfplan.bin not found - check stderr above for terraform error details" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
           }
+
+          # Clean up temp files
+          if (Test-Path "tf_stdout.txt") { Remove-Item "tf_stdout.txt" -Force }
+          if (Test-Path "tf_stderr.txt") { Remove-Item "tf_stderr.txt" -Force }
 
           # Exit with the actual terraform exit code - let the job fail if terraform failed
           Write-Host "Step completed with terraform exit code: $code" -ForegroundColor $(if ($code -eq 0 -or $code -eq 2) { 'Blue' } else { 'Red' })
@@ -216,33 +186,30 @@ jobs:
               # Read with ASCII encoding to avoid character issues
               $errorContent = Get-Content "plan.output.txt" -Raw -Encoding ASCII
               if ($errorContent -and $errorContent.Trim()) {
+                $summary += ""
+                $summary += "<details><summary>❗ Error Details (click to expand)</summary>"
+                $summary += ""
                 
-                # Look for terraform stderr section specifically  
-                if ($errorContent -match "=== TERRAFORM STDERR ===[\r\n]+(.*?)(?===|\z)") {
+                # Look for terraform stderr section specifically
+                if ($errorContent -match "=== TERRAFORM STDERR ===\s*(.+?)(?==== |$)") {
+                  $summary += "**Terraform Error:**"
+                  $summary += '```'
                   $terraformError = $matches[1].Trim()
-                  if ($terraformError) {
-                    $summary += ""
-                    $summary += "**Terraform Error:**"
-                    $summary += '```'
-                    if ($terraformError.Length -gt 6000) { 
-                      $terraformError = $terraformError.Substring(0,6000) + "`n... (truncated) ..." 
-                    }
-                    # Clean up encoding issues more aggressively
-                    $terraformError = $terraformError -replace '[^\x20-\x7E\r\n\t]', ''  # Keep only printable ASCII + whitespace
-                    $summary += $terraformError
-                    $summary += '```'
+                  if ($terraformError.Length -gt 8000) { 
+                    $terraformError = $terraformError.Substring(0,8000) + "`n... (truncated) ..." 
                   }
+                  $summary += $terraformError
+                  $summary += '```'
+                  $summary += ""
                 }
                 
-                $summary += ""
-                $summary += "<details><summary>❗ Full Error Log (click to expand)</summary>"
-                $summary += ""
+                $summary += "**Full Output:**"
                 $summary += '```'
-                if ($errorContent.Length -gt 8000) { 
-                  $errorContent = $errorContent.Substring(0,8000) + "`n... (truncated) ..." 
+                if ($errorContent.Length -gt 10000) { 
+                  $errorContent = $errorContent.Substring(0,10000) + "`n... (truncated) ..." 
                 }
-                # Clean up any remaining encoding issues more thoroughly - use ASCII encoding
-                $errorContent = [System.Text.Encoding]::ASCII.GetString([System.Text.Encoding]::ASCII.GetBytes($errorContent))
+                # Clean up any remaining encoding issues
+                $errorContent = $errorContent -replace '[^\x00-\x7F]', '?'
                 $summary += $errorContent
                 $summary += '```'
                 $summary += "</details>"
@@ -384,8 +351,8 @@ jobs:
               if ($rawOutput.Length -gt 12000) { 
                 $rawOutput = $rawOutput.Substring(0,12000) + "`n... (truncated) ..." 
               }
-              # Clean up any encoding issues with proper ASCII conversion
-              $rawOutput = [System.Text.Encoding]::ASCII.GetString([System.Text.Encoding]::ASCII.GetBytes($rawOutput))
+              # Clean up any encoding issues
+              $rawOutput = $rawOutput -replace '[^\x00-\x7F]', '?'
               $summary += $rawOutput
               $summary += '```'
               $summary += "</details>"
