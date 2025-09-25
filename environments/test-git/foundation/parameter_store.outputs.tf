@@ -64,6 +64,7 @@ output "kuflink_office_ips" {
 output "kuflink_office_ip_cidrs" {
   value       = [for ip in local.kuflink_office_ips : ip.cidr]
   description = "Office CIDRs as list(string)."
+  sensitive = true
 }
 
 output "dbt_cloud_ips" {
