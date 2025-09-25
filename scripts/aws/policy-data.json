@@ -1,0 +1,26 @@
+{
+  "Version":"2012-10-17",
+  "Statement":[
+    {
+      "Effect":"Allow",
+      "Action":[
+        "rds:*DBInstance*","rds:*DBSubnetGroup*","rds:*ParameterGroup*",
+        "rds:*SecurityGroup*","rds:AddTagsToResource","rds:RemoveTagsFromResource","rds:Describe*"
+      ],
+      "Resource":"*"
+    },
+    {
+      "Effect":"Allow",
+      "Action":[
+        "elasticache:*ReplicationGroup*","elasticache:*CacheSubnetGroup*",
+        "elasticache:AddTagsToResource","elasticache:RemoveTagsFromResource","elasticache:Describe*"
+      ],
+      "Resource":"*"
+    },
+    {
+      "Effect":"Allow",
+      "Action":[ "kms:DescribeKey","kms:ListKeys","kms:ListAliases" ],
+      "Resource":"*"
+    }
+  ]
+}
