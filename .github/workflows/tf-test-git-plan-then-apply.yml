@@ -1,11 +1,11 @@
 name: tf-test-git-layered
 
 on:
-  push:
-    # branches: [  ]
-    paths:
-      - environments/test-git/**
-      - modules/**
+  # push:
+  #   # branches: [  ]
+  #   paths:
+  #     - environments/test-git/**
+  #     - modules/**
   workflow_dispatch:
     inputs:
       auto_apply:
