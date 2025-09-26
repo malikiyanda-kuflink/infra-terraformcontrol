@@ -103,11 +103,12 @@ resource "aws_vpn_connection" "onprem_to_tgw" {
 # We explicitly disable default association/propagation so we
 # can attach this VPC to the onprem RT only.
 resource "aws_ec2_transit_gateway_vpc_attachment" "test" {
-  subnet_ids = [
-    aws_subnet.kuflink_private_subnet_a.id,
-    aws_subnet.kuflink_private_subnet_b.id,
-    aws_subnet.kuflink_private_subnet_c.id,
-  ]
+  # subnet_ids = [
+  #   aws_subnet.kuflink_private_subnet_a.id,
+  #   aws_subnet.kuflink_private_subnet_b.id,
+  #   aws_subnet.kuflink_private_subnet_c.id,
+  # ]
+  subnet_ids = module.vpc.private_subnet_cidrs
 
   transit_gateway_id = aws_ec2_transit_gateway.core_tgw.id
   vpc_id             = module.vpc.vpc_id
