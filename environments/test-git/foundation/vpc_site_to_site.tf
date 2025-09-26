@@ -158,7 +158,7 @@ resource "aws_ec2_transit_gateway_route_table_propagation" "test_propagation" {
 # Ensures packets arriving over the VPN destined for AWS VPC
 # CIDR are forwarded to the VPC attachment.
 resource "aws_ec2_transit_gateway_route" "to_test_vpc" {
-  destination_cidr_block         = aws_vpc.my_vpc.cidr_block
+  destination_cidr_block         = module.vpc.vpc_cidr_block
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.onprem.id
   transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.test.id
 }
