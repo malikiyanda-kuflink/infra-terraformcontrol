@@ -108,7 +108,7 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "test" {
   #   aws_subnet.kuflink_private_subnet_b.id,
   #   aws_subnet.kuflink_private_subnet_c.id,
   # ]
-  subnet_ids = module.vpc.private_subnet_cidrs
+  subnet_ids = module.vpc.private_subnet_ids
 
   transit_gateway_id = aws_ec2_transit_gateway.core_tgw.id
   vpc_id             = module.vpc.vpc_id
