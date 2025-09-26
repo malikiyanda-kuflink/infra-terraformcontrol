@@ -128,6 +128,11 @@ resource "aws_ec2_transit_gateway_route_table_association" "test_assoc" {
   transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.test.id
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.onprem.id
   replace_existing_association   = true
+
+  depends_on = [
+    aws_ec2_transit_gateway_vpc_attachment.test,
+    aws_ec2_transit_gateway_route_table.onprem
+  ]
 }
 
 resource "aws_ec2_transit_gateway_route_table_association" "vpn_assoc" {
