@@ -1,11 +1,88 @@
 # ---------------------------------------------------------------#
-# DBT Paramerters
+# Email Notifications
+# ---------------------------------------------------------------#
+output "admin_email" {
+  value       = module.secrets.admin_email
+  description = "Admin build notification email"
+  sensitive   = true
+}
+
+output "frontend_email" {
+  value       = module.secrets.frontend_email
+  description = "Frontend build notification email"
+  sensitive   = true
+}
+
+output "notification_email" {
+  value       = module.secrets.notification_email
+  description = "Operations notification email"
+  sensitive   = true
+}
+
+output "pipeline_emails" {
+  value       = module.secrets.pipeline_emails
+  description = "Pipeline notification emails as list"
+  sensitive   = true
+}
+
+# ---------------------------------------------------------------#
+# AWS Resource ARNs
+# ---------------------------------------------------------------#
+output "cloudfront_cert_arn" {
+  value       = module.secrets.cloudfront_cert_arn
+  description = "CloudFront SSL certificate ARN"
+  sensitive   = true
+}
+
+output "codestar_connection_arn" {
+  value       = module.secrets.codestar_connection_arn
+  description = "CodeStar GitHub connection ARN"
+  sensitive   = true
+}
+
+# ---------------------------------------------------------------#
+# Repository Configuration
+# ---------------------------------------------------------------#
+output "admin_repo" {
+  value       = module.secrets.admin_repo
+  description = "Admin UI repository name"
+  sensitive   = true
+}
+
+output "frontend_repo" {
+  value       = module.secrets.frontend_repo
+  description = "Frontend repository name"
+  sensitive   = true
+}
+
+output "api_repo" {
+  value       = module.secrets.api_repo
+  description = "API repository name"
+  sensitive   = true
+}
+
+# ---------------------------------------------------------------#
+# Infrastructure Configuration
+# ---------------------------------------------------------------#
+output "ec2_key_name" {
+  value       = module.secrets.ec2_key_name
+  description = "EC2 SSH key pair name"
+  sensitive   = true
+}
+
+output "worker_queue_name" {
+  value       = module.secrets.worker_queue_name
+  description = "SQS worker queue name"
+  sensitive   = true
+}
+
+# ---------------------------------------------------------------#
+# DBT Parameters (existing)
 # ---------------------------------------------------------------#
 output "account_id" {
   value     = module.secrets.account_id
   sensitive = true
 }
-
 output "canonical_id" {
   value     = module.secrets.canonical_id
   sensitive = true
