@@ -61,7 +61,7 @@ module "rds" {
 
 # RDS Restore Module - restore from snapshot
 module "rds_restore" {
-  source = "git::ssh://git@github.com/Kuflink/infra-terraformcontrol.git//modules/rds-restored?ref=v0.1.61"
+  source = "git::ssh://git@github.com/Kuflink/infra-terraformcontrol.git//modules/rds-restored?ref=v0.1.62"
   # If restoring from snapshot → true, else false for new instance
   # restore_rds_from_snapshot = local.restore_rds_from_snapshot 
   count = local.restore_rds_from_snapshot ? 1 : 0 
