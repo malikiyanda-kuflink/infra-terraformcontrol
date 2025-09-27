@@ -1,6 +1,6 @@
 # Associate WAF -> EB ALB (only when both are present)
 resource "aws_wafv2_web_acl_association" "eb_alb" {
-  for_each = local.enable_eb && local.enable_eb_waf && local.eb_web_acl_arn != null && local.eb_alb_arn != null ? toset(["enabled"]) : toset([])
+  count = local.enable_eb && local.eb_web_acl_arn != null && local.eb_alb_arn != null ? 1 : 0
 
   resource_arn = local.eb_alb_arn
   web_acl_arn  = local.eb_web_acl_arn
