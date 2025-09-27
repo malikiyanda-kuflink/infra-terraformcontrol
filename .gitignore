@@ -9,11 +9,18 @@ crash.log
 override.tf
 override.tf.json
 terraform.rc
+
+# Scripts directories (remove from tracking)
+scripts/
+**/scripts/
+
+# AWS import/export files
 AWS Imports & Exports.sh
 importing_vpc.sh
+
 # Backup files
-*~ 
+*~
+
 # Terraform plan output files
 *.tfplan
 *.tfplan.txt
-
