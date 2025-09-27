@@ -1,6 +1,11 @@
 name: apps-test
 
 on:
+  pull_request:
+    branches: [ test-git ]
+    paths:
+      - environments/test-git/apps/**
+      - modules/**
   push:
     branches: [ test-git ]
     paths:
@@ -27,7 +32,6 @@ env:
   TERRAFORM_PATH: "C:\\terraform\\terraform.exe"
 
 jobs:
-  # ===== PLATFORM =====
   apps:
     name: apps
     runs-on: [self-hosted, tf-runner]
@@ -45,18 +49,10 @@ jobs:
           role-to-assume: ${{ env.ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Verify Terraform
-        shell: powershell
-        run: |
-          Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
-          Write-Host "TERRAFORM_PATH: $env:TERRAFORM_PATH  Exists: $(Test-Path $env:TERRAFORM_PATH)"
-          & "$env:TERRAFORM_PATH" version
-
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKDIR }}
         shell: powershell
         run: |
-          Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
           & "$env:TERRAFORM_PATH" init `
             -backend-config="bucket=$env:TF_STATE_BUCKET" `
             -backend-config="key=$env:TF_STATE_KEY" `
@@ -64,324 +60,97 @@ jobs:
             -backend-config="dynamodb_table=$env:TF_LOCK_TABLE" `
             -backend-config="encrypt=true"
 
-      - name: Terraform Plan (detect changes)
+      - name: Terraform Plan
         id: plan
         working-directory: ${{ env.TF_WORKDIR }}
         shell: powershell
         run: |
-          Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
-
-          # Initialize output file
-          "" | Out-File -FilePath "plan.output.txt" -Encoding ASCII
-
-          # Run plan with no-color flag and capture all outputs
-          $planArgs = @('plan', '-no-color', '-input=false', '-out=tfplan.bin', '-detailed-exitcode')
-          
-          Write-Host "Running terraform plan with args: $($planArgs -join ' ')" -ForegroundColor Yellow
-          "Running terraform plan with args: $($planArgs -join ' ')" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
-          
+          $exitCode = 0
           try {
-            # Run terraform and capture output
-            $process = Start-Process -FilePath "$env:TERRAFORM_PATH" -ArgumentList $planArgs -WorkingDirectory (Get-Location) -RedirectStandardOutput "tf_stdout.txt" -RedirectStandardError "tf_stderr.txt" -Wait -PassThru -NoNewWindow
-            $code = $process.ExitCode
-            
-            # Read and display stdout
-            if (Test-Path "tf_stdout.txt") {
-              $stdout = Get-Content "tf_stdout.txt" -Raw -Encoding UTF8
-              if ($stdout) {
-                Write-Host "STDOUT:" -ForegroundColor Green
-                Write-Host $stdout
-                "=== TERRAFORM STDOUT ===" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
-                $stdout | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
-              }
-            }
-            
-            # Read and display stderr
-            if (Test-Path "tf_stderr.txt") {
-              $stderr = Get-Content "tf_stderr.txt" -Raw -Encoding UTF8
-              if ($stderr) {
-                Write-Host "STDERR:" -ForegroundColor Red
-                Write-Host $stderr
-                "=== TERRAFORM STDERR ===" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
-                $stderr | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
-              }
-            }
-            
+            $planArgs = @('plan', '-no-color', '-input=false', '-out=tfplan.bin', '-detailed-exitcode')
+            & "$env:TERRAFORM_PATH" @planArgs
+            $exitCode = $LASTEXITCODE
           } catch {
-            $code = 1
-            $errorMsg = "PowerShell exception: $($_.Exception.Message)"
-            Write-Host $errorMsg -ForegroundColor Red
-            "=== POWERSHELL EXCEPTION ===" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
-            $errorMsg | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
+            Write-Host "Exception during terraform plan: $($_.Exception.Message)" -ForegroundColor Red
+            $exitCode = 1
           }
 
-          Write-Host "Terraform plan completed with exit code: $code" -ForegroundColor $(if ($code -eq 0 -or $code -eq 2) { 'Green' } else { 'Red' })
-          "Terraform plan completed with exit code: $code" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
+          Write-Host "Terraform plan exit code: $exitCode" -ForegroundColor Yellow
 
-          # Set outputs based on exit code
-          if ($code -eq 2) {
-            'has_changes=true'  | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            'plan_ok=true'      | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            Write-Host "Plan has changes - will apply if auto_apply is true" -ForegroundColor Green
-          } elseif ($code -eq 0) {
-            'has_changes=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            'plan_ok=true'      | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          if ($exitCode -eq 2) {
+            Write-Host "Plan has changes" -ForegroundColor Green
+            "has_changes=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            exit 0
+          } elseif ($exitCode -eq 0) {
             Write-Host "Plan has no changes" -ForegroundColor Green
+            "has_changes=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            exit 0
           } else {
-            'has_changes=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            'plan_ok=false'     | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            Write-Host "Terraform plan failed with exit code $code - check plan.output.txt for details" -ForegroundColor Red
+            Write-Host "Plan failed with exit code $exitCode" -ForegroundColor Red
+            "has_changes=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            exit 1
           }
 
-          # Only produce views if plan file exists
-          if (Test-Path "tfplan.bin") {
-            Write-Host "Generating plan views..." -ForegroundColor Yellow
-            try {
-              & "$env:TERRAFORM_PATH" show -no-color tfplan.bin > tfplan.txt
-              & "$env:TERRAFORM_PATH" show -json tfplan.bin > tfplan.json
-              Write-Host "Plan views generated successfully" -ForegroundColor Green
-            } catch {
-              Write-Host "Failed to generate plan views: $($_.Exception.Message)" -ForegroundColor Red
-              "Failed to generate plan views: $($_.Exception.Message)" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
-            }
-          } else {
-            Write-Host "tfplan.bin not found - plan likely failed" -ForegroundColor Red
-            "tfplan.bin not found - check stderr above for terraform error details" | Out-File -FilePath "plan.output.txt" -Append -Encoding ASCII
-          }
-
-          # Clean up temp files
-          if (Test-Path "tf_stdout.txt") { Remove-Item "tf_stdout.txt" -Force }
-          if (Test-Path "tf_stderr.txt") { Remove-Item "tf_stderr.txt" -Force }
-
-          # Exit with the actual terraform exit code - let the job fail if terraform failed
-          Write-Host "Step completed with terraform exit code: $code" -ForegroundColor $(if ($code -eq 0 -or $code -eq 2) { 'Blue' } else { 'Red' })
-          if ($code -eq 0 -or $code -eq 2) {
-            Write-Host "Terraform plan succeeded" -ForegroundColor Green
-          } else {
-            Write-Host "Terraform plan failed - failing the job" -ForegroundColor Red
-          }
-          
-          # Set the actual exit code - don't override it
-          $global:LASTEXITCODE = $code
-          exit $code
-
-      - name: Summarize plan (outputs)
-        # Always run this step, even if plan failed
+      - name: Generate Plan Summary
         if: always()
         working-directory: ${{ env.TF_WORKDIR }}
         shell: powershell
         run: |
           $summary = @()
-          $summary += "### Plan - $($env:LAYER)"
-          $summary += ""
-          $summary += "- Changes: ${{ steps.plan.outputs.has_changes }}"
-          $summary += "- Plan OK: ${{ steps.plan.outputs.plan_ok }}"
 
-          # Show errors first if plan failed
-          if ('${{ steps.plan.outputs.plan_ok }}' -eq 'false') {
+          if (Test-Path "tfplan.bin") {
+            & "$env:TERRAFORM_PATH" show -no-color tfplan.bin > tfplan.txt
+            & "$env:TERRAFORM_PATH" show -json tfplan.bin > tfplan.json
+
+            $summary += "## Terraform Plan - $env:LAYER"
             $summary += ""
-            $summary += "## ❌ Plan Failed - Job Will Fail"
-            
-            if (Test-Path "plan.output.txt") {
-              # Read with ASCII encoding to avoid character issues
-              $errorContent = Get-Content "plan.output.txt" -Raw -Encoding ASCII
-              if ($errorContent -and $errorContent.Trim()) {
-                $summary += ""
-                $summary += "<details><summary>❗ Error Details (click to expand)</summary>"
-                $summary += ""
-                
-                # Look for terraform stderr section specifically
-                if ($errorContent -match "=== TERRAFORM STDERR ===\s*(.+?)(?==== |$)") {
-                  $summary += "**Terraform Error:**"
-                  $summary += '```'
-                  $terraformError = $matches[1].Trim()
-                  if ($terraformError.Length -gt 8000) { 
-                    $terraformError = $terraformError.Substring(0,8000) + "`n... (truncated) ..." 
-                  }
-                  $summary += $terraformError
-                  $summary += '```'
-                  $summary += ""
-                }
-                
-                $summary += "**Full Output:**"
-                $summary += '```'
-                if ($errorContent.Length -gt 10000) { 
-                  $errorContent = $errorContent.Substring(0,10000) + "`n... (truncated) ..." 
-                }
-                # Clean up any remaining encoding issues
-                $errorContent = $errorContent -replace '[^\x00-\x7F]', '?'
-                $summary += $errorContent
-                $summary += '```'
-                $summary += "</details>"
-              } else {
-                $summary += "- **Error log file is empty**"
-              }
+
+            if ("${{ steps.plan.outputs.has_changes }}" -eq "true") {
+              $summary += "Plan successful - has changes"
             } else {
-              $summary += "- **No error log found in plan.output.txt**"
+              $summary += "Plan successful - no changes needed"
+            }
+
+            if (Test-Path "tfplan.json") {
+              $plan = Get-Content "tfplan.json" -Raw | ConvertFrom-Json
+              if ($plan.resource_changes) {
+                $adds    = ($plan.resource_changes | Where-Object { $_.change.actions -contains "create" }).Count
+                $changes = ($plan.resource_changes | Where-Object { $_.change.actions -contains "update" }).Count
+                $deletes = ($plan.resource_changes | Where-Object { $_.change.actions -contains "delete" }).Count
+                $summary += ""
+                $summary += "**Resource Changes:**"
+                $summary += "- Add: $adds"
+                $summary += "- Change: $changes"
+                $summary += "- Delete: $deletes"
+              }
             }
           } else {
+            $summary += "## Terraform Plan Failed"
             $summary += ""
-            $summary += "## ✅ Plan Succeeded"
+            $summary += "Plan failed - check terraform logs in previous step"
           }
 
-          if (Test-Path "tfplan.json") {
-            $tf = (Get-Content tfplan.json -Raw) | ConvertFrom-Json
-            
-            if ($tf.resource_changes) {
-              $rc = $tf.resource_changes
-              $adds     = ($rc | Where-Object { ($_.change.actions -join ',') -eq 'create' }).Count
-              $updates  = ($rc | Where-Object { ($_.change.actions -join ',') -eq 'update' }).Count
-              $deletes  = ($rc | Where-Object { ($_.change.actions -join ',') -eq 'delete' }).Count
-              $repl     = ($rc | Where-Object { ($_.change.actions -contains 'create') -and ($_.change.actions -contains 'delete') }).Count
-              $summary += "- Adds: $adds, Changes: $updates, Destroys: $deletes, Replacements: $repl"
-            }
+          $summaryText = $summary -join "`r`n"
+          Set-Content -Path $env:GITHUB_STEP_SUMMARY -Value $summaryText -Encoding UTF8
 
-            if ($tf.output_changes) {
-              $vpcOutputs = @()
-              $iamOutputs = @()
-              $dbOutputs = @()
-              $computeOutputs = @()
-              $otherOutputs = @()
-              $sensitiveCount = 0
-              
-              foreach ($outputName in $tf.output_changes.PSObject.Properties.Name) {
-                $outputChange = $tf.output_changes.$outputName
-                
-                if ($outputChange.after_sensitive -eq $true) {
-                  $sensitiveCount++
-                  continue
-                }
-                
-                if ($outputChange.after -ne $null) {
-                  if ($outputChange.after -is [string]) {
-                    $displayValue = $outputChange.after
-                  } elseif ($outputChange.after -is [array]) {
-                    $displayValue = "[$($outputChange.after -join ', ')]"
-                  } else {
-                    $displayValue = $($outputChange.after | ConvertTo-Json -Compress)
-                  }
-                  
-                  $outputLine = "- $outputName = $displayValue"
-                  
-                  if ($outputName -match "vpc|subnet|gateway|route|cidr|network") {
-                    $vpcOutputs += $outputLine
-                  } elseif ($outputName -match "role_arn|instance_profile|iam_") {
-                    $iamOutputs += $outputLine
-                  } elseif ($outputName -match "db_|database|rds_|redshift|dms_") {
-                    $dbOutputs += $outputLine
-                  } elseif ($outputName -match "ami|instance|ec2_") {
-                    $computeOutputs += $outputLine
-                  } else {
-                    $otherOutputs += $outputLine
-                  }
-                }
-              }
-              
-              $totalOutputs = ($tf.output_changes.PSObject.Properties | Measure-Object).Count
-              $visibleOutputs = $totalOutputs - $sensitiveCount
-              $summary += ""
-              $summary += "**Planned Outputs ($visibleOutputs shown, $sensitiveCount sensitive hidden):**"
-              
-              if ($vpcOutputs.Count -gt 0) {
-                $summary += ""
-                $summary += "**VPC and Networking ($($vpcOutputs.Count)):**"
-                $summary += $vpcOutputs
-              }
-              
-              if ($iamOutputs.Count -gt 0) {
-                $summary += ""
-                $summary += "**IAM Roles and Policies ($($iamOutputs.Count)):**"
-                $summary += $iamOutputs
-              }
-              
-              if ($dbOutputs.Count -gt 0) {
-                $summary += ""
-                $summary += "**Database Resources ($($dbOutputs.Count)):**"
-                $summary += $dbOutputs
-              }
-              
-              if ($computeOutputs.Count -gt 0) {
-                $summary += ""
-                $summary += "**Compute Resources ($($computeOutputs.Count)):**"
-                $summary += $computeOutputs
-              }
-              
-              if ($otherOutputs.Count -gt 0) {
-                $summary += ""
-                $summary += "**Other Resources ($($otherOutputs.Count)):**"
-                $summary += $otherOutputs
-              }
-              
-            } else {
-              $summary += ""
-              $summary += "**No output changes found**"
-            }
-
-          } else {
-            $summary += ""
-            if ('${{ steps.plan.outputs.plan_ok }}' -eq 'false') {
-              $summary += "- **tfplan.json not found (expected due to plan failure)**"
-            } else {
-              $summary += "- **ERROR: tfplan.json not found despite successful plan**"
-            }
-          }
-
-          if (Test-Path "tfplan.txt") {
-            $summary += ""
-            $summary += "<details><summary>Full text plan (click to expand)</summary>"
-            $summary += ""
-            $summary += '```'
-            $t = Get-Content tfplan.txt -Raw
-            if ($t.Length -gt 15000) { 
-              $t = $t.Substring(0,15000) + "`n... (truncated) ..." 
-            }
-            $summary += $t
-            $summary += '```'
-            $summary += "</details>"
-          }
-
-          # Always show raw terraform output if available
-          if (Test-Path "plan.output.txt") {
-            $rawOutput = Get-Content "plan.output.txt" -Raw -Encoding ASCII
-            if ($rawOutput -and $rawOutput.Trim()) {
-              $summary += ""
-              $summary += "<details><summary>Raw Terraform Output (click to expand)</summary>"
-              $summary += ""
-              $summary += '```'
-              if ($rawOutput.Length -gt 12000) { 
-                $rawOutput = $rawOutput.Substring(0,12000) + "`n... (truncated) ..." 
-              }
-              # Clean up any encoding issues
-              $rawOutput = $rawOutput -replace '[^\x00-\x7F]', '?'
-              $summary += $rawOutput
-              $summary += '```'
-              $summary += "</details>"
-            }
-          }
-
-          $summary -join "`n" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-
-      - name: Upload plan artifact
-        uses: actions/upload-artifact@v4
-        # Always run this step, even if plan failed - artifacts are needed for debugging
+      - name: Upload Plan Artifact
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: tfplan-${{ env.LAYER }}-${{ github.sha }}
-          # Use a more flexible path pattern that includes error outputs
           path: |
             ${{ env.TF_WORKDIR }}/tfplan.bin
             ${{ env.TF_WORKDIR }}/tfplan.txt
             ${{ env.TF_WORKDIR }}/tfplan.json
-            ${{ env.TF_WORKDIR }}/plan.output.txt
-          # Don't fail the job if some files are missing
           if-no-files-found: warn
           retention-days: 7
 
-      - name: Terraform Apply (only if changes)
-        # Only apply if plan succeeded AND has changes
-        if: steps.plan.outputs.has_changes == 'true' && steps.plan.outputs.plan_ok == 'true' && github.event_name == 'workflow_dispatch' && github.event.inputs.auto_apply == 'true'
+      # ⬇️ Apply only after merge (i.e., push to the base branch)
+      - name: Terraform Apply
+        if: steps.plan.outputs.has_changes == 'true' &&
+            github.event_name == 'push' &&
+            github.ref == 'refs/heads/test-git'
         working-directory: ${{ env.TF_WORKDIR }}
         shell: powershell
         run: |
-          Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
           & "$env:TERRAFORM_PATH" apply -input=false -auto-approve tfplan.bin
