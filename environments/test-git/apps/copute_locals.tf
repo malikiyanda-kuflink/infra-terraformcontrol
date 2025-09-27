@@ -209,7 +209,7 @@ locals {
   # Safe ALB ARN lookup - only when EB is enabled
   eb_alb_arn = local.enable_eb && length(data.aws_resourcegroupstaggingapi_resources.eb_alb) > 0 && length(data.aws_resourcegroupstaggingapi_resources.eb_alb[0].resource_tag_mapping_list) > 0 ? data.aws_resourcegroupstaggingapi_resources.eb_alb[0].resource_tag_mapping_list[0].resource_arn : null  
   # Safe web ACL ARN lookup
-  eb_web_acl_arn = local.enable_eb && local.enable_eb_waf ? lookup(data.terraform_remote_state.platform.outputs, "eb_web_acl_arn", null) : null
+  eb_web_acl_arn = local.enable_eb && local.enable_eb_waf ? try(data.terraform_remote_state.platform.outputs.eb_waf.web_acl_arn, null) : null
 
   
   admin_rule_action = "COUNT" # or "COUNT"/ "BLOCK" / "ALLOW" / "CAPTCHA" / "CHALLENGE"
