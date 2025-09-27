@@ -10,7 +10,7 @@ locals {
   fivetran_gcp = [
     {
       description = "FiveTran GCP CIDR (europe-west2 (London))"
-      cidr        = data.aws_ssm_parameter.fivetran_gcp_ip
+      cidr        = data.aws_ssm_parameter.fivetran_gcp_ip.value 
     }
   ]
 }
