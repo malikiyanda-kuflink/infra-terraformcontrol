@@ -150,10 +150,6 @@ variable "storage_throughput" {
   description = "Storage throughput for gp3 storage type (MB/s)"
   type        = number
   default     = null
-  validation {
-    condition = var.storage_throughput == null ? true : (var.storage_throughput >= 125 && var.storage_throughput <= 1000)
-    error_message = "Storage throughput must be between 125 and 1000 MB/s for gp3."
-  }
 }
 
 # ===== REPLICA STORAGE VARIABLES =====
