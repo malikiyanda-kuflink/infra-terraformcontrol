@@ -204,8 +204,11 @@ locals {
   # WAF config (env-scoped) - compute layer
   # --------------------------------------
   # Safe ALB ARN lookup - only when EB is enabled
-  eb_alb_arn = local.enable_eb && length(data.aws_resourcegroupstaggingapi_resources.eb_alb) > 0 && length(data.aws_resourcegroupstaggingapi_resources.eb_alb[0].resource_tag_mapping_list) > 0 ? data.aws_resourcegroupstaggingapi_resources.eb_alb[0].resource_tag_mapping_list[0].resource_arn : null  
-  eb_web_acl_arn = local.enable_eb ? try(data.terraform_remote_state.platform.outputs.eb_waf.web_acl_arn, null) : null
+  # Safe ALB ARN lookup - check if data source exists first
+  eb_alb_arn = local.enable_eb && length(data.aws_resourcegroupstaggingapi_resources.eb_alb) > 0 && length(data.aws_resourcegroupstaggingapi_resources.eb_alb[0].resource_tag_mapping_list) > 0 ? data.aws_resourcegroupstaggingapi_resources.eb_alb[0].resource_tag_mapping_list[0].resource_arn : "arn:aws:elasticloadbalancing:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:loadbalancer/app/dummy/dummy"
+    
+  # Safe WAF ARN lookup
+  eb_web_acl_arn = local.enable_eb ? try(data.terraform_remote_state.platform.outputs.eb_waf.web_acl_arn, "arn:aws:wafv2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:global/webacl/dummy/dummy") : "arn:aws:wafv2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:global/webacl/dummy/dummy"
 
   
   admin_rule_action = "COUNT" # or "COUNT"/ "BLOCK" / "ALLOW" / "CAPTCHA" / "CHALLENGE"
