@@ -53,7 +53,7 @@ locals {
   # --------------------------------------
   # Comptue layer locals (controls)
   # --------------------------------------
-  
+
   enable_eb          = false
   enable_bastion     = true
   enable_bastion_dns = true
@@ -206,18 +206,12 @@ locals {
   # flip to false to remove the whole WAF stack
   enable_eb_waf = true
 
-  # eb_alb_arn = try(element(data.aws_resourcegroupstaggingapi_resources.eb_alb.resource_tag_mapping_list[*].resource_arn, 0), null)
-  # eb_web_acl_arn = try(data.terraform_remote_state.platform.outputs.eb_waf.web_acl_arn, null)
+  # Safe ALB ARN lookup - only when EB is enabled
+  eb_alb_arn = local.enable_eb && length(data.aws_resourcegroupstaggingapi_resources.eb_alb.resource_tag_mapping_list) > 0 ? data.aws_resourcegroupstaggingapi_resources.eb_alb.resource_tag_mapping_list[0].resource_arn : null
+    
+  # Safe web ACL ARN lookup
+  eb_web_acl_arn = local.enable_eb && local.enable_eb_waf ? lookup(data.terraform_remote_state.platform.outputs, "eb_web_acl_arn", null) : null
 
-
-  # ALB ARN from tag search (safe null if not found)
-  eb_alb_arn = length(data.aws_resourcegroupstaggingapi_resources.eb_alb.resource_tag_mapping_list) > 0 ? data.aws_resourcegroupstaggingapi_resources.eb_alb.resource_tag_mapping_list[0].resource_arn : null
-  
-  eb_web_acl_arn = lookup(
-    data.terraform_remote_state.platform.outputs,
-    "eb_web_acl_arn",
-    null
-  )
   
   admin_rule_action = "COUNT" # or "COUNT"/ "BLOCK" / "ALLOW" / "CAPTCHA" / "CHALLENGE"
   trusted_ip_cidrs  = ["${data.terraform_remote_state.foundation.outputs.office_ip}"]
