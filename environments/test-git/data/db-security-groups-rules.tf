@@ -40,32 +40,41 @@ resource "aws_vpc_security_group_ingress_rule" "rds_private_mysql" {
 #============================================================
 # Redshift (Deprecated VPC) SG
 #============================================================
-resource "aws_vpc_security_group_ingress_rule" "deprecated_redshift_gravesend_backup" {
-  security_group_id = aws_security_group.deprecated_redshift_access.id
-  description       = "Gravesend Backup Line IP"
-  ip_protocol       = "tcp"
-  from_port         = 5439
-  to_port           = 5439
-  cidr_ipv4         = "82.152.39.92/32"
-}
+# resource "aws_vpc_security_group_ingress_rule" "deprecated_redshift_office" {
+#   for_each          = { for ip in data.terraform_remote_state.foundation.outputs.kuflink_office_ips : ip.cidr => ip }
+#   security_group_id = aws_security_group.deprecated_redshift_access.id
+#   description       = each.value.description
+#   ip_protocol       = "tcp"
+#   from_port         = 5439
+#   to_port           = 5439
+#   cidr_ipv4         = each.key
+# }
+# resource "aws_vpc_security_group_ingress_rule" "deprecated_redshift_gravesend_backup" {
+#   security_group_id = aws_security_group.deprecated_redshift_access.id
+#   description       = "Gravesend Backup Line IP"
+#   ip_protocol       = "tcp"
+#   from_port         = 5439
+#   to_port           = 5439
+#   cidr_ipv4         = "82.152.39.92/32"
+# }
 
-resource "aws_vpc_security_group_ingress_rule" "deprecated_redshift_docklands" {
-  security_group_id = aws_security_group.deprecated_redshift_access.id
-  description       = "Docklands IP"
-  ip_protocol       = "tcp"
-  from_port         = 5439
-  to_port           = 5439
-  cidr_ipv4         = "109.72.216.250/32"
-}
+# resource "aws_vpc_security_group_ingress_rule" "deprecated_redshift_docklands" {
+#   security_group_id = aws_security_group.deprecated_redshift_access.id
+#   description       = "Docklands IP"
+#   ip_protocol       = "tcp"
+#   from_port         = 5439
+#   to_port           = 5439
+#   cidr_ipv4         = "109.72.216.250/32"
+# }
 
-resource "aws_vpc_security_group_ingress_rule" "deprecated_redshift_gravesend_main" {
-  security_group_id = aws_security_group.deprecated_redshift_access.id
-  description       = "Gravesend Main Office IP"
-  ip_protocol       = "tcp"
-  from_port         = 5439
-  to_port           = 5439
-  cidr_ipv4         = "89.197.135.242/32"
-}
+# resource "aws_vpc_security_group_ingress_rule" "deprecated_redshift_gravesend_main" {
+#   security_group_id = aws_security_group.deprecated_redshift_access.id
+#   description       = "Gravesend Main Office IP"
+#   ip_protocol       = "tcp"
+#   from_port         = 5439
+#   to_port           = 5439
+#   cidr_ipv4         = "89.197.135.242/32"
+# }
 
 #============================================================
 # Redshift SG
