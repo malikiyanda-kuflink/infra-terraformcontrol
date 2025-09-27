@@ -26,7 +26,7 @@ variable "onprem_cidrs" {
   description = "List of on-premise CIDRs to route into AWS"
   type        = list(string)
   # If you want a default, it must be a LIST:
-  default     = ["10.0.0.0/16"]
+  default     = ["10.255.255.0/24"]
 }
 
 variable "private_route_table_ids" {
