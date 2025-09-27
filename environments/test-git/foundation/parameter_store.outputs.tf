@@ -1,4 +1,86 @@
 # ---------------------------------------------------------------#
+# Infrastructure Configuration (Additional)
+# ---------------------------------------------------------------#
+output "admin_domain" {
+  value       = module.secrets.admin_domain
+  description = "Admin frontend domain name"
+  sensitive   = true
+}
+
+output "frontend_domain" {
+  value       = module.secrets.frontend_domain
+  description = "Frontend domain name"
+  sensitive   = true
+}
+
+output "maintenance_bucket_name" {
+  value       = module.secrets.maintenance_bucket_name
+  description = "Maintenance bucket name"
+  sensitive   = true
+}
+
+output "redis_ami_id" {
+  value       = module.secrets.redis_ami_id
+  description = "Redis instance AMI ID"
+  sensitive   = true
+}
+
+output "ngw_ip" {
+  value       = module.secrets.ngw_ip
+  description = "Production NAT Gateway IP address"
+  sensitive   = true
+}
+
+output "bastion_ami_id" {
+  value       = module.secrets.bastion_ami_id
+  description = "Bastion host AMI ID"
+  sensitive   = true
+}
+
+output "api_domain" {
+  value       = module.secrets.api_domain
+  description = "API domain name"
+  sensitive   = true
+}
+
+output "api_url" {
+  value       = module.secrets.api_url
+  description = "API base URL"
+  sensitive   = true
+}
+
+output "admin_bucket_name" {
+  value       = module.secrets.admin_bucket_name
+  description = "Admin S3 bucket name"
+  sensitive   = true
+}
+
+output "frontend_bucket_name" {
+  value       = module.secrets.frontend_bucket_name
+  description = "Frontend S3 bucket name"
+  sensitive   = true
+}
+
+output "bastion_dns_name" {
+  value       = module.secrets.bastion_dns_name
+  description = "Bastion proxy DNS name"
+  sensitive   = true
+}
+
+output "rds_target_port" {
+  value       = module.secrets.rds_target_port
+  description = "RDS MySQL target port for bastion proxy"
+  sensitive   = true
+}
+
+output "bastion_forward_port" {
+  value       = module.secrets.bastion_forward_port
+  description = "Bastion proxy forward port"
+  sensitive   = true
+}
+
+
+# ---------------------------------------------------------------#
 # Route53 Configuration
 # ---------------------------------------------------------------#
 output "aws_route53_zone" {

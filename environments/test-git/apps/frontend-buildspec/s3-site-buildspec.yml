@@ -1,0 +1,55 @@
+version: 0.2
+
+env:
+  variables:
+    HUSKY: "0"
+    APP_DIST_DIR: "dist"
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - echo "Node $(node -v)"
+      - echo "NPM  $(npm -v)"
+      - npm ci --force
+
+  pre_build:
+    commands:
+      - echo "API_URL=$API_URL"
+      - echo "FRONTEND_BRANCH=$FRONTEND_BRANCH"
+      - echo "APPLICATION_ENDPOINT=$APPLICATION_ENDPOINT"
+      - export FULL_URL="https://$APPLICATION_ENDPOINT"
+      - echo "FULL_URL=$FULL_URL"
+      - echo "PWD=$(pwd)"; ls -la
+      - echo "environment.qa.ts (before)"; cat src/environments/environment.qa.ts || true
+      - node replace_config.js || true
+      - echo "environment.qa.ts (after)";  cat src/environments/environment.qa.ts || true
+
+  build:
+    commands:
+      - npm i @angular/cli@19 -g
+      - npm install --force
+      - echo "Building Angular (qa)"
+      - ng version || true
+      - ng build --configuration=qa
+
+  post_build:
+    commands:
+      - if [ -d "$APP_DIST_DIR" ]; then echo "dist found at $APP_DIST_DIR"; ls -la "$APP_DIST_DIR"; else echo "ERROR $APP_DIST_DIR not found"; exit 1; fi
+      - |
+        if [ -n "$NOTIFICATION_ARN" ]; then
+          aws sns publish \
+            --topic-arn "$NOTIFICATION_ARN" \
+            --subject "Build Succeeded Frontend-S3-Angular-Application" \
+            --message "Deployed at ${FULL_URL:-<url-not-provided>}";
+        fi
+
+artifacts:
+  base-directory: $APP_DIST_DIR
+  files:
+    - '**/*'
+
+cache:
+  paths:
+    - 'node_modules/**/*'

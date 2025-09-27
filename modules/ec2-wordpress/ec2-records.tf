@@ -1,6 +1,6 @@
 # Get the existing Route 53 hosted zone
 data "aws_route53_zone" "kuflink_zone" {
-  name         = "brickfin.co.uk." # Ensure you include the trailing dot
+  name         = var.aws_route53_zone # Ensure you include the trailing dot
   private_zone = false             # Set to true if it's a private hosted zone
 }
 

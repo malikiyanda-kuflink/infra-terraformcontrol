@@ -1,5 +1,5 @@
 data "aws_route53_zone" "kuflink" {
-  name         = local.aws_route53_zone  #"brickfin.co.uk"
+  name         = local.aws_route53_zone  
   private_zone = false
 }
 

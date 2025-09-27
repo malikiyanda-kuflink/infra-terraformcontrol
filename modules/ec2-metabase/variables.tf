@@ -1,3 +1,7 @@
+variable "aws_route53_zone" {
+  type = string
+}
+
 variable "ssh_key_name" {
   description = "SSH key name to use for instance"
   type        = string

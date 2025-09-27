@@ -60,11 +60,10 @@ locals {
   # -----------------------------------------------------------------
   # admin_waf_arn     = try(module.s3_admin_waf[0].web_acl_arn, null)
   admin_waf_arn     = data.terraform_remote_state.platform.outputs.s3_admin_waf.web_acl_arn
-  admin_bucket_name = "test-admin.brickfin.co.uk"
-  # maintenance_bucket_name = "maintenance-test-invest.brickfin.co.uk"
+  admin_bucket_name = data.terraform_remote_state.foundation.outputs.admin_bucket_name
 
-  admin_domains     = ["test-admin.brickfin.co.uk"]
-  admin_record_name = "test-admin.brickfin.co.uk"
+  admin_domains     = [data.terraform_remote_state.foundation.outputs.admin_domain]
+  admin_record_name = data.terraform_remote_state.foundation.outputs.admin_domain
 
   # Hosted zone: choose either ID or name.
   admin_hosted_zone_id   = local.staging_hosted_zone_id
@@ -86,7 +85,7 @@ locals {
   admin_codebuild_email_endpoint = data.terraform_remote_state.foundation.outputs.admin_email
   admin_codebuild_image          = "aws/codebuild/standard:7.0" # has Node 20
   admin_repo                     = data.terraform_remote_state.foundation.outputs.admin_repo
-  admin_api_url                  = "https://p2p-test.brickfin.co.uk/api/"
+  admin_api_url                  = data.terraform_remote_state.foundation.outputs.api_url
   admin_branch                   = "staging-test"
   # admin_branch                 = "develop" # debug cors issue - cors.conf
   admin_codestar_connection       = data.terraform_remote_state.foundation.outputs.codestar_connection_arn
@@ -97,12 +96,12 @@ locals {
   # selection, and the certificate ARN (must be us-east-1 for CF).
   # 'frontend_website_url' resolves to the record FQDN or CF domain.
   # -----------------------------------------------------------------
-  api_url                 = "https://p2p-test.brickfin.co.uk/api/"
-  frontend_bucket_name    = "test-invest.brickfin.co.uk"
-  maintenance_bucket_name = "maintenance-test-invest.brickfin.co.uk"
+  api_url                 = data.terraform_remote_state.foundation.outputs.api_url
+  frontend_bucket_name    = data.terraform_remote_state.foundation.outputs.frontend_bucket_name
+  maintenance_bucket_name = data.terraform_remote_state.foundation.outputs.maintenance_bucket_name
 
-  frontend_domains     = ["test-invest.brickfin.co.uk"]
-  frontend_record_name = "test-invest.brickfin.co.uk"
+  frontend_domains     = [data.terraform_remote_state.foundation.outputs.frontend_domain]
+  frontend_record_name = data.terraform_remote_state.foundation.outputs.frontend_domain
 
   # Hosted zone: choose either ID or name.
   frontend_hosted_zone_id   = local.staging_hosted_zone_id
@@ -136,15 +135,15 @@ locals {
   # --------------------------------------
   # Bastion locals
   # --------------------------------------
-  staging_dns_bastion_name = "kuff-test-bastion-proxy.brickfin.co.uk"
+  staging_dns_bastion_name = data.terraform_remote_state.foundation.outputs.bastion_dns_name
 
   # Toggle-controlled bastion EIP
   # bastion_eip_public_ip      = module.ec2-bastion.bastion_elastic_ip  
   bastion_eip_public_ip = local.enable_bastion ? module.ec2-bastion[0].bastion_elastic_ip : null
 
   staging_dns_bastion_target = local.db_endpoint 
-  forward_port               = "9990"
-  target_port                = "3306"
+  forward_port               = data.terraform_remote_state.foundation.outputs.bastion_forward_port
+  target_port                = data.terraform_remote_state.foundation.outputs.rds_target_port
 
   # --------------------------------------
   # ADMIN WAF CONFIGURATION (ENV-SCOPED) FOR EB ALB

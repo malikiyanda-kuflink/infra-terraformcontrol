@@ -1,7 +1,7 @@
 resource "aws_route53_record" "db_proxy" {
   count = (local.enable_bastion && local.enable_bastion_dns) ? 1 : 0
 
-  zone_id = local.staging_hosted_zone_id # hosted zone for brickfin.co.uk
+  zone_id = local.staging_hosted_zone_id
   name    = local.staging_dns_bastion_name
   type    = "A"
   ttl     = 60
@@ -18,9 +18,9 @@ module "ec2-bastion" {
 
   ssh_key_parameter_name = data.terraform_remote_state.foundation.outputs.ssh_key_parameter_name
 
-  ssh_key_name            = "staging"
+  ssh_key_name            = data.terraform_remote_state.foundation.outputs.ec2_key_name
   instance_type           = "t3.micro"
-  bastion_ami_id          = "ami-0f7a692c8af29b5c1"
+  bastion_ami_id          = data.terraform_remote_state.foundation.outputs.bastion_ami_id
   bastion_elastic_ip_name = "${local.name_prefix}-bastion-ec2-eip"
   bastion_user_data       = file("${path.root}/user-data/bastion_user_data.sh")
   bastion_name            = "Kuflink-Test-Bastion"

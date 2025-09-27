@@ -13,34 +13,34 @@ resource "aws_vpc_security_group_ingress_rule" "bastion_office_ssh" {
   cidr_ipv4         = each.key
 }
 
-# Office IPs -> Bastion Port Forward (9990)
-resource "aws_vpc_security_group_ingress_rule" "bastion_office_pf_9990" {
+# Office IPs -> Bastion Port Forward 
+resource "aws_vpc_security_group_ingress_rule" "bastion_office_pf" {
   for_each          = { for ip in data.terraform_remote_state.foundation.outputs.kuflink_office_ips : ip.cidr => ip }
   security_group_id = aws_security_group.bastion_sg.id
-  description       = "Office PF 9990"
+  description       = "Office PF"
   ip_protocol       = "tcp"
-  from_port         = 9990
-  to_port           = 9990
+  from_port         = data.terraform_remote_state.foundation.outputs.bastion_forward_port
+  to_port           = data.terraform_remote_state.foundation.outputs.bastion_forward_port
   cidr_ipv4         = each.key
 }
 
-# NGW IPs -> Bastion (22, 9990)
+# NGW IPs -> Bastion (22)
 resource "aws_vpc_security_group_ingress_rule" "bastion_ngw_22" {
   security_group_id = aws_security_group.bastion_sg.id
   description       = "Prod NGW SSH"
   ip_protocol       = "tcp"
   from_port         = 22
   to_port           = 22
-  cidr_ipv4         = "52.56.33.206/32"
+  cidr_ipv4         = data.terraform_remote_state.foundation.outputs.ngw_ip
 }
 
-resource "aws_vpc_security_group_ingress_rule" "bastion_ngw_9990" {
+resource "aws_vpc_security_group_ingress_rule" "bastion_ngw" {
   security_group_id = aws_security_group.bastion_sg.id
-  description       = "Prod NGW PF 9990"
+  description       = "Prod NGW PF"
   ip_protocol       = "tcp"
-  from_port         = 9990
-  to_port           = 9990
-  cidr_ipv4         = "52.56.33.206/32"
+  from_port         = data.terraform_remote_state.foundation.outputs.bastion_forward_port
+  to_port           = data.terraform_remote_state.foundation.outputs.bastion_forward_port
+  cidr_ipv4         = data.terraform_remote_state.foundation.outputs.ngw_ip
 }
 
 # ---------------------------------------

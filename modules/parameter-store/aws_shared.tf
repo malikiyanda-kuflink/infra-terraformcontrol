@@ -9,6 +9,60 @@ variable "environment" {
   type = string
 }
 
+# Domain data sources (add to existing parameter store module)
+data "aws_ssm_parameter" "admin_domain" {
+  name = "/kuflink/${var.environment}/admin-domain"
+}
+
+data "aws_ssm_parameter" "frontend_domain" {
+  name = "/kuflink/${var.environment}/frontend-domain"
+}
+
+data "aws_ssm_parameter" "maintenance_bucket_name" {
+  name = "/kuflink/${var.environment}/maintenance-bucket-name"
+}
+
+data "aws_ssm_parameter" "redis_ami_id" {
+  name = "/kuflink/${var.environment}/redis-ami-id"
+}
+
+# Infrastructure data sources
+data "aws_ssm_parameter" "ngw_ip" {
+  name = "/kuflink/${var.environment}/ngw-ip"
+}
+
+data "aws_ssm_parameter" "bastion_ami_id" {
+  name = "/kuflink/${var.environment}/bastion-ami-id"
+}
+
+data "aws_ssm_parameter" "api_domain" {
+  name = "/kuflink/${var.environment}/api-domain"
+}
+
+data "aws_ssm_parameter" "api_url" {
+  name = "/kuflink/${var.environment}/api-url"
+}
+
+data "aws_ssm_parameter" "admin_bucket_name" {
+  name = "/kuflink/${var.environment}/admin-bucket-name"
+}
+
+data "aws_ssm_parameter" "frontend_bucket_name" {
+  name = "/kuflink/${var.environment}/frontend-bucket-name"
+}
+
+data "aws_ssm_parameter" "bastion_dns_name" {
+  name = "/kuflink/${var.environment}/bastion-dns-name"
+}
+
+data "aws_ssm_parameter" "rds_target_port" {
+  name = "/kuflink/${var.environment}/rds-target-port"
+}
+
+data "aws_ssm_parameter" "bastion_forward_port" {
+  name = "/kuflink/${var.environment}/bastion-forward-port"
+}
+
 # Route53 data sources
 data "aws_ssm_parameter" "route53_zone_name" {
   name = "/kuflink/${var.environment}/route53-zone-name"
@@ -135,4 +189,76 @@ output "staging_hosted_zone_id" {
 output "cloudfront_zone_id" {
   value       = data.aws_ssm_parameter.cloudfront_zone_id.value
   description = "CloudFront hosted zone ID"
+}
+
+# Infrastructure outputs (add to existing parameter store module)
+output "ngw_ip" {
+  value       = data.aws_ssm_parameter.ngw_ip.value
+  description = "Production NAT Gateway IP address"
+}
+
+output "bastion_ami_id" {
+  value       = data.aws_ssm_parameter.bastion_ami_id.value
+  description = "Bastion host AMI ID"
+}
+
+output "api_domain" {
+  value       = data.aws_ssm_parameter.api_domain.value
+  description = "API domain name"
+}
+
+output "api_url" {
+  value       = data.aws_ssm_parameter.api_url.value
+  description = "API base URL"
+}
+
+output "admin_bucket_name" {
+  value       = data.aws_ssm_parameter.admin_bucket_name.value
+  description = "Admin S3 bucket name"
+}
+
+output "frontend_bucket_name" {
+  value       = data.aws_ssm_parameter.frontend_bucket_name.value
+  description = "Frontend S3 bucket name"
+}
+
+output "bastion_dns_name" {
+  value       = data.aws_ssm_parameter.bastion_dns_name.value
+  description = "Bastion proxy DNS name"
+}
+
+output "rds_target_port" {
+  value       = data.aws_ssm_parameter.rds_target_port.value
+  description = "RDS MySQL target port for bastion proxy"
+}
+
+output "bastion_forward_port" {
+  value       = data.aws_ssm_parameter.bastion_forward_port.value
+  description = "Bastion proxy forward port"
+}
+
+output "redis_ami_id" {
+  value       = data.aws_ssm_parameter.redis_ami_id.value
+  description = "Redis instance AMI ID"
+}
+
+# Domain outputs 
+output "admin_domain" {
+  value       = data.aws_ssm_parameter.admin_domain.value
+  description = "Admin frontend domain name"
+}
+
+output "frontend_domain" {
+  value       = data.aws_ssm_parameter.frontend_domain.value
+  description = "Frontend domain name"
+}
+
+output "maintenance_bucket_name" {
+  value       = data.aws_ssm_parameter.maintenance_bucket_name.value
+  description = "Maintenance bucket name"
+}
+
+output "redis_ami_id" {
+  value       = data.aws_ssm_parameter.redis_ami_id.value
+  description = "Redis instance AMI ID"
 }
