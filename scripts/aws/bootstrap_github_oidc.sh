@@ -316,25 +316,37 @@ JSON
 }
 
 policy_platform_json() {
-cat <<'JSON'
+  cat <<'JSON'
 {
   "Version":"2012-10-17",
   "Statement":[
     {
       "Effect":"Allow",
-      "Action":[ "ecr:*Repository*","ecr:Describe*","ecr:GetAuthorizationToken" ],
+      "Action":[
+        "ecr:*Repository*","ecr:Describe*","ecr:GetAuthorizationToken"
+      ],
       "Resource":"*"
     },
     {
       "Effect":"Allow",
-      "Action":[ "elasticloadbalancing:*","autoscaling:*","cloudwatch:*","logs:*","events:*","ssm:Describe*","ssm:Get*","ssm:List*" ],
+      "Action":[
+        "elasticloadbalancing:*","autoscaling:*","cloudwatch:*","logs:*","events:*","ssm:Describe*","ssm:Get*","ssm:List*"
+      ],
       "Resource":"*"
     },
     {
       "Effect":"Allow",
-      "Action":[ "iam:PassRole" ],
+      "Action":[
+        "iam:PassRole"
+      ],
       "Resource":"*",
-      "Condition":{ "StringLike":{ "iam:PassedToService":[ "ec2.amazonaws.com","ecs.amazonaws.com","ecs-tasks.amazonaws.com","eks.amazonaws.com" ] } }
+      "Condition":{
+        "StringLike":{
+          "iam:PassedToService":[
+            "ec2.amazonaws.com","ecs.amazonaws.com","ecs-tasks.amazonaws.com","eks.amazonaws.com"
+          ]
+        }
+      }
     },
     {
       "Effect":"Allow",
@@ -344,7 +356,9 @@ cat <<'JSON'
         "wafv2:CreateIPSet","wafv2:UpdateIPSet","wafv2:DeleteIPSet","wafv2:GetIPSet","wafv2:ListIPSets",
         "wafv2:CreateRegexPatternSet","wafv2:UpdateRegexPatternSet","wafv2:DeleteRegexPatternSet","wafv2:GetRegexPatternSet","wafv2:ListRegexPatternSets",
         "wafv2:CreateRuleGroup","wafv2:UpdateRuleGroup","wafv2:DeleteRuleGroup","wafv2:GetRuleGroup","wafv2:ListRuleGroups",
-        "wafv2:PutLoggingConfiguration","wafv2:DeleteLoggingConfiguration","wafv2:GetLoggingConfiguration","wafv2:ListLoggingConfigurations"
+        "wafv2:PutLoggingConfiguration","wafv2:DeleteLoggingConfiguration","wafv2:GetLoggingConfiguration","wafv2:ListLoggingConfigurations",
+        "wafv2:TagResource","wafv2:UntagResource","wafv2:ListTagsForResource",
+        "wafv2:GetManagedRuleSet","wafv2:ListManagedRuleSets","wafv2:CheckCapacity"
       ],
       "Resource":"*"
     },
