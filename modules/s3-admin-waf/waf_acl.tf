@@ -1,6 +1,6 @@
 resource "aws_wafv2_web_acl" "admin_waf" {
   # (recommend mapping the module provider at call-site; if not, keep:)
-  provider    = aws.use1
+  # provider    = aws.use1
   name        = "${var.name_prefix}-admin-waf"
   scope       = var.scope
   description = "Parametrised WAF for ${var.name_prefix}-admin-waf"
