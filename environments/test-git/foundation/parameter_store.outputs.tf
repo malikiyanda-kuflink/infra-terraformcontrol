@@ -75,7 +75,7 @@ output "dbt_cloud_ips" {
 
 
 output "fivetran_gcp_ips" {
-  value       = local.fivetran_gcp
+  value       = local.fivetran_gcp.cidr
   sensitive = true
   description = "List of DBT Cloud IPs with description and CIDR"
 }

@@ -1,5 +1,6 @@
 # ✅ 1️⃣ Replica Lag Too High
 resource "aws_cloudwatch_metric_alarm" "replica_lag_too_high" {
+  count = var.create_read_replica ? 1 : 0
   alarm_name          = "${local.replica_instance_name}-ReplicaLag-Too-High"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 2
@@ -19,6 +20,7 @@ resource "aws_cloudwatch_metric_alarm" "replica_lag_too_high" {
 
 # ✅ 2️⃣ Replica Sync Broken (Optional - Persistent Lag)
 resource "aws_cloudwatch_metric_alarm" "replica_sync_broken" {
+  count = var.create_read_replica ? 1 : 0
   alarm_name          = "${local.replica_instance_name}-ReplicaSync-Broken"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 4
@@ -38,6 +40,7 @@ resource "aws_cloudwatch_metric_alarm" "replica_sync_broken" {
 
 # ✅ 3️⃣ Write Activity Detected on Replica (Optional)
 resource "aws_cloudwatch_metric_alarm" "replica_write_activity" {
+  count = var.create_read_replica ? 1 : 0
   alarm_name          = "${local.replica_instance_name}-Write-Detected"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
@@ -60,6 +63,7 @@ resource "aws_cloudwatch_metric_alarm" "replica_write_activity" {
 
 # ✅ 4️⃣ High DB Connections on Replica (Optional)
 resource "aws_cloudwatch_metric_alarm" "replica_high_connections" {
+  count = var.create_read_replica ? 1 : 0
   alarm_name          = "${local.replica_instance_name}-High-Connections"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 2
