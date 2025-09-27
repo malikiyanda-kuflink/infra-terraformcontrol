@@ -28,8 +28,11 @@ TARGET_HOST="$(imds /latest/meta-data/tags/instance/DB_HOST)"
 FORWARD_PORT="$(imds /latest/meta-data/tags/instance/FORWARD_PORT)"
 TARGET_PORT="$(imds /latest/meta-data/tags/instance/TARGET_PORT)"
 
+SSH_PREFIX="$(aws ssm get-parameter --name "/kuflink/test/ssh-key-param-prefix" --region "$REGION" --query 'Parameter.Value' --output text)"
+TARGET_HOST_PARAM="$(aws ssm get-parameter --name "/kuflink/test/bastion-target-host" --region "$REGION" --query 'Parameter.Value' --output text)"
+
 # ---------- Defaults & validation ----------
-: "${TARGET_HOST:=kuff-test-mysql.brickfin.co.uk}"   # <-- RDS endpoint, NOT the proxy DNS
+: "${TARGET_HOST:=${TARGET_HOST_PARAM}}"   # <-- RDS endpoint, NOT the proxy DNS
 : "${FORWARD_PORT:=9990}"
 : "${TARGET_PORT:=3306}"
 
@@ -56,10 +59,10 @@ yum install -y -q mysql || yum install -y -q mariadb || true
 PRESERVE_EXISTING_AUTH_KEYS="${PRESERVE_EXISTING_AUTH_KEYS:-true}"
 echo "🔑 Building $AUTHORIZED_KEYS from SSM parameters:"
 PUBLIC_KEY_PARAMS=(
-  "/kuflink/ssh/public-keys/ArchitectPublicKey"
-  "/kuflink/ssh/public-keys/DevOpsPublicKey"
-  "/kuflink/ssh/public-keys/TeamLeadPublicKey"
-  "/kuflink/ssh/public-keys/TechLeadPublicKey"
+  "${SSH_PREFIX}/ArchitectPublicKey"
+  "${SSH_PREFIX}/DevOpsPublicKey"
+  "${SSH_PREFIX}/TeamLeadPublicKey"
+  "${SSH_PREFIX}/TechLeadPublicKey"
 )
 
 mkdir -p "$SSH_DIR"; chown "$USERNAME:$USERNAME" "$SSH_DIR"; chmod 700 "$SSH_DIR"
