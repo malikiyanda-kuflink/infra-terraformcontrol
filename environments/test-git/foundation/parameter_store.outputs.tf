@@ -1,6 +1,30 @@
 # ---------------------------------------------------------------#
+# Route53 Configuration
+# ---------------------------------------------------------------#
+output "aws_route53_zone" {
+  value       = module.secrets.aws_route53_zone
+  description = "Primary Route53 hosted zone name"
+  sensitive   = true
+}
+
+output "staging_hosted_zone_id" {
+  value       = module.secrets.staging_hosted_zone_id
+  description = "Staging environment hosted zone ID"
+  sensitive   = true
+}
+
+output "cloudfront_zone_id" {
+  value       = module.secrets.cloudfront_zone_id
+  description = "CloudFront hosted zone ID"
+  sensitive   = true
+}
+
+
+# ---------------------------------------------------------------#
 # Email Notifications
 # ---------------------------------------------------------------#
+
+
 output "admin_email" {
   value       = module.secrets.admin_email
   description = "Admin build notification email"

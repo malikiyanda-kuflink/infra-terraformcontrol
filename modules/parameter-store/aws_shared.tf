@@ -9,6 +9,19 @@ variable "environment" {
   type = string
 }
 
+# Route53 data sources
+data "aws_ssm_parameter" "route53_zone_name" {
+  name = "/kuflink/${var.environment}/route53-zone-name"
+}
+
+data "aws_ssm_parameter" "staging_hosted_zone_id" {
+  name = "/kuflink/${var.environment}/staging-hosted-zone-id"
+}
+
+data "aws_ssm_parameter" "cloudfront_zone_id" {
+  name = "/kuflink/${var.environment}/cloudfront-zone-id"
+}
+
 # Email data sources
 data "aws_ssm_parameter" "build_notification_email" {
   name = "/kuflink/${var.environment}/build-notification-email"
@@ -106,4 +119,20 @@ output "ec2_key_name" {
 output "worker_queue_name" {
   value       = data.aws_ssm_parameter.worker_queue_name.value
   description = "SQS worker queue name"
+}
+
+# Route53 outputs
+output "aws_route53_zone" {
+  value       = data.aws_ssm_parameter.route53_zone_name.value
+  description = "Primary Route53 hosted zone name"
+}
+
+output "staging_hosted_zone_id" {
+  value       = data.aws_ssm_parameter.staging_hosted_zone_id.value
+  description = "Staging environment hosted zone ID"
+}
+
+output "cloudfront_zone_id" {
+  value       = data.aws_ssm_parameter.cloudfront_zone_id.value
+  description = "CloudFront hosted zone ID"
 }

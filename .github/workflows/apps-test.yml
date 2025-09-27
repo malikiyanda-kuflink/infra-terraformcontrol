@@ -1,16 +1,16 @@
 name: apps-test
 
 on:
-  pull_request:
-    branches: [ test-git ]
-    paths:
-      - environments/test-git/apps/**
-      - modules/**
-  push:
-    branches: [ test-git ]
-    paths:
-      - environments/test-git/apps/**
-      - modules/**
+  # pull_request:
+  #   branches: [ test-git ]
+  #   paths:
+  #     # - environments/test-git/apps/**
+  #     # - modules/**
+  # push:
+  #   branches: [ test-git ]
+  #   paths:
+  #     - environments/test-git/apps/**
+  #     - modules/**
   workflow_dispatch:
     inputs:
       auto_apply:
