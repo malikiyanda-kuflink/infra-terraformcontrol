@@ -33,6 +33,18 @@ data "aws_resourcegroupstaggingapi_resources" "eb_alb" {
 # referenced throughout the compute and delivery layers.
 # ===================================================================
 locals {
+# =======================================
+# Comptue layer  
+# =======================================
+  env                    = "test"
+  name_prefix            = "kuflink-test"
+  
+  environment            = "Test"
+  name_prefix_upper      = "Kuflink-Test"
+
+  aws_route53_zone       = data.terraform_remote_state.foundation.outputs.aws_route53_zone
+  staging_hosted_zone_id = data.terraform_remote_state.foundation.outputs.staging_hosted_zone_id
+  cloudfront_zone_id     = data.terraform_remote_state.foundation.outputs.cloudfront_zone_id
 
   # --------------------------------------
   # COMPUTE LAYER CORE CONTROLS
@@ -41,15 +53,16 @@ locals {
   # --------------------------------------
   # Comptue layer locals (controls)
   # --------------------------------------
-  enable_eb          = true
+  
+  enable_eb          = false
   enable_bastion     = true
   enable_bastion_dns = true
-  enable_redis       = true
+  enable_redis       = false
   enable_dbt         = false
 
   # --- Frontend/Admin S3 toggles --- # flip to true/false to skip creating the stack
-  enable_s3_admin            = true
-  enable_s3_frontend         = true
+  enable_s3_admin            = false
+  enable_s3_frontend         = false
   serve_frontend_maintenance = true
 
   # -----------------------------------------------------------------
