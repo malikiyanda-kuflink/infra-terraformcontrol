@@ -1,3 +1,10 @@
+# README files
+README.md
+**/README.md
+readme.md
+**/readme.md
+
+
 # Terraform files
 *.tfstate
 *.tfstate.*
@@ -24,3 +31,4 @@ importing_vpc.sh
 # Terraform plan output files
 *.tfplan
 *.tfplan.txt
+
