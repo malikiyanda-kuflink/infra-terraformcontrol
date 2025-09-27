@@ -257,8 +257,3 @@ output "maintenance_bucket_name" {
   value       = data.aws_ssm_parameter.maintenance_bucket_name.value
   description = "Maintenance bucket name"
 }
-
-output "redis_ami_id" {
-  value       = data.aws_ssm_parameter.redis_ami_id.value
-  description = "Redis instance AMI ID"
-}
