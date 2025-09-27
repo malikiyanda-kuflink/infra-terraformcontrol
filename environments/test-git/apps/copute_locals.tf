@@ -15,7 +15,7 @@ data "aws_partition" "current" {}
 # ===================================================================
 # Find the ALB by the EB environment-name tag
 data "aws_resourcegroupstaggingapi_resources" "eb_alb" {
-
+  count = local.enable_eb ? 1 : 0
   resource_type_filters = ["elasticloadbalancing:loadbalancer"]
 
   tag_filter {
