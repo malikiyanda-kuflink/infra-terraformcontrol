@@ -207,8 +207,7 @@ locals {
   enable_eb_waf = true
 
   # Safe ALB ARN lookup - only when EB is enabled
-  eb_alb_arn = local.enable_eb && length(data.aws_resourcegroupstaggingapi_resources.eb_alb) > 0 && length(data.aws_resourcegroupstaggingapi_resources.eb_alb[0].resource_tag_mapping_list) > 0 ? data.aws_resourcegroupstaggingapi_resources.eb_alb[0].resource_tag_mapping_list[0].resource_arn : null
-  
+  eb_alb_arn = local.enable_eb && length(data.aws_resourcegroupstaggingapi_resources.eb_alb) > 0 && length(data.aws_resourcegroupstaggingapi_resources.eb_alb[0].resource_tag_mapping_list) > 0 ? data.aws_resourcegroupstaggingapi_resources.eb_alb[0].resource_tag_mapping_list[0].resource_arn : null  
   # Safe web ACL ARN lookup
   eb_web_acl_arn = local.enable_eb && local.enable_eb_waf ? lookup(data.terraform_remote_state.platform.outputs, "eb_web_acl_arn", null) : null
 
