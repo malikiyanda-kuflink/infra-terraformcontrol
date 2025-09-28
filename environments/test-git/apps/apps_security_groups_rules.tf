@@ -49,8 +49,11 @@ resource "aws_vpc_security_group_ingress_rule" "bastion_ngw" {
 # ----- safe locals -----
 locals {
   rds_sg_id      = lookup(data.terraform_remote_state.data.outputs, "rds_security_group_id", null)
-  redis_sg_id    = lookup(data.terraform_remote_state.data.outputs, "redis_sg_id", null)
   redshift_sg_id = lookup(data.terraform_remote_state.data.outputs, "redshift_security_group_id", null)
+  
+  # redis_sg_id    = lookup(data.terraform_remote_state.data.outputs, "redis_sg_id", null)
+  redis_sg_id = aws_security_group.redis_sg.id 
+  
   db_endpoint    = lookup(data.terraform_remote_state.data.outputs, "db_dns_instance_endpoint", null)
 }
 

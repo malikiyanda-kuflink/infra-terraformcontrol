@@ -75,6 +75,10 @@ output "redshift_cluster" {
   } : null
 }
 
+output "redshift_security_group_id" {
+  description = "Security group ID for Redshift cluster"
+  value       = try(aws_security_group.redshift_access.id, null)
+}
 
 
 # ===================================================================
