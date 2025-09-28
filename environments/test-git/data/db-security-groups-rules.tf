@@ -115,3 +115,64 @@ resource "aws_vpc_security_group_ingress_rule" "redshift_from_dbt_sg" {
   to_port                      = 5439
   description                  = "DBT SG to Redshift"
 }
+
+
+# ===============================
+# OUTBOUND RULES FOR DATA LAYER SGs
+# ===============================
+
+# DBT SG outbound
+resource "aws_vpc_security_group_egress_rule" "dbt_outbound_all" {
+  security_group_id = aws_security_group.dbt_sg.id
+  description       = "All outbound traffic"
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+# DMS (Deprecated VPC) SG outbound
+resource "aws_vpc_security_group_egress_rule" "dms_deprecated_outbound_all" {
+  security_group_id = aws_security_group.dms_deprecated_vpc_sg.id
+  description       = "All outbound traffic"
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+# DMS (Test VPC) SG outbound
+resource "aws_vpc_security_group_egress_rule" "dms_vpc_outbound_all" {
+  security_group_id = aws_security_group.dms_vpc_sg.id
+  description       = "All outbound traffic"
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+# RDS (Deprecated VPC) SG outbound
+resource "aws_vpc_security_group_egress_rule" "rds_deprecated_outbound_all" {
+  security_group_id = aws_security_group.rds_deprecated_sg.id
+  description       = "All outbound traffic"
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+# RDS SG outbound
+resource "aws_vpc_security_group_egress_rule" "rds_outbound_all" {
+  security_group_id = aws_security_group.rds_sg.id
+  description       = "All outbound traffic"
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+# Redshift (Deprecated VPC) SG outbound
+resource "aws_vpc_security_group_egress_rule" "redshift_deprecated_outbound_all" {
+  security_group_id = aws_security_group.deprecated_redshift_access.id
+  description       = "All outbound traffic"
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+# Redshift SG outbound
+resource "aws_vpc_security_group_egress_rule" "redshift_outbound_all" {
+  security_group_id = aws_security_group.redshift_access.id
+  description       = "All outbound traffic"
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+}

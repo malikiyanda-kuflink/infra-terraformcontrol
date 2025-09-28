@@ -166,3 +166,64 @@ resource "aws_vpc_security_group_ingress_rule" "metabase_alb_https" {
   to_port           = 443
   cidr_ipv4         = "0.0.0.0/0"
 }
+
+
+# ===============================
+# OUTBOUND RULES FOR ALL SGs
+# ===============================
+
+# Bastion SG outbound - needs internet for packages and AWS APIs
+resource "aws_vpc_security_group_egress_rule" "bastion_outbound_all" {
+  security_group_id = aws_security_group.bastion_sg.id
+  description       = "All outbound traffic"
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+# EB Web App SG outbound
+resource "aws_vpc_security_group_egress_rule" "eb_web_app_outbound_all" {
+  security_group_id = aws_security_group.eb_web_app_sg.id
+  description       = "All outbound traffic"
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+# WordPress SG outbound
+resource "aws_vpc_security_group_egress_rule" "wordpress_outbound_all" {
+  security_group_id = aws_security_group.kuflink_wp_sg.id
+  description       = "All outbound traffic"
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+# Metabase SG outbound
+resource "aws_vpc_security_group_egress_rule" "metabase_outbound_all" {
+  security_group_id = aws_security_group.metabase_sg.id
+  description       = "All outbound traffic"
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+# Metabase ALB SG outbound
+resource "aws_vpc_security_group_egress_rule" "metabase_alb_outbound_all" {
+  security_group_id = aws_security_group.metabase_alb_sg.id
+  description       = "All outbound traffic"
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+# Test Instance SG outbound
+resource "aws_vpc_security_group_egress_rule" "test_instance_outbound_all" {
+  security_group_id = aws_security_group.test_instance_sg.id
+  description       = "All outbound traffic"
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+# Redis SG outbound
+resource "aws_vpc_security_group_egress_rule" "redis_outbound_all" {
+  security_group_id = aws_security_group.redis_sg.id
+  description       = "All outbound traffic"
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+}
