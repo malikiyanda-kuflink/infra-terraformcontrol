@@ -56,7 +56,7 @@ locals {
 
 # ----- rules guarded by existence -----
 resource "aws_vpc_security_group_ingress_rule" "allow_bastion_to_rds" {
-  count                        = local.rds_sg_id != null ? 0 : 1
+  count                        = local.rds_sg_id != null ? 1 : 0
   security_group_id            = local.rds_sg_id
   referenced_security_group_id = aws_security_group.bastion_sg.id
   description                  = "Bastion to RDS 3306"
