@@ -28,3 +28,4 @@ output "performance_insights_kms_key_id" {
   description = "KMS key ID used for Performance Insights encryption"
   value       = var.create_performance_insights_kms_key ? aws_kms_key.performance_insights[0].key_id : null
 }
+

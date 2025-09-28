@@ -17,6 +17,12 @@ output "rds_primary" {
   }
 }
 
+output "rds_security_group_id" {
+  description = "Security group ID for RDS instances"
+  value = aws_security_group.rds_sg.id
+  # This is the security group used by both new and restored RDS instances
+}
+
 # ===================================================================
 # RDS – Read Replica (optional) as a structured object (or null)
 # ===================================================================
