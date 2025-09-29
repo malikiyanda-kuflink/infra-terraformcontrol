@@ -1,6 +1,10 @@
 module "s3-admin" {
   source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/s3-admin?ref=v0.1.73"
 
+  providers = {
+    aws.use1 = aws.use1
+  }
+
   admin_waf_arn = local.admin_waf_arn
 
   # --- Feature toggles --- 
