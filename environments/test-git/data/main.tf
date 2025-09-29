@@ -23,7 +23,7 @@ data "aws_db_instance" "rds_ro_legacy" {
 
 # # RDS Module - new DB create
 module "rds" {
-  source = "malikiyandgit::ssh://git@github.com/a-kuflink/infra-terraformcontrol.git//modules/rds?ref=v0.1.0"
+  source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/rds?ref=v0.1.0"
   count  = local.restore_rds_from_snapshot ? 0 : 1
 
   name_prefix        = local.name_prefix
