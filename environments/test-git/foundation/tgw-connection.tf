@@ -164,7 +164,7 @@ resource "aws_route" "test_to_staging" {
   transit_gateway_id     = data.aws_ec2_transit_gateway.existing_tgw.id
 }
 
-# Remove the variables entirely from test
+# Remove the variables entirely from tests
 
 ###############################################################
 # Outputs
