@@ -51,8 +51,8 @@ module "s3-admin" {
   admin_website_url               = local.admin_website_url
   admin_codebuild_image           = local.admin_codebuild_image
   admin_codebuild_email_endpoint  = local.admin_codebuild_email_endpoint
-  admin_buildspec_path            = "${path.root}/admin-buildspec/s3-site-buildspec.yml"
-  admin_invalidate_buildspec_path = "${path.root}/admin-buildspec/s3-site-invalidate-buildspec.yml"
+  admin_buildspec_path            = "${path.root}/admin-buildspec-v3/s3-site-buildspec.yml"
+  admin_invalidate_buildspec_path = "${path.root}/admin-buildspec-v3/s3-site-invalidate-buildspec.yml"
 
   # --- Self references / outputs---
   admin_app_bucket = module.s3-admin.bucket_name

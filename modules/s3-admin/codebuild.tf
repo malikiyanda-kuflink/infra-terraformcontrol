@@ -21,7 +21,7 @@ resource "aws_codebuild_project" "admin_build" {
     privileged_mode = true
 
     environment_variable {
-      name  = "API_URL"
+      name  = "VITE_BASE_API_URL"
       value = var.api_url
     }
 

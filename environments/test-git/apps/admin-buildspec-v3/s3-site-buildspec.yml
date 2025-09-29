@@ -1,0 +1,50 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - echo "Installing Node.js and global packages"
+
+  pre_build:
+    commands:
+      - npm install
+
+      - echo "Checking env variables"
+      - echo "API URL- $VITE_BASE_API_URL"
+      - echo "Branch Name- $ADMIN_BRANCH"
+      - echo "Application Endpoint- $APPLICATION_ENDPOINT"
+      - echo "SNS Notification ARN- $NOTIFICATION_ARN"
+      - echo "CLOUDFRONT_DISTRIBUTION_ID- $CLOUDFRONT_DISTRIBUTION_ID"
+
+      - export FULL_URL="https://$APPLICATION_ENDPOINT"
+      - echo "Full URL- $FULL_URL"
+      - echo "Current directory- $(pwd)"
+
+      - ls -la
+  build:
+    commands:
+      - |
+        echo "Building the Vue app with the appropriate configuration"
+        npm run build:staging && \
+        aws sns publish \
+          --topic-arn $NOTIFICATION_ARN \
+          --subject "Build Succeeded: Test-Admin-S3-Vue-Application" \
+          --message "Test-Admin-S3-Vue-Application has now been successfully deployed and from within the Kuflink network, it is available at: $FULL_URL" || \
+        aws sns publish \
+          --topic-arn $NOTIFICATION_ARN \
+          --subject "Build Failed: Test-Admin-S3-Vue-Application" \
+          --message "Test-Admin-S3-Vue-Application deployment failed. Please check the CodeBuild and CodePipeline logs for more details."
+      - |
+        echo "Build completed. Listing files in the current directory after build:"
+        ls -la
+
+artifacts:
+  base-directory: dist  
+  files:
+    - '**/*'
+
+cache:
+  paths:
+    - 'node_modules/**/*'
