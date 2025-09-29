@@ -375,15 +375,15 @@ output "app_url" {
 
 }
 
-# output "aws_access_key_id" {
-#   value     = module.secrets.aws_access_key_id
-#   sensitive = true
-# }
+output "aws_access_key_id" {
+  value     = module.secrets.aws_access_key_id
+  sensitive = true
+}
 
-# output "aws_secret_access_key" {
-#   value     = module.secrets.aws_secret_access_key
-#   sensitive = true
-# }
+output "aws_secret_access_key" {
+  value     = module.secrets.aws_secret_access_key
+  sensitive = true
+}
 
 output "aws_default_region" {
   value     = module.secrets.aws_default_region
