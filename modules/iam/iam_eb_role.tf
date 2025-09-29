@@ -74,6 +74,8 @@ resource "aws_iam_role_policy" "eb_inline_policy" {
           "ssm:UpdateInstanceInformation",
           "ssmmessages:*",
           "ec2messages:*",
+          "ec2:DescribeTags",
+          "ec2:DescribeInstances",
           "ssm:ListInstanceAssociations",
           "ssm:DescribeInstanceProperties",
           "ssm:DescribeInstanceInformation"
