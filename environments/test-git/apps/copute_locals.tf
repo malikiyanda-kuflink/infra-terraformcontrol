@@ -54,10 +54,10 @@ locals {
   # Comptue layer locals (controls)
   # --------------------------------------
 
-  enable_eb          = false
+  enable_eb          = true
   enable_bastion     = true
   enable_bastion_dns = true
-  enable_redis       = false
+  enable_redis       = true
   enable_dbt         = false
 
   # --- Frontend/Admin S3 toggles --- # flip to true/false to skip creating the stack
