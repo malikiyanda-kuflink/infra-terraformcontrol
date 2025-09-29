@@ -5,7 +5,8 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"            
+      version = "~> 5.0"    
+      configuration_aliases = [ aws.use1 ]         
     }
   }
 }
@@ -19,6 +20,21 @@ variable "aws_region" {
 provider "aws" {
   region = var.aws_region
 
+  default_tags {
+    tags = {
+      Environment = "Test"
+      Project     = "Kuflink"
+      Layer       = "Apps"
+      ManagedBy   = "GitHub Actions + Terraform"
+    }
+  }
+}
+
+
+# # Alias for global services that live in us-east-1 (CloudFront, WAFv2[CLOUDFRONT], ACM for CF, etc.)
+provider "aws" {
+  alias  = "use1"
+  region = "us-east-1"
   default_tags {
     tags = {
       Environment = "Test"
