@@ -1,5 +1,5 @@
 module "s3-admin" {
-  source = "git::ssh://git@github.com/Kuflink/infra-terraformcontrol.git//modules/s3-admin?ref=v0.1.73"
+  source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/s3-admin?ref=v0.1.73"
 
   admin_waf_arn = local.admin_waf_arn
 
