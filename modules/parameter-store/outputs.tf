@@ -243,13 +243,13 @@ output "admin_codestar_connection" {
   value = data.aws_ssm_parameter.admin_codestar_connection.value
 }
 
-output "aws_access_key_id" {
-  value = data.aws_ssm_parameter.aws_access_key_id.value
-}
+# output "aws_access_key_id" {
+#   value = data.aws_ssm_parameter.aws_access_key_id.value
+# }
 
-output "aws_secret_access_key" {
-  value = data.aws_ssm_parameter.aws_secret_access_key.value
-}
+# output "aws_secret_access_key" {
+#   value = data.aws_ssm_parameter.aws_secret_access_key.value
+# }
 output "app_env" {
   value = data.aws_ssm_parameter.app_env.value
 }
