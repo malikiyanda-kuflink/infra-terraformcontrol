@@ -77,6 +77,15 @@ resource "aws_vpc_security_group_ingress_rule" "allow_bastion_to_redis_ec2" {
   from_port                    = 6379
   to_port                      = 6379
 }
+resource "aws_vpc_security_group_ingress_rule" "allow_bastion_ssh_to_redis_ec2" {
+  count                        = local.redis_sg_id != null ? 1 : 0
+  security_group_id            = local.redis_sg_id
+  referenced_security_group_id = aws_security_group.bastion_sg.id
+  description                  = "Bastion SSH to Redis 22"
+  ip_protocol                  = "tcp"
+  from_port                    = 22
+  to_port                      = 22
+}
 
 resource "aws_vpc_security_group_ingress_rule" "allow_bastion_to_redshift" {
   count                        = local.redshift_sg_id != null ? 1 : 0
