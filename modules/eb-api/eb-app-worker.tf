@@ -6,9 +6,9 @@ resource "aws_sqs_queue" "worker_queue" {
   visibility_timeout_seconds = var.sqsd_visibility_timeout
   tags                       = var.tags
 
-  lifecycle {
-    prevent_destroy = false
-  }
+  # lifecycle {
+  #   prevent_destroy = false
+  # }
 }
 
 # =================================================================================================

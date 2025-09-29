@@ -20,9 +20,9 @@ resource "aws_elastic_beanstalk_environment" "web_env" {
   solution_stack_name = var.solution_stack_name
   tags                = var.tags
 
-  lifecycle {
-    ignore_changes = [setting] # TEMPORARY; remove once stable
-  }
+  # lifecycle {
+  #   ignore_changes = [setting] # TEMPORARY; remove once stable
+  # }
 
   # -------------------------------------------
   # Load Balancer / HTTPS / Listeners
