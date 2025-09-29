@@ -4,18 +4,28 @@ README.md
 readme.md
 **/readme.md
 
-
 # Terraform files
 *.tfstate
 *.tfstate.*
 .terraform/
 *.tfvars
+*.auto.tfvars         # Add this - catches auto-loaded tfvars
 terraform.tfvars
 terraform.tfvars.json
 crash.log
 override.tf
 override.tf.json
 terraform.rc
+.terraformrc          # Add this - user-specific terraform config
+
+# Terraform plan output files
+*.tfplan
+*.tfplan.txt
+
+# Secrets and sensitive files
+**/*.tfvars           # Add this - catches tfvars in subdirectories
+**/.env               # Add this - environment variable files
+**/secrets.*          # Add this - any file starting with secrets
 
 # Scripts directories (remove from tracking)
 scripts/
@@ -27,8 +37,9 @@ importing_vpc.sh
 
 # Backup files
 *~
+*.bak
+*.backup
 
-# Terraform plan output files
-*.tfplan
-*.tfplan.txt
-
+# OS files
+.DS_Store             # Add this - macOS
+Thumbs.db             # Add this - Windows
