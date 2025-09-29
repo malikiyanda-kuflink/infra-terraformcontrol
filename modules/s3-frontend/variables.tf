@@ -14,7 +14,6 @@ variable "record_ttl" { type = number }
 variable "enable_pre_delete_cleanup" { type = bool }
 variable "enable_bucket_cleanup_on_destroy" { type = bool }
 variable "bucket_prevent_destroy" { type = bool }
-variable "aws_cli_profile" { type = string }
 
 variable "aws_cli_region" { type = string }
 variable "tags" { type = map(string) }
