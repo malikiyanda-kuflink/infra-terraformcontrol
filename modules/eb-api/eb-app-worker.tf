@@ -6,9 +6,9 @@ resource "aws_sqs_queue" "worker_queue" {
   visibility_timeout_seconds = var.sqsd_visibility_timeout
   tags                       = var.tags
 
-  # lifecycle {
-  #   prevent_destroy = false
-  # }
+  lifecycle {
+    prevent_destroy = false
+  }
 }
 
 # =================================================================================================
@@ -20,9 +20,9 @@ resource "aws_elastic_beanstalk_environment" "worker_env" {
   solution_stack_name = var.solution_stack_name
   tier                = var.tier
 
-  lifecycle {
-    ignore_changes = [setting] # TEMPORARY; remove once stable
-  }
+  # lifecycle {
+  #   ignore_changes = [setting] # TEMPORARY; remove once stable
+  # }
 
   # -------------------------------------------
   # Service Access (roles, profiles, key, SGs, SSH)
