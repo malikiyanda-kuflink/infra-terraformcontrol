@@ -33,7 +33,6 @@ module "s3-frontend" {
   enable_pre_delete_cleanup        = false
   enable_bucket_cleanup_on_destroy = false
   bucket_prevent_destroy           = false
-  aws_cli_profile                  = local.aws_cli_profile
   aws_cli_region                   = local.aws_cli_region
 
   # --- CI/CD pipeline inputs ---

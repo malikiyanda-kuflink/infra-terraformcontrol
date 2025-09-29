@@ -269,7 +269,7 @@ module "eb-api" {
   enable_versioning                = local.enable_versioning
   enable_bucket_cleanup_on_destroy = local.enable_bucket_cleanup_on_destroy
   enable_pre_delete_cleanup        = local.enable_pre_delete_cleanup
-  aws_cli_profile                  = local.aws_cli_profile
+
   aws_cli_region                   = local.aws_cli_region
 
   # Source stage (CodeStar)

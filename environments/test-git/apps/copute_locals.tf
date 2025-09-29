@@ -378,7 +378,6 @@ locals {
   enable_versioning                = false
   enable_bucket_cleanup_on_destroy = false        # local-exec on bucket destroy
   enable_pre_delete_cleanup        = false        # null_resource to rm objects
-  aws_cli_profile                  = ""           #  set if you use a named profile
   aws_cli_region                   = "eu-west-2" # or "eu-west-2" to force
 
   # -------------------------
