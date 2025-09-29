@@ -1,5 +1,5 @@
 module "iam" {
-  source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/iam?ref=v0.1.76"
+  source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/iam?ref=v0.1.77"
 
   name_prefix = local.name_prefix
 

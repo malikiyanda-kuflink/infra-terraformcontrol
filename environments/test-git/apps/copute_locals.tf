@@ -55,9 +55,9 @@ locals {
   # --------------------------------------
 
   enable_eb          = true
+  enable_redis       = true
   enable_bastion     = true
   enable_bastion_dns = true
-  enable_redis       = true
   enable_dbt         = false
 
   # --- Frontend/Admin S3 toggles --- # flip to true/false to skip creating the stack
