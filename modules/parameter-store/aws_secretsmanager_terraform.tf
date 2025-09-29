@@ -16,8 +16,8 @@ data "aws_ssm_parameter" "admin_codestar_connection" { name = "/backend/staging/
 # ====================================================================
 # AWS CREDENTIALS & REGION
 # ====================================================================
-data "aws_ssm_parameter" "aws_access_key_id" { name = "/backend/staging/EB-TEST-USER/AWS_ACCESS_KEY_ID" }
-data "aws_ssm_parameter" "aws_secret_access_key" { name = "/backend/staging/EB-TEST-USER/AWS_SECRET_ACCESS_KEY" }
+data "aws_ssm_parameter" "aws_access_key_id" { name = "/backend/staging/AWS_ACCESS_KEY_ID" }
+data "aws_ssm_parameter" "aws_secret_access_key" { name = "/backend/staging/AWS_SECRET_ACCESS_KEY" }
 data "aws_ssm_parameter" "aws_default_region" { name = "/backend/staging/AWS_DEFAULT_REGION" }
 data "aws_ssm_parameter" "aws_region" { name = "/backend/staging/AWS_REGION" }
 
