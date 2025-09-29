@@ -1,5 +1,5 @@
 module "s3-frontend" {
-  source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/s3-frontend?ref=v0.1.0"
+  source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/s3-frontend?ref=v0.1.74"
 
   # --- Feature toggles ---
   serve_frontend_maintenance = local.serve_frontend_maintenance
