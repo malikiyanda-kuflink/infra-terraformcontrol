@@ -91,7 +91,7 @@ output "eb_app" {
 
 # Your existing grouped CNAME (kept as-is)
 output "eb_p2papi_cname" {
-  description = "Details for the p2p-test.brickfin.co.uk CNAME"
+  description = "Details for the API CNAME"
   value = local.enable_eb ? {
     name   = aws_route53_record.p2papi_cname[0].name
     fqdn   = aws_route53_record.p2papi_cname[0].fqdn
