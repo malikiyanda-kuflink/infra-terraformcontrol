@@ -1,9 +1,16 @@
-# Associate WAF -> EB ALB (only when both are present)
-resource "aws_wafv2_web_acl_association" "eb_alb" {
-  count = local.enable_eb && local.eb_web_acl_arn != null && local.eb_alb_arn != null ? 1 : 0
+locals {
+  # Define a more explicit flag
+  should_associate_waf = (
+    local.enable_eb && 
+    try(data.terraform_remote_state.platform.outputs.eb_waf.web_acl_arn, null) != null
+  )
+}
 
-  resource_arn = local.eb_alb_arn != null ? local.eb_alb_arn : "dummy"
-  web_acl_arn  = local.eb_web_acl_arn != null ? local.eb_web_acl_arn : "arn:aws:wafv2:eu-west-2:123456789012:global/webacl/dummy/dummy"
+resource "aws_wafv2_web_acl_association" "eb_alb" {
+  count = local.should_associate_waf ? 1 : 0
+
+  resource_arn = local.eb_alb_arn
+  web_acl_arn  = local.eb_web_acl_arn
 
   depends_on = [module.eb-api]
 }
