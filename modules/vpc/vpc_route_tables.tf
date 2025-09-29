@@ -23,6 +23,12 @@ resource "aws_route_table" "private_rt" {
       nat_gateway_id = aws_nat_gateway.nat_gw[0].id
     }
   }
+
+
+  lifecycle {
+    ignore_changes = [route]
+  }
+  
   tags = merge(var.tags, { Name = "${var.vpc_name}-private-rt" })
 }
 
