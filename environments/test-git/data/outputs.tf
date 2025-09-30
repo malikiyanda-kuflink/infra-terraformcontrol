@@ -202,7 +202,7 @@ output "redshift_aliases" {
 }
 
 # ===================================================================
-# Stable DNS for live MySQL (your existing computed name)
+# Stable DNS for live MySQL (your existing computed name)s
 # ===================================================================
 
 output "db_dns_instance_endpoint" {
