@@ -33,6 +33,11 @@ on:
       # - modules/ec2-backupscript/**
       # - modules/ec2-keitaro/**
       # - modules/ec2-openbankking/**
+  workflow_call:   
+    inputs:
+      triggered_by_dependency:
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       auto_apply:
