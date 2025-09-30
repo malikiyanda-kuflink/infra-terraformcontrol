@@ -56,7 +56,7 @@ locals {
 
   enable_eb          = true
   enable_redis       = true
-  enable_bastion     = true
+  enable_bastion     = false
   enable_bastion_dns = true
   enable_dbt         = false
 
