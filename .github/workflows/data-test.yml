@@ -6,23 +6,10 @@ on:
     paths:
       - environments/test-git/data/**
       - modules/dms-mysql-to-redshift/**
-      # - modules/ec2-redis/**
-      # - modules/ec2-dbt/**
       - modules/rds/**
       - modules/rds-restored/**
       - modules/redshift/**
       - modules/redshift-restored/**
-      # push:
-      #   branches: [ test-git ]
-      #   paths:
-      #     - environments/test-git/data/**
-      #     - modules/dms-mysql-to-redshift/**
-      #     # - modules/ec2-redis/**
-      #     # - modules/ec2-dbt/**
-      #     - modules/rds/**
-      #     - modules/rds-restored/**
-      #     - modules/redshift/**
-      #     - modules/redshift-restored/**
   workflow_call:   
     inputs:
       triggered_by_dependency:
@@ -53,6 +40,8 @@ jobs:
     name: data
     runs-on: [self-hosted, tf-runner]
     permissions: { id-token: write, contents: read }
+    outputs:
+      has_changes: ${{ steps.plan.outputs.has_changes }}
     env:
       LAYER: data
       TF_WORKDIR: environments/test-git/data
@@ -123,9 +112,9 @@ jobs:
             $summary += ""
 
             if ("${{ steps.plan.outputs.has_changes }}" -eq "true") {
-              $summary += "Plan successful - has changes"
+              $summary += "**Status:** Plan successful - has changes"
             } else {
-              $summary += "Plan successful - no changes needed"
+              $summary += "**Status:** Plan successful - no changes needed"
             }
 
             if (Test-Path "tfplan.json") {
@@ -135,10 +124,53 @@ jobs:
                 $changes = ($plan.resource_changes | Where-Object { $_.change.actions -contains "update" }).Count
                 $deletes = ($plan.resource_changes | Where-Object { $_.change.actions -contains "delete" }).Count
                 $summary += ""
-                $summary += "**Resource Changes:**"
-                $summary += "- Add: $adds"
-                $summary += "- Change: $changes"
-                $summary += "- Delete: $deletes"
+                $summary += "### Resource Changes Summary"
+                $summary += "- **Add:** $adds"
+                $summary += "- **Change:** $changes"
+                $summary += "- **Delete:** $deletes"
+                
+                # Add detailed list of changed resources
+                $summary += ""
+                $summary += "### Changed Resources"
+                $summary += ""
+                
+                $hasChanges = $false
+                
+                foreach ($resource in $plan.resource_changes) {
+                  if ($resource.change.actions -contains "create") {
+                    $hasChanges = $true
+                    $summary += "- :heavy_plus_sign: **CREATE:** ``$($resource.address)``"
+                  }
+                  elseif ($resource.change.actions -contains "update") {
+                    $hasChanges = $true
+                    $summary += "- :arrows_counterclockwise: **UPDATE:** ``$($resource.address)``"
+                    
+                    # Show what's changing in the resource
+                    if ($resource.change.before -and $resource.change.after) {
+                      $before = $resource.change.before
+                      $after = $resource.change.after
+                      
+                      # Check for specific attribute changes
+                      if ($before.instance_class -ne $after.instance_class) {
+                        $summary += "  - instance_class: ``$($before.instance_class)`` → ``$($after.instance_class)``"
+                      }
+                      if ($before.allocated_storage -ne $after.allocated_storage) {
+                        $summary += "  - allocated_storage: ``$($before.allocated_storage)`` → ``$($after.allocated_storage)``"
+                      }
+                      if ($before.engine_version -ne $after.engine_version) {
+                        $summary += "  - engine_version: ``$($before.engine_version)`` → ``$($after.engine_version)``"
+                      }
+                    }
+                  }
+                  elseif ($resource.change.actions -contains "delete") {
+                    $hasChanges = $true
+                    $summary += "- :heavy_minus_sign: **DELETE:** ``$($resource.address)``"
+                  }
+                }
+                
+                if (-not $hasChanges) {
+                  $summary += "_No resource changes detected_"
+                }
               }
             }
           } else {
@@ -162,7 +194,6 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-      # ⬇️ Apply only after merge (i.e., push to the base branch)
       - name: Terraform Apply
         if: steps.plan.outputs.has_changes == 'true' &&
             github.event_name == 'push' &&
