@@ -99,7 +99,7 @@ locals {
   admin_codebuild_image          = "aws/codebuild/standard:7.0" # has Node 20
   admin_repo                     = data.terraform_remote_state.foundation.outputs.admin_repo
   admin_api_url                  = data.terraform_remote_state.foundation.outputs.api_url
-  admin_branch                   = "staging-test"
+  admin_branch                   = "test"
   # admin_branch                 = "develop" # debug cors issue - cors.conf
   admin_codestar_connection       = data.terraform_remote_state.foundation.outputs.codestar_connection_arn
 
