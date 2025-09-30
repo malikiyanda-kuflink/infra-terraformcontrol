@@ -6,23 +6,10 @@ on:
     paths:
       - environments/test-git/data/**
       - modules/dms-mysql-to-redshift/**
-      # - modules/ec2-redis/**
-      # - modules/ec2-dbt/**
       - modules/rds/**
       - modules/rds-restored/**
       - modules/redshift/**
       - modules/redshift-restored/**
-      # push:
-      #   branches: [ test-git ]
-      #   paths:
-      #     - environments/test-git/data/**
-      #     - modules/dms-mysql-to-redshift/**
-      #     # - modules/ec2-redis/**
-      #     # - modules/ec2-dbt/**
-      #     - modules/rds/**
-      #     - modules/rds-restored/**
-      #     - modules/redshift/**
-      #     - modules/redshift-restored/**
   workflow_call:   
     inputs:
       triggered_by_dependency:
@@ -53,6 +40,8 @@ jobs:
     name: data
     runs-on: [self-hosted, tf-runner]
     permissions: { id-token: write, contents: read }
+    outputs:
+      has_changes: ${{ steps.plan.outputs.has_changes }}
     env:
       LAYER: data
       TF_WORKDIR: environments/test-git/data
@@ -123,9 +112,9 @@ jobs:
             $summary += ""
 
             if ("${{ steps.plan.outputs.has_changes }}" -eq "true") {
-              $summary += "Plan successful - has changes"
+              $summary += "**Status:** Plan successful - has changes"
             } else {
-              $summary += "Plan successful - no changes needed"
+              $summary += "**Status:** Plan successful - no changes needed"
             }
 
             if (Test-Path "tfplan.json") {
@@ -134,11 +123,74 @@ jobs:
                 $adds    = ($plan.resource_changes | Where-Object { $_.change.actions -contains "create" }).Count
                 $changes = ($plan.resource_changes | Where-Object { $_.change.actions -contains "update" }).Count
                 $deletes = ($plan.resource_changes | Where-Object { $_.change.actions -contains "delete" }).Count
+                
                 $summary += ""
-                $summary += "**Resource Changes:**"
-                $summary += "- Add: $adds"
-                $summary += "- Change: $changes"
-                $summary += "- Delete: $deletes"
+                $summary += "### Resource Changes Summary"
+                $summary += "- **Add:** $adds"
+                $summary += "- **Change:** $changes"
+                $summary += "- **Delete:** $deletes"
+                $summary += ""
+                
+                # Make resource details collapsible
+                $summary += "<details>"
+                $summary += "<summary><strong>Changed Resources</strong> (click to expand)</summary>"
+                $summary += ""
+                
+                $hasChanges = $false
+                
+                foreach ($resource in $plan.resource_changes) {
+                  if ($resource.change.actions -contains "create") {
+                    $hasChanges = $true
+                    $summary += "- :heavy_plus_sign: **CREATE:** ``$($resource.address)``"
+                  }
+                  elseif ($resource.change.actions -contains "update") {
+                    $hasChanges = $true
+                    $summary += "- :arrows_counterclockwise: **UPDATE:** ``$($resource.address)``"
+                    
+                    # Dynamically detect ALL changed attributes
+                    if ($resource.change.before -and $resource.change.after) {
+                      $before = $resource.change.before
+                      $after = $resource.change.after
+                      
+                      # Get all property names from both objects
+                      $allProps = @()
+                      $allProps += $before.PSObject.Properties.Name
+                      $allProps += $after.PSObject.Properties.Name
+                      $allProps = $allProps | Select-Object -Unique
+                      
+                      # Compare each property
+                      foreach ($prop in $allProps) {
+                        $beforeVal = $before.$prop
+                        $afterVal = $after.$prop
+                        
+                        # Skip null-to-null, IDs, and complex objects
+                        if ($null -eq $beforeVal -and $null -eq $afterVal) { continue }
+                        if ($prop -eq "id") { continue }
+                        if ($beforeVal -is [System.Collections.IEnumerable] -and $beforeVal -isnot [string]) { continue }
+                        if ($afterVal -is [System.Collections.IEnumerable] -and $afterVal -isnot [string]) { continue }
+                        if ($beforeVal -is [PSCustomObject] -or $afterVal -is [PSCustomObject]) { continue }
+                        
+                        # Check if value actually changed
+                        if ($beforeVal -ne $afterVal) {
+                          $beforeStr = if ($null -eq $beforeVal) { "(not set)" } else { $beforeVal }
+                          $afterStr = if ($null -eq $afterVal) { "(will be unset)" } else { $afterVal }
+                          $summary += "  - $($prop): ``$beforeStr`` → ``$afterStr``"
+                        }
+                      }
+                    }
+                  }
+                  elseif ($resource.change.actions -contains "delete") {
+                    $hasChanges = $true
+                    $summary += "- :heavy_minus_sign: **DELETE:** ``$($resource.address)``"
+                  }
+                }
+                
+                if (-not $hasChanges) {
+                  $summary += "_No resource changes detected_"
+                }
+                
+                $summary += ""
+                $summary += "</details>"
               }
             }
           } else {
@@ -162,7 +214,6 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-      # ⬇️ Apply only after merge (i.e., push to the base branch)
       - name: Terraform Apply
         if: steps.plan.outputs.has_changes == 'true' &&
             github.event_name == 'push' &&
