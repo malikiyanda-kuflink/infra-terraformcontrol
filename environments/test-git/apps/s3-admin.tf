@@ -1,5 +1,5 @@
 module "s3-admin" {
-  source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/s3-admin?ref=v0.1.86"
+  source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/s3-admin?ref=v0.1.87"
 
   providers = {
     aws.use1 = aws.use1
