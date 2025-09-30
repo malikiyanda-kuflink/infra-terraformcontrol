@@ -13,6 +13,12 @@ on:
       - environments/test-git/platform/**
       - modules/eb-waf/**
       - modules/s3-admin-waf/**
+
+  workflow_call:   
+    inputs:
+      triggered_by_dependency:
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       auto_apply:
