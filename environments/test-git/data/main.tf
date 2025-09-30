@@ -165,7 +165,7 @@ module "redshift_restore" {
   redshift_port          = data.terraform_remote_state.foundation.outputs.redshift_port
 }
 
-# # DMS mysql(secure)_to_redshift(secure)
+# # DMS mysql(secure)_to_redshift
 module "dms_mysql_to_redshift" {
   source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/dms-mysql-to-redshift?ref=v0.1.0"
   count  = local.enable_redshift ? 1 : 0
