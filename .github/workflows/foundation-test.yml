@@ -7,13 +7,13 @@ on:
       - modules/vpc/**
       - modules/parameter-store/**
       - modules/iam/**
-  push:
-    branches: [ test-git ]
-    paths:
-      - environments/test-git/foundation/**
-      - modules/vpc/**
-      - modules/parameter-store/**
-      - modules/iam/**
+      # push:
+      #   branches: [ test-git ]
+      #   paths:
+      #     - environments/test-git/foundation/**
+      #     - modules/vpc/**
+      #     - modules/parameter-store/**
+      #     - modules/iam/**
   workflow_call:   
     inputs:
       triggered_by_dependency:
