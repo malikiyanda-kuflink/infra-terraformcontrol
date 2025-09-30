@@ -125,9 +125,9 @@ jobs:
                 $deletes = ($plan.resource_changes | Where-Object { $_.change.actions -contains "delete" }).Count
                 $summary += ""
                 $summary += "### Resource Changes Summary"
-                $summary += "- **Add:** $adds"
-                $summary += "- **Change:** $changes"
-                $summary += "- **Delete:** $deletes"
+                $summary += "- **Add:** " + $adds
+                $summary += "- **Change:** " + $changes
+                $summary += "- **Delete:** " + $deletes
                 
                 # Add detailed list of changed resources
                 $summary += ""
