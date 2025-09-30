@@ -1,5 +1,4 @@
 name: foundation-test
-
 on:
   pull_request:
     branches: [ test-git ]
@@ -15,6 +14,11 @@ on:
       - modules/vpc/**
       - modules/parameter-store/**
       - modules/iam/**
+  workflow_call:   
+    inputs:
+      triggered_by_dependency:
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       auto_apply:
@@ -24,7 +28,7 @@ on:
         required: false
 
 concurrency:
-  group: terraform-test-git-platform-${{ github.ref }}
+  group: terraform-test-git-foundation-${{ github.ref }}
   cancel-in-progress: false
 
 env:
