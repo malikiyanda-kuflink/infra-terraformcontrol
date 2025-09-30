@@ -359,7 +359,7 @@ locals {
   # CodePipeline core
   # -------------------------
   eb_app_name            = local.enable_eb ? module.eb-api[0].eb_application_name : local.name_prefix_upper
-  pipeline_name          = "${local.eb_app_name}-API-Pipeline"
+  pipeline_name          = "${local.eb_app_name}-api-pipeline"
   codepipeline_role_name = "${local.eb_app_name}-API-Pipeline-Role"
   pipeline_type          = "V2"
   execution_mode         = "QUEUED" # or "PARALLEL"
