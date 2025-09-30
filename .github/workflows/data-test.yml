@@ -126,9 +126,9 @@ jobs:
                 
                 $summary += ""
                 $summary += "### Resource Changes Summary"
-                $summary += "- **Add:** {0}" -f $adds
-                $summary += "- **Change:** {0}" -f $changes
-                $summary += "- **Delete:** {0}" -f $deletes
+                $summary += "- **Add:** $adds"
+                $summary += "- **Change:** $changes"
+                $summary += "- **Delete:** $deletes"
                 $summary += ""
                 
                 # Make resource details collapsible
