@@ -218,3 +218,4 @@ module "dms_mysql_to_redshift" {
   dms_access_for_endpoint_role_arn = data.terraform_remote_state.foundation.outputs.staging_dms_endpoint_access_arn
 
 }
+
