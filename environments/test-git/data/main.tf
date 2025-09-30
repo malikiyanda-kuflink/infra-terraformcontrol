@@ -217,4 +217,5 @@ module "dms_mysql_to_redshift" {
   full_load_replication_task_id    = "${local.env}-mysql-to-redshift-full-load-sync"
   dms_access_for_endpoint_role_arn = data.terraform_remote_state.foundation.outputs.staging_dms_endpoint_access_arn
 
-}
+}#   t e s t  
+ 
