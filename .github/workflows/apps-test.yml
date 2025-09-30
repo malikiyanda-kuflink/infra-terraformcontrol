@@ -5,12 +5,34 @@ on:
     branches: [ test-git ]
     paths:
       - environments/test-git/apps/**
-      - modules/**
+      - modules/s3-frontend/**
+      - modules/s3-admin/**
+      - modules/eb-api/**
+      - modules/ec2-bastion/**
+      - modules/ec2-test/**
+      - modules/ec2-metabase/**
+      # - modules/ec2-airflow/**
+      # - modules/ec2-21finance/**
+      # - modules/ec2-kuflink/**
+      # - modules/ec2-backupscript/**
+      # - modules/ec2-keitaro/**
+      # - modules/ec2-openbankking/**
   push:
     branches: [ test-git ]
     paths:
       - environments/test-git/apps/**
-      - modules/**
+      - modules/s3-frontend/**
+      - modules/s3-admin/**
+      - modules/eb-api/**
+      - modules/ec2-bastion/**
+      - modules/ec2-test/**
+      - modules/ec2-metabase/**
+      # - modules/ec2-airflow/**
+      # - modules/ec2-21finance/**
+      # - modules/ec2-kuflink/**
+      # - modules/ec2-backupscript/**
+      # - modules/ec2-keitaro/**
+      # - modules/ec2-openbankking/**
   workflow_dispatch:
     inputs:
       auto_apply:

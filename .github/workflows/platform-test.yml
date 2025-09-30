@@ -5,12 +5,14 @@ on:
     branches: [ test-git ]
     paths:
       - environments/test-git/platform/**
-      - modules/**
+      - modules/eb-waf/**
+      - modules/s3-admin-waf/**
   push:
     branches: [ test-git ]
     paths:
       - environments/test-git/platform/**
-      - modules/**
+      - modules/eb-waf/**
+      - modules/s3-admin-waf/**
   workflow_dispatch:
     inputs:
       auto_apply:
