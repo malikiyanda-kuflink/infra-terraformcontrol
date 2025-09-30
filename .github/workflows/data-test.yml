@@ -110,12 +110,94 @@ jobs:
 
             $summary += "## Terraform Plan - $env:LAYER"
             $summary += ""
+            $summary += "**Status:** Plan successful - has changes"
+            $summary += ""
 
-            if ("${{ steps.plan.outputs.has_changes }}" -eq "true") {
-              $summary += "**Status:** Plan successful - has changes"
-            } else {
-              $summary += "**Status:** Plan successful - no changes needed"
+            if (Test-Path "tfplan.json") {
+              $plan = Get-Content "tfplan.json" -Raw | ConvertFrom-Json
+              if ($plan.resource_changes) {
+                $adds    = ($plan.resource_changes | Where-Object { $_.change.actions -contains "create" }).Count
+                $changes = ($plan.resource_changes | Where-Object { $_.change.actions -contains "update" }).Count
+                $deletes = ($plan.resource_changes | Where-Object { $_.change.actions -contains "delete" }).Count
+                
+                # Use subexpression syntax for reliable interpolation
+                $summary += "### Resource Changes Summary"
+                $summary += "- **Add:** $($adds)"
+                $summary += "- **Change:** $($changes)"
+                $summary += "- **Delete:** $($deletes)"
+                $summary += ""
+                
+                # Make resource details collapsible
+                $summary += "<details>"
+                $summary += "<summary><strong>Changed Resources</strong> (click to expand)</summary>"
+                $summary += ""
+                
+                $hasChanges = $false
+                
+                foreach ($resource in $plan.resource_changes) {
+                  if ($resource.change.actions -contains "create") {
+                    $hasChanges = $true
+                    $summary += "- :heavy_plus_sign: **CREATE:** ``$($resource.address)``"
+                  }
+                  elseif ($resource.change.actions -contains "update") {
+                    $hasChanges = $true
+                    $summary += "- :arrows_counterclockwise: **UPDATE:** ``$($resource.address)``"
+                    
+                    if ($resource.change.before -and $resource.change.after) {
+                      $before = $resource.change.before
+                      $after = $resource.change.after
+                      
+                      if ($before.instance_class -ne $after.instance_class) {
+                        $summary += "  - instance_class: ``$($before.instance_class)`` → ``$($after.instance_class)``"
+                      }
+                      if ($before.allocated_storage -ne $after.allocated_storage) {
+                        $summary += "  - allocated_storage: ``$($before.allocated_storage)`` → ``$($after.allocated_storage)``"
+                      }
+                      if ($before.engine_version -ne $after.engine_version) {
+                        $summary += "  - engine_version: ``$($before.engine_version)`` → ``$($after.engine_version)``"
+                      }
+                    }
+                  }
+                  elseif ($resource.change.actions -contains "delete") {
+                    $hasChanges = $true
+                    $summary += "- :heavy_minus_sign: **DELETE:** ``$($resource.address)``"
+                  }
+                }
+                
+                if (-not $hasChanges) {
+                  $summary += "_No resource changes detected_"
+                }
+                
+                $summary += ""
+                $summary += "</details>"
+              }
             }
+          } else {
+            $summary += "## Terraform Plan Failed"
+            $summary += ""
+            $summary += "Plan failed - check terraform logs in previous step"
+          }
+
+          $summaryText = $summary -join "`r`n"
+          Set-Content -Path $env:GITHUB_STEP_SUMMARY -Value $summaryText -Encoding UTF8
+              if: always()
+              working-directory: ${{ env.TF_WORKDIR }}
+              shell: powershell
+              run: |
+                $summary = @()
+
+                if (Test-Path "tfplan.bin") {
+                  & "$env:TERRAFORM_PATH" show -no-color tfplan.bin > tfplan.txt
+                  & "$env:TERRAFORM_PATH" show -json tfplan.bin > tfplan.json
+
+                  $summary += "## Terraform Plan - $env:LAYER"
+                  $summary += ""
+
+                  if ("${{ steps.plan.outputs.has_changes }}" -eq "true") {
+                    $summary += "**Status:** Plan successful - has changes"
+                  } else {
+                    $summary += "**Status:** Plan successful - no changes needed"
+                  }
 
             if (Test-Path "tfplan.json") {
               $plan = Get-Content "tfplan.json" -Raw | ConvertFrom-Json
