@@ -7,13 +7,12 @@ on:
       - environments/test-git/platform/**
       - modules/eb-waf/**
       - modules/s3-admin-waf/**
-  push:
-    branches: [ test-git ]
-    paths:
-      - environments/test-git/platform/**
-      - modules/eb-waf/**
-      - modules/s3-admin-waf/**
-
+      # push:
+      #   branches: [ test-git ]
+      #   paths:
+      #     - environments/test-git/platform/**
+      #     - modules/eb-waf/**
+      #     - modules/s3-admin-waf/**
   workflow_call:   
     inputs:
       triggered_by_dependency:
