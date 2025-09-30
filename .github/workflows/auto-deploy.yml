@@ -1,0 +1,212 @@
+name: auto-deploy
+
+on:
+  push:
+    branches: [ test-git ]
+
+concurrency: 
+  group: auto-deploy-test-git
+  cancel-in-progress: false
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      foundation_changed: ${{ steps.changes.outputs.foundation }}
+      platform_changed: ${{ steps.changes.outputs.platform }}
+      data_changed: ${{ steps.changes.outputs.data }}
+      apps_changed: ${{ steps.changes.outputs.apps }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      
+      - name: Detect Changed Layers
+        id: changes
+        run: |
+          # Get list of changed files in this push
+          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
+          
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+          
+          # Check foundation paths
+          if echo "$CHANGED_FILES" | grep -qE '^(environments/test-git/foundation/|modules/vpc/|modules/parameter-store/|modules/iam/)'; then
+            echo "foundation=true" >> $GITHUB_OUTPUT
+            echo "Foundation has changes"
+          else
+            echo "foundation=false" >> $GITHUB_OUTPUT
+            echo "Foundation has no changes"
+          fi
+          
+          # Check platform paths
+          if echo "$CHANGED_FILES" | grep -qE '^(environments/test-git/platform/|modules/eb-waf/|modules/s3-admin-waf/)'; then
+            echo "platform=true" >> $GITHUB_OUTPUT
+            echo "Platform has changes"
+          else
+            echo "platform=false" >> $GITHUB_OUTPUT
+            echo "Platform has no changes"
+          fi
+          
+          # Check data paths
+          if echo "$CHANGED_FILES" | grep -qE '^(environments/test-git/data/|modules/dms-mysql-to-redshift/|modules/rds/|modules/rds-restored/|modules/redshift/|modules/redshift-restored/)'; then
+            echo "data=true" >> $GITHUB_OUTPUT
+            echo "Data has changes"
+          else
+            echo "data=false" >> $GITHUB_OUTPUT
+            echo "Data has no changes"
+          fi
+          
+          # Check apps paths
+          if echo "$CHANGED_FILES" | grep -qE '^(environments/test-git/apps/|modules/s3-frontend/|modules/s3-admin/|modules/eb-api/|modules/ec2-bastion/|modules/ec2-test/|modules/ec2-metabase/)'; then
+            echo "apps=true" >> $GITHUB_OUTPUT
+            echo "Apps has changes"
+          else
+            echo "apps=false" >> $GITHUB_OUTPUT
+            echo "Apps has no changes"
+          fi
+      
+      - name: Generate Deployment Plan
+        run: |
+          echo "## Deployment Plan" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.changes.outputs.foundation }}" == "true" ]; then
+            echo "✅ **Foundation** will be deployed" >> $GITHUB_STEP_SUMMARY
+            echo "   ↳ This will trigger Platform → Data → Apps (dependency cascade)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⏭️ **Foundation** will be skipped (no changes)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ steps.changes.outputs.platform }}" == "true" ]; then
+            echo "✅ **Platform** will be deployed" >> $GITHUB_STEP_SUMMARY
+            echo "   ↳ This will trigger Data → Apps (dependency cascade)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⏭️ **Platform** will be skipped (no changes)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ steps.changes.outputs.data }}" == "true" ]; then
+            echo "✅ **Data** will be deployed" >> $GITHUB_STEP_SUMMARY
+            echo "   ↳ This will trigger Apps (dependency cascade)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⏭️ **Data** will be skipped (no changes)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ steps.changes.outputs.apps }}" == "true" ]; then
+            echo "✅ **Apps** will be deployed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⏭️ **Apps** will be skipped (no changes)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  foundation:
+    if: needs.detect-changes.outputs.foundation_changed == 'true'
+    needs: detect-changes
+    uses: ./.github/workflows/foundation-test.yml 
+    with:
+      triggered_by_dependency: false
+    secrets: inherit
+
+  platform:
+    if: needs.detect-changes.outputs.foundation_changed == 'true' || needs.detect-changes.outputs.platform_changed == 'true'
+    needs: [detect-changes, foundation]
+    uses: ./.github/workflows/platform-test.yml
+    with:
+      triggered_by_dependency: ${{ needs.detect-changes.outputs.foundation_changed == 'true' }}
+    secrets: inherit
+
+  data:
+    if: needs.detect-changes.outputs.foundation_changed == 'true' || needs.detect-changes.outputs.platform_changed == 'true' || needs.detect-changes.outputs.data_changed == 'true'
+    needs: [detect-changes, platform]
+    uses: ./.github/workflows/data-test.yml
+    with:
+      triggered_by_dependency: ${{ needs.detect-changes.outputs.foundation_changed == 'true' || needs.detect-changes.outputs.platform_changed == 'true' }}
+    secrets: inherit
+
+  apps:
+    if: needs.detect-changes.outputs.foundation_changed == 'true' || needs.detect-changes.outputs.platform_changed == 'true' || needs.detect-changes.outputs.data_changed == 'true' || needs.detect-changes.outputs.apps_changed == 'true'
+    needs: [detect-changes, data]
+    uses: ./.github/workflows/apps-test.yml
+    with:
+      triggered_by_dependency: ${{ needs.detect-changes.outputs.foundation_changed == 'true' || needs.detect-changes.outputs.platform_changed == 'true' || needs.detect-changes.outputs.data_changed == 'true' }}
+    secrets: inherit
+
+  deployment-complete:
+    if: always()
+    needs: [detect-changes, foundation, platform, data, apps]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Deployment Summary
+        run: |
+          echo "## Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Execution Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Foundation
+          if [ "${{ needs.detect-changes.outputs.foundation_changed }}" == "true" ]; then
+            if [ "${{ needs.foundation.result }}" == "success" ]; then
+              echo "✅ **Foundation:** Deployed successfully" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **Foundation:** Failed - ${{ needs.foundation.result }}" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "⏭️ **Foundation:** Skipped (no changes detected)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Platform
+          if [ "${{ needs.detect-changes.outputs.platform_changed }}" == "true" ] || \
+             [ "${{ needs.detect-changes.outputs.foundation_changed }}" == "true" ]; then
+            if [ "${{ needs.platform.result }}" == "success" ]; then
+              echo "✅ **Platform:** Deployed successfully" >> $GITHUB_STEP_SUMMARY
+            elif [ "${{ needs.platform.result }}" == "skipped" ]; then
+              echo "⏭️ **Platform:** Skipped (no changes, but checked due to foundation change)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **Platform:** Failed - ${{ needs.platform.result }}" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "⏭️ **Platform:** Skipped (no changes detected)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Data
+          if [ "${{ needs.detect-changes.outputs.data_changed }}" == "true" ] || \
+             [ "${{ needs.detect-changes.outputs.platform_changed }}" == "true" ] || \
+             [ "${{ needs.detect-changes.outputs.foundation_changed }}" == "true" ]; then
+            if [ "${{ needs.data.result }}" == "success" ]; then
+              echo "✅ **Data:** Deployed successfully" >> $GITHUB_STEP_SUMMARY
+            elif [ "${{ needs.data.result }}" == "skipped" ]; then
+              echo "⏭️ **Data:** Skipped (no changes, but checked due to upstream change)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **Data:** Failed - ${{ needs.data.result }}" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "⏭️ **Data:** Skipped (no changes detected)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Apps
+          if [ "${{ needs.detect-changes.outputs.apps_changed }}" == "true" ] || \
+             [ "${{ needs.detect-changes.outputs.data_changed }}" == "true" ] || \
+             [ "${{ needs.detect-changes.outputs.platform_changed }}" == "true" ] || \
+             [ "${{ needs.detect-changes.outputs.foundation_changed }}" == "true" ]; then
+            if [ "${{ needs.apps.result }}" == "success" ]; then
+              echo "✅ **Apps:** Deployed successfully" >> $GITHUB_STEP_SUMMARY
+            elif [ "${{ needs.apps.result }}" == "skipped" ]; then
+              echo "⏭️ **Apps:** Skipped (no changes, but checked due to upstream change)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **Apps:** Failed - ${{ needs.apps.result }}" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "⏭️ **Apps:** Skipped (no changes detected)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Overall status
+          if [ "${{ needs.foundation.result }}" == "failure" ] || \
+             [ "${{ needs.platform.result }}" == "failure" ] || \
+             [ "${{ needs.data.result }}" == "failure" ] || \
+             [ "${{ needs.apps.result }}" == "failure" ]; then
+            echo "## ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "## ✅ Deployment Successful" >> $GITHUB_STEP_SUMMARY
+          fi
