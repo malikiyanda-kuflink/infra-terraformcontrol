@@ -4,7 +4,11 @@ on:
   push:
     branches: [ test-git ]
 
-concurrency: 
+permissions:  
+  id-token: write
+  contents: read
+
+concurrency:
   group: auto-deploy-test-git
   cancel-in-progress: false
 
@@ -101,7 +105,7 @@ jobs:
   foundation:
     if: needs.detect-changes.outputs.foundation_changed == 'true'
     needs: detect-changes
-    uses: ./.github/workflows/foundation-test.yml 
+    uses: ./.github/workflows/foundation-test.yml
     with:
       triggered_by_dependency: false
     secrets: inherit
@@ -209,4 +213,4 @@ jobs:
             exit 1
           else
             echo "## ✅ Deployment Successful" >> $GITHUB_STEP_SUMMARY
-          fi
+          fi 
