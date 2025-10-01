@@ -6,7 +6,7 @@ module "eb_waf" {
   scope       = "REGIONAL"
 
   # Auto-associate to EB ALB if available
-  alb_arn = local.alb_arn
+  alb_arn = null
 
   # Env-scoped inputs
   default_action_allow  = true

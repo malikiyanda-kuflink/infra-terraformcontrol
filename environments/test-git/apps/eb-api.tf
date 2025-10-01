@@ -1,18 +1,13 @@
-locals {
-  # Define a more explicit flag
-  should_associate_waf = (
-    local.enable_eb &&
-    try(data.terraform_remote_state.platform.outputs.eb_waf.web_acl_arn, null) != null
-  )
-}
-
 resource "aws_wafv2_web_acl_association" "eb_alb" {
-  count = local.should_associate_waf ? 1 : 0
+  count = local.enable_eb && local.enable_eb_waf ? 1 : 0
 
   resource_arn = local.eb_alb_arn
-  web_acl_arn  = local.eb_web_acl_arn
+  web_acl_arn  = module.eb_waf[0].web_acl_arn  
 
-  depends_on = [module.eb-api]
+  depends_on = [
+    module.eb-api,
+    module.eb_waf
+  ]
 }
 
 module "eb-api" {

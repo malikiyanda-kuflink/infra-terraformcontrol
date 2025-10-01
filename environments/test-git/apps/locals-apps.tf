@@ -45,34 +45,14 @@ locals {
   aws_route53_zone       = data.terraform_remote_state.foundation.outputs.aws_route53_zone
   staging_hosted_zone_id = data.terraform_remote_state.foundation.outputs.staging_hosted_zone_id
   cloudfront_zone_id     = data.terraform_remote_state.foundation.outputs.cloudfront_zone_id
-
-  # --------------------------------------
-  # COMPUTE LAYER CORE CONTROLS
-  # Standard environment identifiers and global toggles that control
-  # whether EB, Bastion, Redis, and related DNS are created.
-  # --------------------------------------
-  # Comptue layer locals (controls)
-  # --------------------------------------
-
-  enable_eb          = true
-  enable_redis       = true
-  enable_bastion     = false
-  enable_bastion_dns = true
-  enable_dbt         = false
-
-  # --- Frontend/Admin S3 toggles --- # flip to true/false to skip creating the stack
-  enable_s3_admin            = true
-  enable_s3_frontend         = true
-  serve_frontend_maintenance = false
-
   # -----------------------------------------------------------------
   # Admin (S3 + CLOUDFRONT) TOGGLES / NAMES
   # Enable/disable the static admin, domain mappings, hosted zone
   # selection, and the certificate ARN (must be us-east-1 for CF).
   # 'admin_website_url' resolves to the record FQDN or CF domain.
   # -----------------------------------------------------------------
-  # admin_waf_arn     = try(module.s3_admin_waf[0].web_acl_arn, null)
-  admin_waf_arn     = data.terraform_remote_state.platform.outputs.s3_admin_waf.web_acl_arn
+  # admin_waf_arn     = data.terraform_remote_state.platform.outputs.s3_admin_waf.web_acl_arn
+  admin_waf_arn = local.enable_s3_admin && local.enable_s3_admin_waf ? module.s3_admin_waf[0].web_acl_arn : null
   admin_bucket_name = data.terraform_remote_state.foundation.outputs.admin_bucket_name
 
   admin_domains     = [data.terraform_remote_state.foundation.outputs.admin_domain]
@@ -165,8 +145,6 @@ locals {
   # --------------------------------------
   # WAF config (env-scoped) - compute layer
   # --------------------------------------
-  # flip to false to remove the whole WAF stack
-  enable_s3_admin_waf    = true
   admin_ip_action        = "BLOCK" # or "COUNT"/ "BLOCK" / "ALLOW" / "CAPTCHA" / "CHALLENGE"
   admin_trusted_ip_cidrs = ["${data.terraform_remote_state.foundation.outputs.office_ip}"]
 
@@ -203,20 +181,13 @@ locals {
   # --------------------------------------
   # WAF config (env-scoped) - compute layer
   # --------------------------------------
-  # Safe ALB ARN lookup - check if data source exists first
-  # Safe ALB ARN lookup using try() to handle empty data source
   eb_alb_arn = local.enable_eb ? try(
     data.aws_resourcegroupstaggingapi_resources.eb_alb[0].resource_tag_mapping_list[0].resource_arn,
     "arn:aws:elasticloadbalancing:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:loadbalancer/app/dummy/dummy"
   ) : "arn:aws:elasticloadbalancing:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:loadbalancer/app/dummy/dummy"
 
-
-  # Safe WAF ARN lookup
-  eb_web_acl_arn = local.enable_eb ? try(data.terraform_remote_state.platform.outputs.eb_waf.web_acl_arn, "arn:aws:wafv2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:global/webacl/dummy/dummy") : "arn:aws:wafv2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:global/webacl/dummy/dummy"
-
-
   admin_rule_action = "COUNT" # or "COUNT"/ "BLOCK" / "ALLOW" / "CAPTCHA" / "CHALLENGE"
-  trusted_ip_cidrs  = ["${data.terraform_remote_state.foundation.outputs.office_ip}"]
+  trusted_ip_cidrs  = data.terraform_remote_state.foundation.outputs.kuflink_office_ip_cidrs
   admin_uri_regexes = [".*/admin/.*", ".*/wp-admin/.*"]
 
   waf_enable_groups = {
