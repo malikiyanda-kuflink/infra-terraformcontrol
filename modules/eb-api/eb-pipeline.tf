@@ -25,7 +25,7 @@ resource "aws_codepipeline" "eb_pipeline" {
   name     = var.pipeline_name
   role_arn = var.codepipeline_role_arn
 
-  depends_on = [ aws_elastic_beanstalk_environment.web_env, aws_elastic_beanstalk_environment.worker_env ]
+  depends_on = [aws_elastic_beanstalk_environment.web_env, aws_elastic_beanstalk_environment.worker_env]
 
   pipeline_type  = var.pipeline_type
   execution_mode = var.execution_mode

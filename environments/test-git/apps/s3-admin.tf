@@ -58,8 +58,8 @@ module "s3-admin" {
   admin_invalidate_buildspec_path = "${path.root}/admin-buildspec-v3/s3-site-invalidate-buildspec.yml"
 
   # --- Self references / outputs---
-  admin_app_bucket = module.s3-admin.bucket_name
-  admin_cloudfront_id = module.s3-admin.cloudfront_id 
+  admin_app_bucket    = module.s3-admin.bucket_name
+  admin_cloudfront_id = module.s3-admin.cloudfront_id
 
 
   # --- Tags ---

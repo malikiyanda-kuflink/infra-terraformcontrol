@@ -1,7 +1,7 @@
 locals {
   # Define a more explicit flag
   should_associate_waf = (
-    local.enable_eb && 
+    local.enable_eb &&
     try(data.terraform_remote_state.platform.outputs.eb_waf.web_acl_arn, null) != null
   )
 }
@@ -277,7 +277,7 @@ module "eb-api" {
   enable_bucket_cleanup_on_destroy = local.enable_bucket_cleanup_on_destroy
   enable_pre_delete_cleanup        = local.enable_pre_delete_cleanup
 
-  aws_cli_region                   = local.aws_cli_region
+  aws_cli_region = local.aws_cli_region
 
   # Source stage (CodeStar)
   source_stage_name       = local.source_stage_name

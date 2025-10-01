@@ -20,7 +20,7 @@ resource "aws_redshift_cluster" "restored_primary_redshift_cluster" {
   iam_roles = [
     var.redshift_role_arn,
     var.redshift_dms_role_arn,
-    var.dms_access_for_endpoint_arn  
+    var.dms_access_for_endpoint_arn
   ]
 
   tags = { Name = var.redshift_cluster_identifier_name }

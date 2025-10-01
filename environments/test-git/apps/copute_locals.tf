@@ -15,7 +15,7 @@ data "aws_partition" "current" {}
 # ===================================================================
 # Find the ALB by the EB environment-name tag
 data "aws_resourcegroupstaggingapi_resources" "eb_alb" {
-  count = local.enable_eb ? 1 : 0
+  count                 = local.enable_eb ? 1 : 0
   resource_type_filters = ["elasticloadbalancing:loadbalancer"]
 
   tag_filter {
@@ -33,14 +33,14 @@ data "aws_resourcegroupstaggingapi_resources" "eb_alb" {
 # referenced throughout the compute and delivery layers.
 # ===================================================================
 locals {
-# =======================================
-# Comptue layer  
-# =======================================
-  env                    = "test"
-  name_prefix            = "kuflink-test"
-  
-  environment            = "Test"
-  name_prefix_upper      = "Kuflink-Test"
+  # =======================================
+  # Comptue layer  
+  # =======================================
+  env         = "test"
+  name_prefix = "kuflink-test"
+
+  environment       = "Test"
+  name_prefix_upper = "Kuflink-Test"
 
   aws_route53_zone       = data.terraform_remote_state.foundation.outputs.aws_route53_zone
   staging_hosted_zone_id = data.terraform_remote_state.foundation.outputs.staging_hosted_zone_id
@@ -101,7 +101,7 @@ locals {
   admin_api_url                  = data.terraform_remote_state.foundation.outputs.api_url
   admin_branch                   = "test"
   # admin_branch                 = "develop" # debug cors issue - cors.conf
-  admin_codestar_connection       = data.terraform_remote_state.foundation.outputs.codestar_connection_arn
+  admin_codestar_connection = data.terraform_remote_state.foundation.outputs.codestar_connection_arn
 
   # -----------------------------------------------------------------
   # FRONTEND (S3 + CLOUDFRONT) TOGGLES / NAMES
@@ -154,7 +154,7 @@ locals {
   # bastion_eip_public_ip      = module.ec2-bastion.bastion_elastic_ip  
   bastion_eip_public_ip = local.enable_bastion ? module.ec2-bastion[0].bastion_elastic_ip : null
 
-  staging_dns_bastion_target = local.db_endpoint 
+  staging_dns_bastion_target = local.db_endpoint
   forward_port               = data.terraform_remote_state.foundation.outputs.bastion_forward_port
   target_port                = data.terraform_remote_state.foundation.outputs.rds_target_port
 
@@ -204,17 +204,17 @@ locals {
   # WAF config (env-scoped) - compute layer
   # --------------------------------------
   # Safe ALB ARN lookup - check if data source exists first
-# Safe ALB ARN lookup using try() to handle empty data source
+  # Safe ALB ARN lookup using try() to handle empty data source
   eb_alb_arn = local.enable_eb ? try(
     data.aws_resourcegroupstaggingapi_resources.eb_alb[0].resource_tag_mapping_list[0].resource_arn,
     "arn:aws:elasticloadbalancing:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:loadbalancer/app/dummy/dummy"
-  ) : "arn:aws:elasticloadbalancing:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:loadbalancer/app/dummy/dummy"    
-  
-  
+  ) : "arn:aws:elasticloadbalancing:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:loadbalancer/app/dummy/dummy"
+
+
   # Safe WAF ARN lookup
   eb_web_acl_arn = local.enable_eb ? try(data.terraform_remote_state.platform.outputs.eb_waf.web_acl_arn, "arn:aws:wafv2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:global/webacl/dummy/dummy") : "arn:aws:wafv2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:global/webacl/dummy/dummy"
 
-  
+
   admin_rule_action = "COUNT" # or "COUNT"/ "BLOCK" / "ALLOW" / "CAPTCHA" / "CHALLENGE"
   trusted_ip_cidrs  = ["${data.terraform_remote_state.foundation.outputs.office_ip}"]
   admin_uri_regexes = [".*/admin/.*", ".*/wp-admin/.*"]
@@ -269,7 +269,7 @@ locals {
   tier                    = "Worker"
   application_description = "${local.environment} Kuflink Laravel 9 Application"
   solution_stack_name     = "64bit Amazon Linux 2023 v4.7.5 running PHP 8.4"
-  ec2_key_name = data.terraform_remote_state.foundation.outputs.ec2_key_name
+  ec2_key_name            = data.terraform_remote_state.foundation.outputs.ec2_key_name
   github_branch           = "staging-test"
   web_instance_type       = "t3.medium"
   worker_instance_type    = "t3.large"
@@ -292,7 +292,7 @@ locals {
   notification_protocol = "email"
 
   # SQSD (Worker)
-  worker_queue_name = data.terraform_remote_state.foundation.outputs.worker_queue_name
+  worker_queue_name       = data.terraform_remote_state.foundation.outputs.worker_queue_name
   sqsd_http_path          = "/worker/queue"
   sqsd_http_connections   = 100
   sqsd_visibility_timeout = 900
@@ -376,8 +376,8 @@ locals {
   artifact_bucket_prevent_destroy  = false
   artifact_bucket_tags             = { Name = "${local.name_prefix}-codepipline-artifacts" }
   enable_versioning                = false
-  enable_bucket_cleanup_on_destroy = false        # local-exec on bucket destroy
-  enable_pre_delete_cleanup        = false        # null_resource to rm objects
+  enable_bucket_cleanup_on_destroy = false       # local-exec on bucket destroy
+  enable_pre_delete_cleanup        = false       # null_resource to rm objects
   aws_cli_region                   = "eu-west-2" # or "eu-west-2" to force
 
   # -------------------------
@@ -395,7 +395,7 @@ locals {
 
   codestar_connection_arn = data.terraform_remote_state.foundation.outputs.kuflink_codestar_connection
   codepipeline_role_arn   = data.terraform_remote_state.foundation.outputs.eb_codepipeline_role_arn
-  full_repository_id = data.terraform_remote_state.foundation.outputs.api_repo
+  full_repository_id      = data.terraform_remote_state.foundation.outputs.api_repo
   branch_name             = "staging-test"
 
   # -------------------------
@@ -422,7 +422,7 @@ locals {
   # eb_topic_name             = "ElasticBeanstalkNotifications-Deployments-Kuflink-dev-test-web-env"
   eb_topic_name            = "ElasticBeanstalkNotifications-Deployments-${local.web_env_name}" #DO NOT EDIT
   eb_notification_protocol = "email"
-  eb_notification_emails = data.terraform_remote_state.foundation.outputs.pipeline_emails
+  eb_notification_emails   = data.terraform_remote_state.foundation.outputs.pipeline_emails
 
   # --- Pipeline SNS topic + email subscribers ---
   create_pipeline_topic        = true

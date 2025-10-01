@@ -1,9 +1,9 @@
 locals {
-  env         = "test"
-  name_prefix = "kuflink-test"
-  environment            = "Test"
-  name_prefix_upper      = "Kuflink-Test"
-  aws_route53_zone = "brickfin.co.uk"
+  env               = "test"
+  name_prefix       = "kuflink-test"
+  environment       = "Test"
+  name_prefix_upper = "Kuflink-Test"
+  aws_route53_zone  = "brickfin.co.uk"
 
   # ------------------------------------------
   # DNS Switch (true)/(false)
@@ -16,7 +16,7 @@ locals {
 
 
   # RDS and Redshift toggles
-  create_read_replica                      = false
+  create_read_replica                      = true
   restore_rds_from_snapshot                = true
   restored_primary_rds_instance_identifier = "kuflink-test"
   new_primary_rds_instance_identifier      = "kuflink-test-mysql"

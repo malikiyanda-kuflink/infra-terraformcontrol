@@ -138,7 +138,7 @@ resource "aws_cloudfront_distribution" "this" {
     error_code         = 404
     response_code      = 200
     response_page_path = "/index.html"
-  }  
+  }
 
   restrictions {
     geo_restriction {

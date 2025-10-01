@@ -19,4 +19,4 @@ variable "redshift_daily_pause" {}
 # variable "redshift_num_of_nodes" { type = number }
 # variable "kms_key_id"            { type = string }
 
-variable "dms_access_for_endpoint_arn" { type = string }      
+variable "dms_access_for_endpoint_arn" { type = string }
