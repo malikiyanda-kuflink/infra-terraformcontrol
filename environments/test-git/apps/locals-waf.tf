@@ -7,7 +7,7 @@ locals {
   # Comptue layer locals (controls)
   # --------------------------------------
 
-  enable_eb     = true
+  enable_eb     = false
   enable_eb_waf = true
 
   enable_redis       = true
