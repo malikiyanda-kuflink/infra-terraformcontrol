@@ -109,6 +109,34 @@ output "redis_sg_id" {
   value = aws_security_group.redis_sg.id
 }
 
+#################################
+# WAF (EB - Elastic Beanstalk ALB)
+#################################
+output "eb_waf" {
+  description = "Key WAF details for EB ALB (trimmed). Null when WAF is disabled."
+  value = local.enable_eb_waf ? {
+    web_acl_arn    = module.eb_waf[0].web_acl_arn
+    web_acl_name   = module.eb_waf[0].web_acl_name
+    scope          = module.eb_waf[0].web_acl_scope
+    log_group_name = try(module.eb_waf[0].log_group_name, null)
+    rules_active   = module.eb_waf[0].rules_active
+  } : null
+}
+
+#################################
+# WAF (S3 Admin - CloudFront)
+#################################
+output "s3_admin_waf" {
+  description = "Key WAF details for S3 Admin (trimmed). Null when WAF is disabled."
+  value = local.enable_s3_admin_waf ? {
+    web_acl_arn    = module.s3_admin_waf[0].web_acl_arn
+    web_acl_name   = module.s3_admin_waf[0].web_acl_name
+    scope          = module.s3_admin_waf[0].web_acl_scope
+    log_group_name = try(module.s3_admin_waf[0].log_group_name, null)
+    rules_active   = module.s3_admin_waf[0].rules_active
+  } : null
+}
+
 
 #################################
 # OPTIONAL / FUTURE MODULES
