@@ -76,28 +76,34 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           
           if [ "${{ steps.changes.outputs.foundation }}" == "true" ]; then
-            echo "✅ **Foundation** will be deployed" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Foundation** will be deployed (direct changes detected)" >> $GITHUB_STEP_SUMMARY
             echo "   ↳ This will trigger Platform → Data → Apps (dependency cascade)" >> $GITHUB_STEP_SUMMARY
           else
             echo "⏭️ **Foundation** will be skipped (no changes)" >> $GITHUB_STEP_SUMMARY
           fi
           
           if [ "${{ steps.changes.outputs.platform }}" == "true" ]; then
-            echo "✅ **Platform** will be deployed" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Platform** will be deployed (direct changes detected)" >> $GITHUB_STEP_SUMMARY
             echo "   ↳ This will trigger Data → Apps (dependency cascade)" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.changes.outputs.foundation }}" == "true" ]; then
+            echo "🔄 **Platform** will run (triggered by foundation change)" >> $GITHUB_STEP_SUMMARY
           else
             echo "⏭️ **Platform** will be skipped (no changes)" >> $GITHUB_STEP_SUMMARY
           fi
           
           if [ "${{ steps.changes.outputs.data }}" == "true" ]; then
-            echo "✅ **Data** will be deployed" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Data** will be deployed (direct changes detected)" >> $GITHUB_STEP_SUMMARY
             echo "   ↳ This will trigger Apps (dependency cascade)" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.changes.outputs.foundation }}" == "true" ] || [ "${{ steps.changes.outputs.platform }}" == "true" ]; then
+            echo "🔄 **Data** will run (triggered by upstream change)" >> $GITHUB_STEP_SUMMARY
           else
             echo "⏭️ **Data** will be skipped (no changes)" >> $GITHUB_STEP_SUMMARY
           fi
           
           if [ "${{ steps.changes.outputs.apps }}" == "true" ]; then
-            echo "✅ **Apps** will be deployed" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Apps** will be deployed (direct changes detected)" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.changes.outputs.foundation }}" == "true" ] || [ "${{ steps.changes.outputs.platform }}" == "true" ] || [ "${{ steps.changes.outputs.data }}" == "true" ]; then
+            echo "🔄 **Apps** will run (triggered by upstream change)" >> $GITHUB_STEP_SUMMARY
           else
             echo "⏭️ **Apps** will be skipped (no changes)" >> $GITHUB_STEP_SUMMARY
           fi
