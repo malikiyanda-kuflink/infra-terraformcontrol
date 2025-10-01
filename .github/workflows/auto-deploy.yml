@@ -101,39 +101,34 @@ jobs:
           else
             echo "⏭️ **Apps** will be skipped (no changes)" >> $GITHUB_STEP_SUMMARY
           fi
-
   foundation:
-    if: needs.detect-changes.outputs.foundation_changed == 'true'
-    needs: detect-changes
-    uses: ./.github/workflows/foundation-test.yml
-    with:
-      triggered_by_dependency: false
-    secrets: inherit
-
+      if: needs.detect-changes.outputs.foundation_changed == 'true'
+      needs: detect-changes
+      uses: ./.github/workflows/foundation-test.yml
+      with:
+        triggered_by_dependency: true
+      secrets: inherit
   platform:
     if: needs.detect-changes.outputs.foundation_changed == 'true' || needs.detect-changes.outputs.platform_changed == 'true'
     needs: [detect-changes, foundation]
     uses: ./.github/workflows/platform-test.yml
     with:
-      triggered_by_dependency: ${{ needs.detect-changes.outputs.foundation_changed == 'true' }}
+      triggered_by_dependency: true
     secrets: inherit
-
   data:
     if: needs.detect-changes.outputs.foundation_changed == 'true' || needs.detect-changes.outputs.platform_changed == 'true' || needs.detect-changes.outputs.data_changed == 'true'
     needs: [detect-changes, platform]
     uses: ./.github/workflows/data-test.yml
     with:
-      triggered_by_dependency: true  # ← ALWAYS true when auto-deploy calls it
+      triggered_by_dependency: true
     secrets: inherit
-
   apps:
     if: needs.detect-changes.outputs.foundation_changed == 'true' || needs.detect-changes.outputs.platform_changed == 'true' || needs.detect-changes.outputs.data_changed == 'true' || needs.detect-changes.outputs.apps_changed == 'true'
     needs: [detect-changes, data]
     uses: ./.github/workflows/apps-test.yml
     with:
-      triggered_by_dependency: ${{ needs.detect-changes.outputs.foundation_changed == 'true' || needs.detect-changes.outputs.platform_changed == 'true' || needs.detect-changes.outputs.data_changed == 'true' }}
+      triggered_by_dependency: true
     secrets: inherit
-
   deployment-complete:
     if: always()
     needs: [detect-changes, foundation, platform, data, apps]
