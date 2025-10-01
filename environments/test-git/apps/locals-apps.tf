@@ -52,7 +52,7 @@ locals {
   # 'admin_website_url' resolves to the record FQDN or CF domain.
   # -----------------------------------------------------------------
   # admin_waf_arn     = data.terraform_remote_state.platform.outputs.s3_admin_waf.web_acl_arn
-  admin_waf_arn = local.enable_s3_admin && local.enable_s3_admin_waf ? module.s3_admin_waf[0].web_acl_arn : null
+  admin_waf_arn     = local.enable_s3_admin && local.enable_s3_admin_waf ? module.s3_admin_waf[0].web_acl_arn : null
   admin_bucket_name = data.terraform_remote_state.foundation.outputs.admin_bucket_name
 
   admin_domains     = [data.terraform_remote_state.foundation.outputs.admin_domain]

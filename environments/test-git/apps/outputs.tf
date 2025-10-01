@@ -128,7 +128,7 @@ output "eb_waf" {
 #################################
 output "s3_admin_waf" {
   description = "Key WAF details for S3 Admin (trimmed). Null when WAF is disabled."
-  value = local.enable_s3_admin_waf ? {  
+  value = local.enable_s3_admin_waf ? {
     web_acl_arn    = module.s3_admin_waf[0].web_acl_arn
     web_acl_name   = module.s3_admin_waf[0].web_acl_name
     scope          = module.s3_admin_waf[0].web_acl_scope
