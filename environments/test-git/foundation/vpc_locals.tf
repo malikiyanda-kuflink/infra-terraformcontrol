@@ -1,5 +1,5 @@
 locals {
-   vpc = {
+  vpc = {
     name = "Kuflink-Test-VPC"
     cidr = "172.40.0.0/16"
     azs  = ["eu-west-2a", "eu-west-2b", "eu-west-2c"]

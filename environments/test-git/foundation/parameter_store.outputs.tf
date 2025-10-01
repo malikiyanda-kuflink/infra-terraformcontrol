@@ -241,25 +241,25 @@ output "redshift_port" {
 output "kuflink_office_ips" {
   value       = local.kuflink_office_ips
   description = "List of Kuflink office IPs with description and CIDR"
-  sensitive = true
+  sensitive   = true
 }
 
 output "kuflink_office_ip_cidrs" {
   value       = [for ip in local.kuflink_office_ips : ip.cidr]
   description = "Office CIDRs as list(string)."
-  sensitive = true
+  sensitive   = true
 }
 
 output "dbt_cloud_ips" {
   value       = local.dbt_cloud_ips
-  sensitive = true
+  sensitive   = true
   description = "List of DBT Cloud IPs with description and CIDR"
 }
 
 
 output "fivetran_gcp_ips" {
   value       = local.fivetran_gcp
-  sensitive = true
+  sensitive   = true
   description = "List of DBT Cloud IPs with description and CIDR"
 }
 

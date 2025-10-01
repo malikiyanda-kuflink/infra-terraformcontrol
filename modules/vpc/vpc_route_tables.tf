@@ -28,7 +28,7 @@ resource "aws_route_table" "private_rt" {
   lifecycle {
     ignore_changes = [route]
   }
-  
+
   tags = merge(var.tags, { Name = "${var.vpc_name}-private-rt" })
 }
 

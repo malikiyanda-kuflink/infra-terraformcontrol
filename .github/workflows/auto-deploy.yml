@@ -123,7 +123,7 @@ jobs:
     needs: [detect-changes, platform]
     uses: ./.github/workflows/data-test.yml
     with:
-      triggered_by_dependency: ${{ needs.detect-changes.outputs.foundation_changed == 'true' || needs.detect-changes.outputs.platform_changed == 'true' }}
+      triggered_by_dependency: true  # ← ALWAYS true when auto-deploy calls it
     secrets: inherit
 
   apps:

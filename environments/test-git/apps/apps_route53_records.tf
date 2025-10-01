@@ -1,6 +1,6 @@
 # Route 53 Hosted Zone
 data "aws_route53_zone" "brickfin" {
-  name         = local.aws_route53_zone 
+  name         = local.aws_route53_zone
   private_zone = false
 }
 
@@ -20,12 +20,12 @@ resource "aws_route53_record" "p2papi_cname" {
 resource "aws_route53_record" "frontend_alias" {
   count   = local.enable_s3_frontend ? 1 : 0
   zone_id = local.frontend_hosted_zone_id
-  name    = local.frontend_record_name 
+  name    = local.frontend_record_name
   type    = "A"
 
   alias {
     name                   = module.s3-frontend.cloudfront_domain_name
-    zone_id                = local.cloudfront_zone_id 
+    zone_id                = local.cloudfront_zone_id
     evaluate_target_health = false
   }
 }
@@ -33,7 +33,7 @@ resource "aws_route53_record" "frontend_alias" {
 resource "aws_route53_record" "admin_alias" {
   count   = local.enable_s3_admin ? 1 : 0
   zone_id = local.admin_hosted_zone_id
-  name    = local.admin_record_name 
+  name    = local.admin_record_name
   type    = "A"
 
   alias {

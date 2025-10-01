@@ -226,10 +226,10 @@ variable "enabled_cloudwatch_logs_exports" {
   default     = ["error", "general", "slowquery"]
   validation {
     condition = alltrue([
-      for log_type in var.enabled_cloudwatch_logs_exports : 
+      for log_type in var.enabled_cloudwatch_logs_exports :
       contains([
-        "agent", "alert", "audit", "diag.log", "error", "general", 
-        "iam-db-auth-error", "listener", "notify.log", "oemagent", 
+        "agent", "alert", "audit", "diag.log", "error", "general",
+        "iam-db-auth-error", "listener", "notify.log", "oemagent",
         "postgresql", "slowquery", "trace", "upgrade"
       ], log_type)
     ])

@@ -11,7 +11,7 @@ resource "aws_db_instance" "restored_primary_rds_instance" {
   storage_encrypted   = var.storage_encrypted
   skip_final_snapshot = var.skip_final_snapshot
   deletion_protection = var.deletion_protection
-  allocated_storage   = var.allocated_storage 
+  allocated_storage   = var.allocated_storage
 
   parameter_group_name   = var.db_parameter_group_name
   db_subnet_group_name   = var.db_subnet_group_name
@@ -21,15 +21,15 @@ resource "aws_db_instance" "restored_primary_rds_instance" {
   password = var.db_password
 
   copy_tags_to_snapshot   = true
-  backup_retention_period  = var.backup_retention_period
+  backup_retention_period = var.backup_retention_period
 
 
   tags = { Name = var.db_name_identifier, Role = "primary" }
 
-   # ===== DATABASE INSIGHTS FOR READ REPLICA =====
+  # ===== DATABASE INSIGHTS FOR READ REPLICA =====
   performance_insights_enabled          = var.performance_insights_enabled
   performance_insights_retention_period = var.performance_insights_retention_period
-  performance_insights_kms_key_id      = var.performance_insights_kms_key_id
+  performance_insights_kms_key_id       = var.performance_insights_kms_key_id
 
   # Enhanced Monitoring for replica
   monitoring_interval = var.monitoring_interval
@@ -47,7 +47,7 @@ resource "aws_db_instance" "restored_primary_rds_instance" {
     ]
   }
 
-  apply_immediately       = true
+  apply_immediately = true
 }
 
 # Optional read replica
@@ -69,16 +69,16 @@ resource "aws_db_instance" "restored_rds_replica" {
 
   copy_tags_to_snapshot   = true
   backup_retention_period = var.backup_retention_period
-  
+
   # CloudWatch Logs Exports for replica
   enabled_cloudwatch_logs_exports = var.enabled_cloudwatch_logs_exports
 
-  tags = { 
-    Name = "${var.db_name_identifier}-replica"
-    Role = "read-replica"
+  tags = {
+    Name             = "${var.db_name_identifier}-replica"
+    Role             = "read-replica"
     DatabaseInsights = "enabled"
   }
-  
+
   apply_immediately = true
 }
 

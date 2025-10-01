@@ -53,7 +53,7 @@ module "s3-frontend" {
   # --- Self references / outputs (kept as-is) ---
   frontend_app_bucket    = module.s3-frontend.bucket_name
   maintenance_app_bucket = module.s3-frontend.maintenance_bucket_name
-  frontend_cloudfront_id = module.s3-frontend.cloudfront_id 
+  frontend_cloudfront_id = module.s3-frontend.cloudfront_id
 
   # --- Maintenance specifics ---
   maintenance_pipeline_name = "${local.name_prefix_upper}-frontend-maintenance-pipeline"

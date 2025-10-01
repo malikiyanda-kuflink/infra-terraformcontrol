@@ -10,12 +10,12 @@
 # ----------------------------
 output "rds_enhanced_monitoring_role_arn" {
   description = "ARN of the RDS Monitoring Role IAM Role (if enabled)"
-  value = var.enable_rds_enhanced_monitoring_role ? aws_iam_role.rds_enhanced_monitoring_role[0].arn : null
+  value       = var.enable_rds_enhanced_monitoring_role ? aws_iam_role.rds_enhanced_monitoring_role[0].arn : null
 }
 
 output "rds_enhanced_monitoring_role_name" {
   description = "Name of the RDS Monitoring Role IAM Role (if enabled)"
-  value = var.enable_rds_enhanced_monitoring_role ? aws_iam_role.rds_enhanced_monitoring_role[0].name : null
+  value       = var.enable_rds_enhanced_monitoring_role ? aws_iam_role.rds_enhanced_monitoring_role[0].name : null
 }
 
 

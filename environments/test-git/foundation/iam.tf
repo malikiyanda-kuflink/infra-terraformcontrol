@@ -18,10 +18,10 @@ module "iam" {
   enable_lambda_role                   = true
   enable_s3_frontend_codebuild_role    = true
   enable_s3_frontend_codepipeline_role = true
-  enable_s3_admin_codepipeline_role    = true 
+  enable_s3_admin_codepipeline_role    = true
   enable_s3_admin_codebuild_role       = true
   enable_dbt_role                      = true
-  enable_rds_enhanced_monitoring_role  = true 
+  enable_rds_enhanced_monitoring_role  = true
 
   enable_metabase_role     = true
   enable_redshift_role     = true

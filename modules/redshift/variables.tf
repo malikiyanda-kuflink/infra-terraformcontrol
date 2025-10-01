@@ -16,4 +16,4 @@ variable "redshift_skip_final_snapshot" { type = bool }
 variable "redshift_daily_resume" {}
 variable "redshift_daily_pause" {}
 
-variable "dms_access_for_endpoint_arn" { type = string }   
+variable "dms_access_for_endpoint_arn" { type = string }

@@ -19,7 +19,7 @@ data "aws_ec2_transit_gateway" "existing_tgw" {
     name   = "tag:Name"
     values = ["kuflink-core-tgw"]
   }
-  
+
   filter {
     name   = "state"
     values = ["available"]
@@ -31,7 +31,7 @@ data "aws_ec2_transit_gateway_route_table" "existing_route_table" {
     name   = "tag:Name"
     values = ["tgw-rt-main"]
   }
-  
+
   filter {
     name   = "transit-gateway-id"
     values = [data.aws_ec2_transit_gateway.existing_tgw.id]
@@ -71,7 +71,7 @@ data "terraform_remote_state" "staging" {
 #     name   = "vpc-id"
 #     values = [data.aws_vpc.test.id]
 #   }
-  
+
 #   tags = {
 #     Type = "Private"  # Adjust based on your subnet tagging
 #   }
@@ -80,7 +80,7 @@ data "terraform_remote_state" "staging" {
 # # Get private route tables from test VPC
 # data "aws_route_tables" "test_private" {
 #   vpc_id = data.aws_vpc.test.id
-  
+
 #   tags = {
 #     Type = "Private"  # Adjust based on your route table tagging
 #   }
@@ -123,7 +123,7 @@ resource "aws_ec2_transit_gateway_route_table_propagation" "test_propagation" {
 # TGW Route for Test VPC
 ###############################################################
 resource "aws_ec2_transit_gateway_route" "to_test_vpc" {
-  destination_cidr_block         = module.vpc.vpc_cidr_block  
+  destination_cidr_block         = module.vpc.vpc_cidr_block
   transit_gateway_route_table_id = data.aws_ec2_transit_gateway_route_table.existing_route_table.id
   transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.test.id
 }
@@ -154,13 +154,13 @@ locals {
 ###################################################################
 resource "aws_route" "test_to_onprem" {
   route_table_id         = module.vpc.private_rt_id
-  destination_cidr_block = local.onprem_cidrs[0]  # From SSM
+  destination_cidr_block = local.onprem_cidrs[0] # From SSM
   transit_gateway_id     = data.aws_ec2_transit_gateway.existing_tgw.id
 }
 
 resource "aws_route" "test_to_staging" {
   route_table_id         = module.vpc.private_rt_id
-  destination_cidr_block = local.staging_vpc_cidr  # From SSM
+  destination_cidr_block = local.staging_vpc_cidr # From SSM
   transit_gateway_id     = data.aws_ec2_transit_gateway.existing_tgw.id
 }
 

@@ -1,5 +1,5 @@
 module "vpc" {
-source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/vpc?ref=v0.1.71"
+  source               = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/vpc?ref=v0.1.71"
   vpc_name             = local.vpc.name
   vpc_cidr_block       = local.vpc.cidr
   public_subnet_cidrs  = local.vpc.public_cidrs

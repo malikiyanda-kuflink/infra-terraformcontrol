@@ -28,7 +28,7 @@ module "rds" {
 
   name_prefix        = local.name_prefix
   db_name_identifier = local.new_primary_rds_instance_identifier
-  tags               = { Project = "Kuflink" } 
+  tags               = { Project = "Kuflink" }
 
   rds_sg_id   = aws_security_group.rds_sg.id
   db_username = data.terraform_remote_state.foundation.outputs.db_username
@@ -38,7 +38,7 @@ module "rds" {
 
   db_parameter_group_name = aws_db_parameter_group.kuflink_parameter_group.name
   db_subnet_group_name    = aws_db_subnet_group.kuflink_db_subnet_group.name
-  
+
 
   allocated_storage                   = 100
   backup_retention_period             = 7
@@ -55,7 +55,7 @@ module "rds" {
   iam_database_authentication_enabled = false
 
   create_read_replica    = local.create_read_replica
-  replica_instance_class = "db.t3.small" 
+  replica_instance_class = "db.t3.small"
 
 }
 
@@ -64,21 +64,21 @@ module "rds_restore" {
   source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/rds-restored?ref=v0.1.63"
   # If restoring from snapshot → true, else false for new instance
   # restore_rds_from_snapshot = local.restore_rds_from_snapshot 
-  count = local.restore_rds_from_snapshot ? 1 : 0 
+  count = local.restore_rds_from_snapshot ? 1 : 0
 
   # Naming & tags
-  name_prefix = local.name_prefix 
-  name_prefix_upper = local.name_prefix_upper 
-  tags        = { Project = "Kuflink" }
+  name_prefix       = local.name_prefix
+  name_prefix_upper = local.name_prefix_upper
+  tags              = { Project = "Kuflink" }
 
   # Database Insights settings
-  monitoring_role_arn = data.terraform_remote_state.foundation.outputs.rds_enhanced_monitoring_role_arn
-  performance_insights_enabled = true
-  monitoring_interval = 60  # Enhanced monitoring every 60 seconds
-  enabled_cloudwatch_logs_exports = ["error", "general", "slowquery"]  # MySQL logs
+  monitoring_role_arn             = data.terraform_remote_state.foundation.outputs.rds_enhanced_monitoring_role_arn
+  performance_insights_enabled    = true
+  monitoring_interval             = 60                                # Enhanced monitoring every 60 seconds
+  enabled_cloudwatch_logs_exports = ["error", "general", "slowquery"] # MySQL logs
 
   #RDS Components 
-  db_parameter_group_name = aws_db_parameter_group.kuflink_parameter_group.name 
+  db_parameter_group_name = aws_db_parameter_group.kuflink_parameter_group.name
   db_subnet_group_name    = aws_db_subnet_group.kuflink_db_subnet_group.name
 
   # Networking
@@ -97,7 +97,7 @@ module "rds_restore" {
   deletion_protection = false
   instance_class      = "db.t3.medium"
   # instance_class      = "db.t3.xlarge"
-  allocated_storage   = 100
+  allocated_storage = 100
 
 
   # Read replica
@@ -110,13 +110,13 @@ module "rds_restore" {
 
 # Redshift Module
 module "redshift" {
-  source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/redshift?ref=v0.1.0"
+  source                           = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/redshift?ref=v0.1.0"
   count                            = local.enable_redshift && !local.restore_redshift_from_snapshot ? 1 : 0
   redshift_cluster_identifier_name = local.new_primary_redshift_cluster_identifier
 
   redshift_node_type           = "ra3.large"
   redshift_num_of_nodes        = 1
-  redshift_encrypted           = true 
+  redshift_encrypted           = true
   redshift_skip_final_snapshot = true
   redshift_publicly_accessible = false
 
@@ -124,7 +124,7 @@ module "redshift" {
   redshift_daily_resume       = "${local.env}-redshiftdaily-resume"
   redshift_dms_role_arn       = data.terraform_remote_state.foundation.outputs.redshift_dms_role_arn
   redshift_role_arn           = data.terraform_remote_state.foundation.outputs.redshift_role_arn
-  dms_access_for_endpoint_arn = data.terraform_remote_state.foundation.outputs.staging_dms_endpoint_access_arn 
+  dms_access_for_endpoint_arn = data.terraform_remote_state.foundation.outputs.staging_dms_endpoint_access_arn
 
   redshift_sg_id                = aws_security_group.redshift_access.id
   redshift_subnet_group_name    = aws_redshift_subnet_group.kuflink_redshift_subnet_group.name
@@ -138,22 +138,22 @@ module "redshift" {
 
 
 module "redshift_restore" {
-  source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/redshift-restored?ref=v0.1.0"
-  count = local.enable_redshift && local.restore_redshift_from_snapshot ? 1 : 0
+  source                           = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/redshift-restored?ref=v0.1.0"
+  count                            = local.enable_redshift && local.restore_redshift_from_snapshot ? 1 : 0
   redshift_cluster_identifier_name = local.restored_redshift_cluster_identifier
   redshift_snapshot_identifier     = local.redshift_snapshot_identifier
 
-  redshift_node_type            = "ra3.large" 
+  redshift_node_type            = "ra3.large"
   redshift_publicly_accessible  = false
   redshift_skip_final_snapshot  = true
-  redshift_encrypted            = false 
+  redshift_encrypted            = false
   redshift_enhanced_vpc_routing = true
 
 
-  redshift_daily_pause  = "${local.env}-redshiftdaily-pause"
-  redshift_daily_resume = "${local.env}-redshiftdaily-resume"
-  redshift_dms_role_arn = data.terraform_remote_state.foundation.outputs.redshift_dms_role_arn
-  redshift_role_arn     = data.terraform_remote_state.foundation.outputs.redshift_role_arn
+  redshift_daily_pause        = "${local.env}-redshiftdaily-pause"
+  redshift_daily_resume       = "${local.env}-redshiftdaily-resume"
+  redshift_dms_role_arn       = data.terraform_remote_state.foundation.outputs.redshift_dms_role_arn
+  redshift_role_arn           = data.terraform_remote_state.foundation.outputs.redshift_role_arn
   dms_access_for_endpoint_arn = data.terraform_remote_state.foundation.outputs.staging_dms_endpoint_access_arn
 
 
@@ -203,7 +203,7 @@ module "dms_mysql_to_redshift" {
 
   # ---------- TARGET (Redshift) ----------
   target_endpoint_id = "${local.env}-redshift-target"
-  target_db_user     = data.terraform_remote_state.foundation.outputs.redshift_username 
+  target_db_user     = data.terraform_remote_state.foundation.outputs.redshift_username
   target_db_password = data.terraform_remote_state.foundation.outputs.redshift_password
   target_db_name     = data.terraform_remote_state.foundation.outputs.redshift_database_name
 

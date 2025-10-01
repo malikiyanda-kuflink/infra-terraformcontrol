@@ -52,13 +52,13 @@ variable "enable_dns_support" {
 }
 
 variable "enable_nat_gateway" {
-  type    = bool
-  default = true
+  type        = bool
+  default     = true
   description = "Create NAT gateway and default route for private subnets"
 }
 
 variable "single_nat_gateway" {
-  type    = bool
-  default = true
+  type        = bool
+  default     = true
   description = "Keep to one NAT GW (in public subnet A)"
 }

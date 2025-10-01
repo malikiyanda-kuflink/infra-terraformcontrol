@@ -1,6 +1,6 @@
 module "eb_waf" {
   count       = local.enable_eb_waf ? 1 : 0
-  source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/eb-waf?ref=v0.1.0"
+  source      = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/eb-waf?ref=v0.1.0"
   name_prefix = local.name_prefix
   environment = local.environment
   scope       = "REGIONAL"
