@@ -145,7 +145,6 @@ jobs:
   
   destroy-data:
     if: |
-      always() &&
       !cancelled() &&
       needs.validate-inputs.outputs.destroy_data == 'true' &&
       (needs.destroy-apps.result == 'success' || needs.destroy-apps.result == 'skipped')
@@ -189,7 +188,6 @@ jobs:
   
   destroy-platform:
     if: |
-      always() &&
       !cancelled() &&
       needs.validate-inputs.outputs.destroy_platform == 'true' &&
       (needs.destroy-data.result == 'success' || needs.destroy-data.result == 'skipped')
@@ -233,7 +231,6 @@ jobs:
   
   destroy-foundation:
     if: |
-      always() &&
       !cancelled() &&
       needs.validate-inputs.outputs.destroy_foundation == 'true' &&
       (needs.destroy-platform.result == 'success' || needs.destroy-platform.result == 'skipped')
