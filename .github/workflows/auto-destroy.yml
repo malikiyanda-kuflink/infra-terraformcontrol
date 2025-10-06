@@ -1,0 +1,287 @@
+name: auto-destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      layers:
+        description: 'Layers to destroy (comma-separated: apps,data,platform,foundation or "all")'
+        required: true
+        default: 'all'
+        type: string
+      confirmation:
+        description: 'Type "DESTROY" to confirm'
+        required: true
+        type: string
+      environment:
+        description: 'Environment to destroy'
+        required: true
+        default: 'test-git'
+        type: choice
+        options:
+          - test-git
+
+permissions:  
+  id-token: write
+  contents: read
+
+jobs:
+  validate-inputs:
+    runs-on: ubuntu-latest
+    outputs:
+      destroy_apps: ${{ steps.parse.outputs.destroy_apps }}
+      destroy_data: ${{ steps.parse.outputs.destroy_data }}
+      destroy_platform: ${{ steps.parse.outputs.destroy_platform }}
+      destroy_foundation: ${{ steps.parse.outputs.destroy_foundation }}
+    steps:
+      - name: Validate Confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirmation }}" != "DESTROY" ]; then
+            echo "❌ Invalid confirmation. You must type exactly 'DESTROY' to proceed."
+            exit 1
+          fi
+          echo "✅ Confirmation validated"
+      
+      - name: Parse Layers Input
+        id: parse
+        run: |
+          LAYERS="${{ github.event.inputs.layers }}"
+          
+          echo "## 🗑️ Destruction Plan" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Requested by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Layers to Destroy (in order):" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Determine what to destroy
+          if [ "$LAYERS" == "all" ]; then
+            echo "destroy_apps=true" >> $GITHUB_OUTPUT
+            echo "destroy_data=true" >> $GITHUB_OUTPUT
+            echo "destroy_platform=true" >> $GITHUB_OUTPUT
+            echo "destroy_foundation=true" >> $GITHUB_OUTPUT
+            
+            echo "1. 🗑️ **Apps** (applications and services)" >> $GITHUB_STEP_SUMMARY
+            echo "2. 🗑️ **Data** (databases and data services)" >> $GITHUB_STEP_SUMMARY
+            echo "3. 🗑️ **Platform** (platform services)" >> $GITHUB_STEP_SUMMARY
+            echo "4. 🗑️ **Foundation** (networking and IAM)" >> $GITHUB_STEP_SUMMARY
+          else
+            # Parse comma-separated list
+            if echo "$LAYERS" | grep -q "apps"; then
+              echo "destroy_apps=true" >> $GITHUB_OUTPUT
+              echo "1. 🗑️ **Apps** (applications and services)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "destroy_apps=false" >> $GITHUB_OUTPUT
+            fi
+            
+            if echo "$LAYERS" | grep -q "data"; then
+              echo "destroy_data=true" >> $GITHUB_OUTPUT
+              echo "2. 🗑️ **Data** (databases and data services)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "destroy_data=false" >> $GITHUB_OUTPUT
+            fi
+            
+            if echo "$LAYERS" | grep -q "platform"; then
+              echo "destroy_platform=true" >> $GITHUB_OUTPUT
+              echo "3. 🗑️ **Platform** (platform services)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "destroy_platform=false" >> $GITHUB_OUTPUT
+            fi
+            
+            if echo "$LAYERS" | grep -q "foundation"; then
+              echo "destroy_foundation=true" >> $GITHUB_OUTPUT
+              echo "4. 🗑️ **Foundation** (networking and IAM)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "destroy_foundation=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **WARNING:** This action is irreversible!" >> $GITHUB_STEP_SUMMARY
+
+  # Destroy in reverse order: Apps → Data → Platform → Foundation
+  
+  destroy-apps:
+    if: needs.validate-inputs.outputs.destroy_apps == 'true'
+    needs: validate-inputs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+      
+      - name: Terraform Destroy Apps
+        working-directory: environments/${{ github.event.inputs.environment }}/apps
+        run: |
+          terraform init
+          terraform destroy -auto-approve
+          echo "✅ Apps layer destroyed" >> $GITHUB_STEP_SUMMARY
+  
+  destroy-data:
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.validate-inputs.outputs.destroy_data == 'true' &&
+      (needs.destroy-apps.result == 'success' || needs.destroy-apps.result == 'skipped')
+    needs: [validate-inputs, destroy-apps]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+      
+      - name: Terraform Destroy Data
+        working-directory: environments/${{ github.event.inputs.environment }}/data
+        run: |
+          terraform init
+          terraform destroy -auto-approve
+          echo "✅ Data layer destroyed" >> $GITHUB_STEP_SUMMARY
+  
+  destroy-platform:
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.validate-inputs.outputs.destroy_platform == 'true' &&
+      (needs.destroy-data.result == 'success' || needs.destroy-data.result == 'skipped')
+    needs: [validate-inputs, destroy-apps, destroy-data]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+      
+      - name: Terraform Destroy Platform
+        working-directory: environments/${{ github.event.inputs.environment }}/platform
+        run: |
+          terraform init
+          terraform destroy -auto-approve
+          echo "✅ Platform layer destroyed" >> $GITHUB_STEP_SUMMARY
+  
+  destroy-foundation:
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.validate-inputs.outputs.destroy_foundation == 'true' &&
+      (needs.destroy-platform.result == 'success' || needs.destroy-platform.result == 'skipped')
+    needs: [validate-inputs, destroy-apps, destroy-data, destroy-platform]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+      
+      - name: Terraform Destroy Foundation
+        working-directory: environments/${{ github.event.inputs.environment }}/foundation
+        run: |
+          terraform init
+          terraform destroy -auto-approve
+          echo "✅ Foundation layer destroyed" >> $GITHUB_STEP_SUMMARY
+  
+  destruction-complete:
+    if: always()
+    needs: [validate-inputs, destroy-apps, destroy-data, destroy-platform, destroy-foundation]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Destruction Summary
+        run: |
+          echo "## 🗑️ Destruction Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Execution Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Apps
+          if [ "${{ needs.validate-inputs.outputs.destroy_apps }}" == "true" ]; then
+            if [ "${{ needs.destroy-apps.result }}" == "success" ]; then
+              echo "✅ **Apps:** Destroyed successfully" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **Apps:** Failed - ${{ needs.destroy-apps.result }}" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "⏭️ **Apps:** Skipped (not selected)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Data
+          if [ "${{ needs.validate-inputs.outputs.destroy_data }}" == "true" ]; then
+            if [ "${{ needs.destroy-data.result }}" == "success" ]; then
+              echo "✅ **Data:** Destroyed successfully" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **Data:** Failed - ${{ needs.destroy-data.result }}" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "⏭️ **Data:** Skipped (not selected)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Platform
+          if [ "${{ needs.validate-inputs.outputs.destroy_platform }}" == "true" ]; then
+            if [ "${{ needs.destroy-platform.result }}" == "success" ]; then
+              echo "✅ **Platform:** Destroyed successfully" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **Platform:** Failed - ${{ needs.destroy-platform.result }}" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "⏭️ **Platform:** Skipped (not selected)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Foundation
+          if [ "${{ needs.validate-inputs.outputs.destroy_foundation }}" == "true" ]; then
+            if [ "${{ needs.destroy-foundation.result }}" == "success" ]; then
+              echo "✅ **Foundation:** Destroyed successfully" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **Foundation:** Failed - ${{ needs.destroy-foundation.result }}" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "⏭️ **Foundation:** Skipped (not selected)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Overall status
+          if [ "${{ needs.destroy-apps.result }}" == "failure" ] || \
+             [ "${{ needs.destroy-data.result }}" == "failure" ] || \
+             [ "${{ needs.destroy-platform.result }}" == "failure" ] || \
+             [ "${{ needs.destroy-foundation.result }}" == "failure" ]; then
+            echo "## ❌ Destruction Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Some layers failed to destroy. Manual intervention may be required." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "## ✅ Destruction Successful" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "All selected infrastructure has been destroyed." >> $GITHUB_STEP_SUMMARY
+          fi
