@@ -12,22 +12,18 @@ on:
         description: 'Type "DESTROY" to confirm'
         required: true
         type: string
-      environment:
-        description: 'Environment to destroy'
-        required: true
-        default: 'test-git'
-        type: choice
-        options:
-          - test-git
-      aws_region:
-        description: 'AWS Region'
-        required: true
-        default: 'us-east-1'
-        type: string
 
 permissions:  
   id-token: write
   contents: read
+
+env:
+  AWS_REGION: eu-west-2
+  TF_IN_AUTOMATION: "true"
+  TF_STATE_BUCKET: kuflink-test-states
+  TF_LOCK_TABLE: kuflink-tf-locks-test
+  ROLE_ARN: arn:aws:iam::137167813802:role/kuflink-test-github-oidc-terraform
+  TERRAFORM_PATH: "C:\\terraform\\terraform.exe"
 
 jobs:
   validate-inputs:
@@ -53,8 +49,8 @@ jobs:
           
           echo "## 🗑️ Destruction Plan" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "**AWS Region:** ${{ github.event.inputs.aws_region }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** test-git" >> $GITHUB_STEP_SUMMARY
+          echo "**AWS Region:** ${{ env.AWS_REGION }}" >> $GITHUB_STEP_SUMMARY
           echo "**Requested by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Layers to Destroy (in order):" >> $GITHUB_STEP_SUMMARY
@@ -110,28 +106,42 @@ jobs:
   destroy-apps:
     if: needs.validate-inputs.outputs.destroy_apps == 'true'
     needs: validate-inputs
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, tf-runner]
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      LAYER: apps
+      TF_WORKDIR: environments/test-git/apps
+      TF_STATE_KEY: test-git/apps/terraform.tfstate
     steps:
       - uses: actions/checkout@v4
       
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-to-assume: ${{ env.ROLE_ARN }}
           role-session-name: GitHubActions-destroy-apps
-          aws-region: ${{ github.event.inputs.aws_region }}
+          aws-region: ${{ env.AWS_REGION }}
       
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.5.0
-      
-      - name: Terraform Destroy Apps
-        working-directory: environments/${{ github.event.inputs.environment }}/apps
+      - name: Terraform Init
+        working-directory: ${{ env.TF_WORKDIR }}
+        shell: powershell
         run: |
-          terraform init
-          terraform destroy -auto-approve
-          echo "✅ Apps layer destroyed" >> $GITHUB_STEP_SUMMARY
+          & "$env:TERRAFORM_PATH" init `
+            -backend-config="bucket=$env:TF_STATE_BUCKET" `
+            -backend-config="key=$env:TF_STATE_KEY" `
+            -backend-config="region=$env:AWS_REGION" `
+            -backend-config="dynamodb_table=$env:TF_LOCK_TABLE" `
+            -backend-config="encrypt=true"
+      
+      - name: Terraform Destroy
+        working-directory: ${{ env.TF_WORKDIR }}
+        shell: powershell
+        run: |
+          & "$env:TERRAFORM_PATH" destroy -auto-approve
+          Write-Host "✅ Apps layer destroyed" -ForegroundColor Green
+          "## ✅ Apps Layer Destroyed" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
   
   destroy-data:
     if: |
@@ -140,28 +150,42 @@ jobs:
       needs.validate-inputs.outputs.destroy_data == 'true' &&
       (needs.destroy-apps.result == 'success' || needs.destroy-apps.result == 'skipped')
     needs: [validate-inputs, destroy-apps]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, tf-runner]
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      LAYER: data
+      TF_WORKDIR: environments/test-git/data
+      TF_STATE_KEY: test-git/data/terraform.tfstate
     steps:
       - uses: actions/checkout@v4
       
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-to-assume: ${{ env.ROLE_ARN }}
           role-session-name: GitHubActions-destroy-data
-          aws-region: ${{ github.event.inputs.aws_region }}
+          aws-region: ${{ env.AWS_REGION }}
       
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.5.0
-      
-      - name: Terraform Destroy Data
-        working-directory: environments/${{ github.event.inputs.environment }}/data
+      - name: Terraform Init
+        working-directory: ${{ env.TF_WORKDIR }}
+        shell: powershell
         run: |
-          terraform init
-          terraform destroy -auto-approve
-          echo "✅ Data layer destroyed" >> $GITHUB_STEP_SUMMARY
+          & "$env:TERRAFORM_PATH" init `
+            -backend-config="bucket=$env:TF_STATE_BUCKET" `
+            -backend-config="key=$env:TF_STATE_KEY" `
+            -backend-config="region=$env:AWS_REGION" `
+            -backend-config="dynamodb_table=$env:TF_LOCK_TABLE" `
+            -backend-config="encrypt=true"
+      
+      - name: Terraform Destroy
+        working-directory: ${{ env.TF_WORKDIR }}
+        shell: powershell
+        run: |
+          & "$env:TERRAFORM_PATH" destroy -auto-approve
+          Write-Host "✅ Data layer destroyed" -ForegroundColor Green
+          "## ✅ Data Layer Destroyed" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
   
   destroy-platform:
     if: |
@@ -170,28 +194,42 @@ jobs:
       needs.validate-inputs.outputs.destroy_platform == 'true' &&
       (needs.destroy-data.result == 'success' || needs.destroy-data.result == 'skipped')
     needs: [validate-inputs, destroy-apps, destroy-data]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, tf-runner]
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      LAYER: platform
+      TF_WORKDIR: environments/test-git/platform
+      TF_STATE_KEY: test-git/platform/terraform.tfstate
     steps:
       - uses: actions/checkout@v4
       
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-to-assume: ${{ env.ROLE_ARN }}
           role-session-name: GitHubActions-destroy-platform
-          aws-region: ${{ github.event.inputs.aws_region }}
+          aws-region: ${{ env.AWS_REGION }}
       
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.5.0
-      
-      - name: Terraform Destroy Platform
-        working-directory: environments/${{ github.event.inputs.environment }}/platform
+      - name: Terraform Init
+        working-directory: ${{ env.TF_WORKDIR }}
+        shell: powershell
         run: |
-          terraform init
-          terraform destroy -auto-approve
-          echo "✅ Platform layer destroyed" >> $GITHUB_STEP_SUMMARY
+          & "$env:TERRAFORM_PATH" init `
+            -backend-config="bucket=$env:TF_STATE_BUCKET" `
+            -backend-config="key=$env:TF_STATE_KEY" `
+            -backend-config="region=$env:AWS_REGION" `
+            -backend-config="dynamodb_table=$env:TF_LOCK_TABLE" `
+            -backend-config="encrypt=true"
+      
+      - name: Terraform Destroy
+        working-directory: ${{ env.TF_WORKDIR }}
+        shell: powershell
+        run: |
+          & "$env:TERRAFORM_PATH" destroy -auto-approve
+          Write-Host "✅ Platform layer destroyed" -ForegroundColor Green
+          "## ✅ Platform Layer Destroyed" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
   
   destroy-foundation:
     if: |
@@ -200,28 +238,42 @@ jobs:
       needs.validate-inputs.outputs.destroy_foundation == 'true' &&
       (needs.destroy-platform.result == 'success' || needs.destroy-platform.result == 'skipped')
     needs: [validate-inputs, destroy-apps, destroy-data, destroy-platform]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, tf-runner]
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      LAYER: foundation
+      TF_WORKDIR: environments/test-git/foundation
+      TF_STATE_KEY: test-git/foundation/terraform.tfstate
     steps:
       - uses: actions/checkout@v4
       
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-to-assume: ${{ env.ROLE_ARN }}
           role-session-name: GitHubActions-destroy-foundation
-          aws-region: ${{ github.event.inputs.aws_region }}
+          aws-region: ${{ env.AWS_REGION }}
       
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.5.0
-      
-      - name: Terraform Destroy Foundation
-        working-directory: environments/${{ github.event.inputs.environment }}/foundation
+      - name: Terraform Init
+        working-directory: ${{ env.TF_WORKDIR }}
+        shell: powershell
         run: |
-          terraform init
-          terraform destroy -auto-approve
-          echo "✅ Foundation layer destroyed" >> $GITHUB_STEP_SUMMARY
+          & "$env:TERRAFORM_PATH" init `
+            -backend-config="bucket=$env:TF_STATE_BUCKET" `
+            -backend-config="key=$env:TF_STATE_KEY" `
+            -backend-config="region=$env:AWS_REGION" `
+            -backend-config="dynamodb_table=$env:TF_LOCK_TABLE" `
+            -backend-config="encrypt=true"
+      
+      - name: Terraform Destroy
+        working-directory: ${{ env.TF_WORKDIR }}
+        shell: powershell
+        run: |
+          & "$env:TERRAFORM_PATH" destroy -auto-approve
+          Write-Host "✅ Foundation layer destroyed" -ForegroundColor Green
+          "## ✅ Foundation Layer Destroyed" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
   
   destruction-complete:
     if: always()
