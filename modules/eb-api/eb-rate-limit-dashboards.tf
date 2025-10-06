@@ -26,8 +26,6 @@ data "aws_resourcegroupstaggingapi_resources" "eb_tgs" {
   }
 }
 
-
-
 locals {
   dashboard_name = "${var.application_name}-API-Rate-Limiting-Monitoring-Dashboard"
 
@@ -116,7 +114,6 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
 
       # =========================================================================
       # ROW 1 HEADER: Environment Health & Traffic Volume
-      # (shifted down by 3 rows to make space for the top numbers)
       # =========================================================================
       {
         type   = "text"
@@ -133,7 +130,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type = "metric"
         x    = 0
-        y    = 6
+        y    = 9
         width = 12
         height = 6
         properties = {
@@ -170,9 +167,28 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
 
       # Widget 2 (RIGHT): ALB Total Request Volume
       {
+  type = "metric"
+  x    = 0
+  y    = 6
+  width = 24
+  height = 3
+  properties = {
+    metrics = [
+      ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", local.alb_dimension, {
+        stat = "Sum",
+        label = "Total Requests in Selected Period"
+      }]
+    ]
+    view    = "singleValue"
+    region  = var.aws_region
+    title   = "Total Requests (Selected Time Range)"
+    setPeriodToTimeRange = true
+  }
+},
+      {
         type = "metric"
         x    = 12
-        y    = 6
+        y    = 9
         width = 12
         height = 6
         properties = {
@@ -200,7 +216,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type   = "text"
         x      = 0
-        y      = 12
+        y      = 15
         width  = 12
         height = 2
         properties = {
@@ -212,7 +228,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type   = "text"
         x      = 12
-        y      = 12
+        y      = 15
         width  = 12
         height = 2
         properties = {
@@ -228,7 +244,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type   = "text"
         x      = 0
-        y      = 14
+        y      = 17
         width  = 24
         height = 1
         properties = {
@@ -242,7 +258,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type = "metric"
         x    = 0
-        y    = 15
+        y    = 18
         width = 4
         height = 3
         properties = {
@@ -269,7 +285,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type   = "text"
         x      = 0
-        y      = 17
+        y      = 20
         width  = 4
         height = 1
         properties = {
@@ -281,7 +297,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type = "metric"
         x    = 4
-        y    = 15
+        y    = 18
         width = 4
         height = 3
         properties = {
@@ -308,7 +324,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type   = "text"
         x      = 4
-        y      = 17
+        y      = 20
         width  = 4
         height = 1
         properties = {
@@ -320,7 +336,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type = "metric"
         x    = 8
-        y    = 15
+        y    = 18
         width = 4
         height = 3
         properties = {
@@ -347,7 +363,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type   = "text"
         x      = 8
-        y      = 17
+        y      = 20
         width  = 4
         height = 1
         properties = {
@@ -359,7 +375,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type = "metric"
         x    = 0
-        y    = 18
+        y    = 21
         width = 12
         height = 7
         properties = {
@@ -396,7 +412,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type = "metric"
         x    = 12
-        y    = 15
+        y    = 18
         width = 6
         height = 3
         properties = {
@@ -423,7 +439,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type   = "text"
         x      = 12
-        y      = 18
+        y      = 21
         width = 6
         height = 1
         properties = {
@@ -435,7 +451,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type = "metric"
         x    = 18
-        y    = 15
+        y    = 18
         width = 6
         height = 3
         properties = {
@@ -462,7 +478,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type   = "text"
         x      = 18
-        y      = 18
+        y      = 21
         width = 6
         height = 1
         properties = {
@@ -474,7 +490,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type = "metric"
         x    = 12
-        y    = 19
+        y    = 22
         width = 6
         height = 3
         properties = {
@@ -501,7 +517,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type   = "text"
         x      = 12
-        y      = 22
+        y      = 25
         width = 6
         height = 1
         properties = {
@@ -513,7 +529,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type = "metric"
         x    = 18
-        y    = 19
+        y    = 22
         width = 6
         height = 3
         properties = {
@@ -539,7 +555,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type   = "text"
         x      = 12
-        y      = 23
+        y      = 26
         width  = 12
         height = 3
         properties = {
@@ -562,7 +578,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type   = "text"
         x      = 0
-        y      = 26
+        y      = 29
         width  = 24
         height = 1
         properties = {
@@ -574,7 +590,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type = "metric"
         x    = 0
-        y    = 27
+        y    = 30
         width = 12
         height = 3
         properties = {
@@ -611,7 +627,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type = "metric"
         x    = 12
-        y    = 27
+        y    = 30
         width = 12
         height = 6
         properties = {
@@ -645,7 +661,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type   = "text"
         x      = 0
-        y      = 33
+        y      = 36
         width  = 12
         height = 5
         properties = {
@@ -667,7 +683,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type   = "text"
         x      = 12
-        y      = 33
+        y      = 36
         width  = 12
         height = 3
         properties = {
@@ -687,48 +703,48 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type   = "text"
         x      = 0
-        y      = 35
+        y      = 38
         width  = 24
         height = 1
         properties = {
-          markdown = "## 💚 Row 4: Backend Health & Response Distribution"
+          markdown = "## 💚 Row 4: Data Volume & Response Distribution"
         }
       },
 
-    # Widget 7: Processed Bytes
-    {
-    type = "metric"
-    x    = 0
-    y    = 36
-    width = 12
-    height = 6
-    properties = {
-        metrics = [
-        ["AWS/ApplicationELB", "ProcessedBytes", "LoadBalancer", local.alb_dimension, {
-            stat = "Sum",
-            label = "Total Bytes Processed",
-            color = "#1f77b4"
-        }]
-        ]
-        view    = "timeSeries"
-        stacked = false
-        region  = var.aws_region
-        title   = "7. Data Volume (Bytes Processed)"
-        period  = 300
-        yAxis = {
-        left = {
-            label = "Bytes"
-            showUnits = false
+      # Widget 7: Processed Bytes
+      {
+        type = "metric"
+        x    = 0
+        y    = 39
+        width = 12
+        height = 6
+        properties = {
+          metrics = [
+            ["AWS/ApplicationELB", "ProcessedBytes", "LoadBalancer", local.alb_dimension, {
+              stat = "Sum",
+              label = "Total Bytes Processed",
+              color = "#1f77b4"
+            }]
+          ]
+          view    = "timeSeries"
+          stacked = false
+          region  = var.aws_region
+          title   = "7. Data Volume (Bytes Processed)"
+          period  = 300
+          yAxis = {
+            left = {
+              label = "Bytes"
+              showUnits = false
+            }
+          }
         }
-        }
-    }
-    },
+      },
 
       # Widget 8 (RIGHT): HTTP Response Code Distribution (over time)
       {
         type = "metric"
         x    = 12
-        y    = 36
+        y    = 39
         width = 12
         height = 6
         properties = {
@@ -752,10 +768,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
               stat = "Sum",
               label = "Target 5XX",
               color = "#d13212"
-            }],
-            # Optional: uncomment to also trend ALB-side codes over time
-            # ["AWS/ApplicationELB", "HTTPCode_ELB_4XX_Count", "LoadBalancer", local.alb_dimension, { stat = "Sum", label = "ALB 4XX", color = "#9467bd" }],
-            # ["AWS/ApplicationELB", "HTTPCode_ELB_5XX_Count", "LoadBalancer", local.alb_dimension, { stat = "Sum", label = "ALB 5XX", color = "#8B0000" }]
+            }]
           ]
           view    = "timeSeries"
           stacked = false
@@ -771,11 +784,11 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
         }
       },
 
-# Widget Notes for Row 4
+      # Widget Notes for Row 4
       {
         type   = "text"
         x      = 0
-        y      = 42
+        y      = 45
         width  = 12
         height = 4
         properties = {
@@ -790,14 +803,14 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
             • **Data exfiltration:** Unusual patterns like steady high outbound bytes during off-hours = potential unauthorized data extraction  
             • **API misuse:** High bytes-per-request ratio = users requesting full datasets instead of paginated results
             
-            **Rate limiting insight:** If bytes spike but request rate stays normal, consider bandwidth-based limits in addition to request-based limits. Example: 324 req/min might be fine, but not if each request downloads 50MB.
+            **Rate limiting insight:** If bytes spike but request rate stays normal, consider bandwidth-based limits in addition to request-based limits.
           EOT
         }
       },
       {
         type   = "text"
         x      = 12
-        y      = 42
+        y      = 45
         width  = 12
         height = 4
         properties = {
@@ -807,8 +820,6 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
             • **3XX (Redirects):** Normal in authentication/SEO flows; sustained spikes can indicate redirect loops/misconfig.  
             • **Target 4XX (Client Errors):** App rejected the request (e.g., 401/404/429). Signals bad inputs or misuse.  
             • **Target 5XX (Server Errors):** App failed to process (500/503). Indicates app bugs, dependency failures, or resource exhaustion.
-
-            *(Optional)* If you enable **ALB 4XX/5XX** here too, you’ll distinguish **edge rejections/timeouts** from **app-side errors** across the timeline.
           EOT
         }
       },
@@ -819,7 +830,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       {
         type   = "text"
         x      = 0
-        y      = 44
+        y      = 49
         width  = 24
         height = 2
         properties = {
@@ -831,7 +842,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
 
             **Phase 2 (Next):** Enable AWS WAF rate limiting in **COUNT** mode to observe potential blocks without impact.
 
-            **Phase 3 (Final):** Switch WAF to **BLOCK** mode after validating that limits don’t affect legitimate users.
+            **Phase 3 (Final):** Switch WAF to **BLOCK** mode after validating that limits don't affect legitimate users.
 
             **Key Metrics:**  
             • **Widget 3 Peak req/min** → set initial WAF rate limits (use ~2–3× peak).  
@@ -872,14 +883,15 @@ output "target_group_dimension" {
   value       = local.target_group_dimension
 }
 
-
 # =============================================================================
 # DASHBOARD LAYOUT SUMMARY
 # =============================================================================
-# Top numbers: Healthy / Unhealthy targets (y=2..4) — **now filtered by TargetGroup + LoadBalancer**
-# Row 1: EB Environment Health | ALB Request Volume (y=6)
-# Row 2: Request Rate Stats (Max/Avg/Min) + Graph | 4 Response Time Numbers (y=15..23)
-# Row 3: Error Totals (Target & ALB, singleValue) | ALB Connection Metrics (y=27)
-# Row 4: Target Health | Response Code Distribution over time (y=36)
-# Footer: Usage guide and next steps (y=44)
+# Top numbers: Healthy / Unhealthy targets (y=2..5)
+# Row 1 header (y=5)
+# Row 1 volume stats: Max Requests per Hour/Day/Week (y=6..9)
+# Row 1: EB Environment Health | ALB Request Volume (y=9..15)
+# Row 2: Request Rate Stats + Graph | Response Time Numbers (y=18..29)
+# Row 3: Error Totals | ALB Connection Metrics (y=30..41)
+# Row 4: Data Volume | Response Code Distribution (y=39..49)
+# Footer: Usage guide (y=49)
 # =============================================================================
