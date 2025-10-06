@@ -1,5 +1,5 @@
 resource "aws_cloudwatch_dashboard" "waf_dashboard" {
-  dashboard_name = "Kuflink-${var.name_prefix_upper}--API-WAF-Rules-Dashboard"
+  dashboard_name = "${var.name_prefix_upper}--API-WAF-Rules-Dashboard"
 
   dashboard_body = jsonencode({
     widgets = [
