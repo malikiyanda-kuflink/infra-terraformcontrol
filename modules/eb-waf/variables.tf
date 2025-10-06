@@ -1,4 +1,5 @@
 variable "name_prefix" { type = string }
+variable "name_prefix_upper" {type = string}
 variable "environment" { type = string }
 variable "scope" {
   type    = string
