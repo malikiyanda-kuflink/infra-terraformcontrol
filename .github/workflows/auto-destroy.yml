@@ -190,6 +190,7 @@ jobs:
     if: |
       !cancelled() &&
       needs.validate-inputs.outputs.destroy_platform == 'true' &&
+      (needs.destroy-apps.result == 'success' || needs.destroy-apps.result == 'skipped') &&
       (needs.destroy-data.result == 'success' || needs.destroy-data.result == 'skipped')
     needs: [validate-inputs, destroy-apps, destroy-data]
     runs-on: [self-hosted, tf-runner]
