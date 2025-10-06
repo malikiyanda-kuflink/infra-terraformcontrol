@@ -1,5 +1,5 @@
 resource "aws_cloudwatch_dashboard" "waf_dashboard" {
-  dashboard_name = "${var.environment}-Kuflink-Elasticbeanstalk-API-WAF-COUNT-Dashboard"
+  dashboard_name = "Kuflink-${var.name_prefix_upper}--API-WAF-Rules-Dashboard"
 
   dashboard_body = jsonencode({
     widgets = [
