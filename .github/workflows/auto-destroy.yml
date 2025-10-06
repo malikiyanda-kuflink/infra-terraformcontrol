@@ -118,6 +118,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHubActions-destroy-apps
           aws-region: ${{ github.event.inputs.aws_region }}
       
       - name: Setup Terraform
@@ -147,6 +148,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHubActions-destroy-data
           aws-region: ${{ github.event.inputs.aws_region }}
       
       - name: Setup Terraform
@@ -176,6 +178,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHubActions-destroy-platform
           aws-region: ${{ github.event.inputs.aws_region }}
       
       - name: Setup Terraform
@@ -205,6 +208,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: GitHubActions-destroy-foundation
           aws-region: ${{ github.event.inputs.aws_region }}
       
       - name: Setup Terraform
