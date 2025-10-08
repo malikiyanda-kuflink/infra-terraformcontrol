@@ -108,9 +108,9 @@ jobs:
             echo "⏭️ **Apps** will be skipped (no changes)" >> $GITHUB_STEP_SUMMARY
           fi
   foundation:
-    if: needs.detect-changes.outputs.foundation_changed == 'true'
+    if: needs.detect-changes.outputs.foundation_changed == 'true' 
     needs: detect-changes
-    uses: ./.github/workflows/foundation-test.yml
+    uses: ./.github/workflows/foundation-test.yml 
     with:
       triggered_by_dependency: true
     secrets: inherit
@@ -123,7 +123,7 @@ jobs:
        needs.detect-changes.outputs.platform_changed == 'true') &&
       (needs.foundation.result == 'success' || needs.foundation.result == 'skipped')
     needs: [detect-changes, foundation]
-    uses: ./.github/workflows/platform-test.yml
+    uses: ./.github/workflows/platform-test.yml 
     with:
       triggered_by_dependency: true
     secrets: inherit
@@ -233,7 +233,7 @@ jobs:
              [ "${{ needs.data.result }}" == "failure" ] || \
              [ "${{ needs.apps.result }}" == "failure" ]; then
             echo "## ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
-            exit 1
+            exit 1 
           else
             echo "## ✅ Deployment Successful" >> $GITHUB_STEP_SUMMARY
           fi 
