@@ -1,4 +1,4 @@
-# variables.tf (environment repo)
+# variables.tf (environment repos)
 variable "module_versions" {
   type = object({
     vpc = string

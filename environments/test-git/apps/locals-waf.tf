@@ -15,7 +15,7 @@ locals {
   enable_bastion_dns = true
   enable_dbt         = false
 
-  # --- Frontend/Admin S3 toggles --- # flip to true/false to skip creating the stack
+  # --- Frontend/Admin S3 toggles --- # flip to true/false to skip creating the stacks
   enable_s3_admin     = true
   enable_s3_admin_waf = true
 
