@@ -23,7 +23,7 @@ data "aws_db_instance" "rds_ro_legacy" {
 
 # # RDS Module - new DB create
 module "rds" {
-  source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/rds?ref=v0.1.0"
+  source = "../../../modules/rds"
   count  = local.restore_rds_from_snapshot ? 0 : 1
 
   name_prefix        = local.name_prefix
@@ -61,7 +61,7 @@ module "rds" {
 
 # RDS Restore Module - restore from snapshot
 module "rds_restore" {
-  source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/rds-restored?ref=v0.1.63"
+  source = "../../../modules/rds_restored"
   # If restoring from snapshot → true, else false for new instance
   # restore_rds_from_snapshot = local.restore_rds_from_snapshot 
   count = local.restore_rds_from_snapshot ? 1 : 0
@@ -111,7 +111,7 @@ module "rds_restore" {
 
 # Redshift Module
 module "redshift" {
-  source                           = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/redshift?ref=v0.1.0"
+  source                           = "../../../modules/redshift"
   count                            = local.enable_redshift && !local.restore_redshift_from_snapshot ? 1 : 0
   redshift_cluster_identifier_name = local.new_primary_redshift_cluster_identifier
 
@@ -139,7 +139,7 @@ module "redshift" {
 
 
 module "redshift_restore" {
-  source                           = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/redshift-restored?ref=v0.1.0"
+  source                           = "../../../modules/redshift_restored"
   count                            = local.enable_redshift && local.restore_redshift_from_snapshot ? 1 : 0
   redshift_cluster_identifier_name = local.restored_redshift_cluster_identifier
   redshift_snapshot_identifier     = local.redshift_snapshot_identifier
@@ -168,7 +168,7 @@ module "redshift_restore" {
 
 # # DMS mysql(secure)_to_redshift
 module "dms_mysql_to_redshift" {
-  source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/dms-mysql-to-redshift?ref=v0.1.0"
+  source = "../../../modules/dms-mysql-to-redshift"
   count  = local.enable_redshift ? 1 : 0
 
   name_prefix                    = local.name_prefix
