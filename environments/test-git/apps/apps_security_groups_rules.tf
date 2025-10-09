@@ -1,10 +1,10 @@
 # ----------------------------
-# Bastion inbound (office IPs
+# Bastion inbound (office IPs)
 # ----------------------------
 
 # Office IPs -> Bastion SSH (22)
 resource "aws_vpc_security_group_ingress_rule" "bastion_office_ssh" {
-  for_each          = { for ip in data.terraform_remote_state.foundation.outputs.kuflink_office_ips : ip.cidr => ip }
+  for_each          = local.enable_bastion ? { for ip in data.terraform_remote_state.foundation.outputs.kuflink_office_ips : ip.cidr => ip } : {}
   security_group_id = aws_security_group.bastion_sg.id
   description       = "Office SSH"
   ip_protocol       = "tcp"
@@ -15,7 +15,7 @@ resource "aws_vpc_security_group_ingress_rule" "bastion_office_ssh" {
 
 # Office IPs -> Bastion Port Forward 
 resource "aws_vpc_security_group_ingress_rule" "bastion_office_pf" {
-  for_each          = { for ip in data.terraform_remote_state.foundation.outputs.kuflink_office_ips : ip.cidr => ip }
+  for_each          = local.enable_bastion ? { for ip in data.terraform_remote_state.foundation.outputs.kuflink_office_ips : ip.cidr => ip } : {}
   security_group_id = aws_security_group.bastion_sg.id
   description       = "Office PF"
   ip_protocol       = "tcp"
@@ -26,6 +26,7 @@ resource "aws_vpc_security_group_ingress_rule" "bastion_office_pf" {
 
 # NGW IPs -> Bastion (22)
 resource "aws_vpc_security_group_ingress_rule" "bastion_ngw_22" {
+  count             = local.enable_bastion ? 1 : 0
   security_group_id = aws_security_group.bastion_sg.id
   description       = "Prod NGW SSH"
   ip_protocol       = "tcp"
@@ -35,6 +36,7 @@ resource "aws_vpc_security_group_ingress_rule" "bastion_ngw_22" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "bastion_ngw" {
+  count             = local.enable_bastion ? 1 : 0
   security_group_id = aws_security_group.bastion_sg.id
   description       = "Prod NGW PF"
   ip_protocol       = "tcp"
@@ -58,8 +60,9 @@ locals {
 }
 
 # ----- rules guarded by existence -----
+# Bastion -> RDS (needs BOTH bastion AND RDS to exist)
 resource "aws_vpc_security_group_ingress_rule" "allow_bastion_to_rds" {
-  count                        = local.rds_sg_id != null ? 1 : 0
+  count                        = local.enable_bastion && local.rds_sg_id != null ? 1 : 0
   security_group_id            = local.rds_sg_id
   referenced_security_group_id = aws_security_group.bastion_sg.id
   description                  = "Bastion to RDS 3306"
@@ -68,28 +71,30 @@ resource "aws_vpc_security_group_ingress_rule" "allow_bastion_to_rds" {
   to_port                      = 3306
 }
 
-# resource "aws_vpc_security_group_ingress_rule" "allow_bastion_to_redis_ec2" {
-#   count                        = local.redis_sg_id != null ? 1 : 0
-#   security_group_id            = local.redis_sg_id
-#   referenced_security_group_id = aws_security_group.bastion_sg.id
-#   description                  = "Bastion to Redis 6379"
-#   ip_protocol                  = "tcp"
-#   from_port                    = 6379
-#   to_port                      = 6379
-# }
+# Bastion -> Redis EC2 (needs BOTH bastion AND redis to exist)
+resource "aws_vpc_security_group_ingress_rule" "allow_bastion_to_redis_ec2" {
+  count                        = local.enable_bastion && local.enable_redis ? 1 : 0
+  security_group_id            = local.redis_sg_id
+  referenced_security_group_id = aws_security_group.bastion_sg.id
+  description                  = "Bastion to Redis 6379"
+  ip_protocol                  = "tcp"
+  from_port                    = 6379
+  to_port                      = 6379
+}
 
-# resource "aws_vpc_security_group_ingress_rule" "allow_bastion_ssh_to_redis_ec2" {
-#   count                        = local.redis_sg_id != null ? 1 : 0
-#   security_group_id            = local.redis_sg_id
-#   referenced_security_group_id = aws_security_group.bastion_sg.id
-#   description                  = "Bastion SSH to Redis 22"
-#   ip_protocol                  = "tcp"
-#   from_port                    = 22
-#   to_port                      = 22
-# }
+resource "aws_vpc_security_group_ingress_rule" "allow_bastion_ssh_to_redis_ec2" {
+  count                        = local.enable_bastion && local.enable_redis ? 1 : 0
+  security_group_id            = local.redis_sg_id
+  referenced_security_group_id = aws_security_group.bastion_sg.id
+  description                  = "Bastion SSH to Redis 22"
+  ip_protocol                  = "tcp"
+  from_port                    = 22
+  to_port                      = 22
+}
 
+# Bastion -> Redshift (needs BOTH bastion AND Redshift to exist)
 resource "aws_vpc_security_group_ingress_rule" "allow_bastion_to_redshift" {
-  count                        = local.redshift_sg_id != null ? 1 : 0
+  count                        = local.enable_bastion && local.redshift_sg_id != null ? 1 : 0
   security_group_id            = local.redshift_sg_id
   referenced_security_group_id = aws_security_group.bastion_sg.id
   description                  = "Bastion to Redshift 5439"
@@ -128,6 +133,7 @@ resource "aws_vpc_security_group_ingress_rule" "redis_private_cidrs" {
 
 # Bastion -> EB Web App SSH (22)
 resource "aws_vpc_security_group_ingress_rule" "bastion_to_eb_web_app_ssh" {
+  count                        = local.enable_bastion && local.enable_eb ? 1 : 0
   security_group_id            = aws_security_group.eb_web_app_sg.id
   referenced_security_group_id = aws_security_group.bastion_sg.id
   description                  = "Bastion to WebAPI SSH"
@@ -137,7 +143,9 @@ resource "aws_vpc_security_group_ingress_rule" "bastion_to_eb_web_app_ssh" {
 }
 
 # Bastion -> WordPress EC2 SSH (22)
+# Bastion -> WordPress EC2 SSH (22)
 resource "aws_vpc_security_group_ingress_rule" "bastion_to_wp_ssh" {
+  count                        = local.enable_bastion ? 1 : 0  # Add enable_wordpress toggle if you have one
   security_group_id            = aws_security_group.kuflink_wp_sg.id
   referenced_security_group_id = aws_security_group.bastion_sg.id
   description                  = "Bastion to WordPress SSH"
@@ -148,6 +156,7 @@ resource "aws_vpc_security_group_ingress_rule" "bastion_to_wp_ssh" {
 
 # Bastion -> Test Instance SSH (22)
 resource "aws_vpc_security_group_ingress_rule" "bastion_to_test_instance_ssh" {
+  count                        = local.enable_bastion ? 1 : 0  # Add enable_test_instance toggle if you have one
   security_group_id            = aws_security_group.test_instance_sg.id
   referenced_security_group_id = aws_security_group.bastion_sg.id
   description                  = "Bastion to Test SSH"
@@ -187,6 +196,7 @@ resource "aws_vpc_security_group_ingress_rule" "metabase_alb_https" {
 
 # Bastion SG outbound - needs internet for packages and AWS APIs
 resource "aws_vpc_security_group_egress_rule" "bastion_outbound_all" {
+  count             = local.enable_bastion ? 1 : 0
   security_group_id = aws_security_group.bastion_sg.id
   description       = "All outbound traffic"
   ip_protocol       = "-1"

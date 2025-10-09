@@ -22,9 +22,6 @@ data "aws_resourcegroupstaggingapi_resources" "eb_alb" {
     key    = "elasticbeanstalk:environment-name"
     values = [local.web_env_name] # e.g. "Kuflink-Test-Web"
   }
-
-  # ensure we only look after EB module creates resources (if present)
-  depends_on = [module.eb-api]
 }
 # ===================================================================
 # LOCALS
@@ -329,7 +326,7 @@ locals {
   # -------------------------
   # CodePipeline core
   # -------------------------
-  eb_app_name            = local.enable_eb ? module.eb-api[0].eb_application_name : local.name_prefix_upper
+  eb_app_name            =  local.name_prefix_upper
   pipeline_name          = "${local.eb_app_name}-api-pipeline"
   codepipeline_role_name = "${local.eb_app_name}-API-Pipeline-Role"
   pipeline_type          = "V2"

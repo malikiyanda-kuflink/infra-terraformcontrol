@@ -102,7 +102,17 @@ variable "web_alb_arn" {
   type        = string
   description = "ARN of the Web ALB backing the EB environment (eu-west-2)."
 }
+variable "target_group_arn" {
+  type        = string
+  description = "ARN of the primary Target Group for the EB env."
+  default     = ""
+}
 
+variable "target_group_dimension" {
+  type        = string
+  description = "Optional precomputed 'targetgroup/<name>/<id>' CW dimension. If set, beats target_group_arn."
+  default     = ""
+}
 
 # =============================================================================
 # Access / IAM / Security Groups / SSH

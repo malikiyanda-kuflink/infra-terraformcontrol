@@ -22,18 +22,14 @@ data "aws_resourcegroupstaggingapi_resources" "eb_tgs" {
 locals {
   dashboard_name = "${var.application_name}-API-Rate-Limiting-Monitoring-Dashboard"
 
-  # Extract the load balancer dimension in the format CloudWatch expects
-  # From: arn:aws:elasticloadbalancing:region:account:loadbalancer/app/name/id
-  # To: app/name/id (required format for CloudWatch metrics)
-  # Derive CloudWatch dimension directly from the ARN
-  # ARN form: arn:aws:elasticloadbalancing:REGION:ACCT:loadbalancer/app/NAME/ID
-  # Needed dimension: app/NAME/ID
+  # From ARN → "app/<name>/<id>"
   alb_dimension = try(regex("app/.+$", var.web_alb_arn), "")
 
-  # NEW: first TG ARN returned by the tag query
-  target_group_arn       = try(element(data.aws_resourcegroupstaggingapi_resources.eb_tgs.resource_tag_mapping_list[*].resource_arn, 0), "")
-  # Convert ARN -> "targetgroup/<name>/<id>" for CloudWatch
-  target_group_dimension = try(regex("targetgroup/.+$", local.target_group_arn), "")
+# Use discovered target group from data source
+  target_group_dimension = length(data.aws_resourcegroupstaggingapi_resources.eb_tgs.resource_tag_mapping_list) > 0 ? try(
+    regex("targetgroup/.+$", data.aws_resourcegroupstaggingapi_resources.eb_tgs.resource_tag_mapping_list[0].resource_arn),
+    ""
+  ) : ""
 }
 
 resource "aws_cloudwatch_dashboard" "eb_monitoring" {

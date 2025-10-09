@@ -7,13 +7,16 @@ locals {
   # Comptue layer locals (controls)
   # --------------------------------------
 
-  enable_eb     = true
-  enable_eb_waf = true
+  enable_eb     = false
+  enable_eb_waf = false
 
   enable_redis       = true
   enable_bastion     = false
   enable_bastion_dns = true
   enable_dbt         = false
+  enable_wordpress    = true
+  enable_test_instance = true
+  enable_metabase     = true
 
   # --- Frontend/Admin S3 toggles --- # flip to true/false to skip creating the stacks
   enable_s3_admin     = true
