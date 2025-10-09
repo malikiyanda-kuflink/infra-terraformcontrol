@@ -27,83 +27,81 @@ jobs:
   detect-environment:
     runs-on: ubuntu-latest
     outputs:
-      environment: ${{ steps.parse.outputs.environment }}
+      environment: ${{ steps.parse.outputs.environment }}        # test|staging|production
       role_arn: ${{ steps.parse.outputs.role_arn }}
-      is_deploy: ${{ steps.parse.outputs.is_deploy }}
-      layers: ${{ steps.detect.outputs.layers }}
+      is_deploy: ${{ steps.parse.outputs.is_deploy }}            # true on tag pushes
+      layers_json: ${{ steps.detect.outputs.layers_json }}        # compact JSON array
     steps:
       - name: Parse Environment from Tag (or fall back to PR/test)
         id: parse
         shell: bash
         run: |
           ref="${GITHUB_REF}"
+          # Defaults for PRs → validate against test env
+          ENV_SLUG="test"
+          IS_DEPLOY="false"
+          ROLE="arn:aws:iam::137167813802:role/kuflink-test-github-oidc-terraform"
+
           if [[ "$ref" =~ refs/tags/v.*-(test|staging|prod)$ ]]; then
-            ENV="${BASH_REMATCH[1]}"
-            echo "environment=$ENV" >> $GITHUB_OUTPUT
-            echo "is_deploy=true" >> $GITHUB_OUTPUT
-            case "$ENV" in
-              test)    ROLE="arn:aws:iam::137167813802:role/kuflink-test-github-oidc-terraform" ;;
-              staging) ROLE="arn:aws:iam::222222222222:role/kuflink-staging-github-oidc-terraform" ;;
-              prod)    ROLE="arn:aws:iam::333333333333:role/kuflink-prod-github-oidc-terraform" ;;
+            case "${BASH_REMATCH[1]}" in
+              test)    ENV_SLUG="test";       ROLE="arn:aws:iam::137167813802:role/kuflink-test-github-oidc-terraform" ;;
+              staging) ENV_SLUG="staging";    ROLE="arn:aws:iam::222222222222:role/kuflink-staging-github-oidc-terraform" ;;
+              prod)    ENV_SLUG="production"; ROLE="arn:aws:iam::333333333333:role/kuflink-prod-github-oidc-terraform" ;;
             esac
-            echo "role_arn=$ROLE" >> $GITHUB_OUTPUT
-          else
-            # PR to main → plan only against test config
-            echo "environment=test" >> $GITHUB_OUTPUT
-            echo "is_deploy=false" >> $GITHUB_OUTPUT
-            echo "role_arn=arn:aws:iam::137167813802:role/kuflink-test-github-oidc-terraform" >> $GITHUB_OUTPUT
+            IS_DEPLOY="true"
           fi
+
+          echo "environment=$ENV_SLUG"   >> $GITHUB_OUTPUT
+          echo "is_deploy=$IS_DEPLOY"    >> $GITHUB_OUTPUT
+          echo "role_arn=$ROLE"          >> $GITHUB_OUTPUT
 
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # we need history for diffs
+            fetch-depth: 0  # need history for diffs
 
       - name: Ensure jq is available
         run: sudo apt-get update && sudo apt-get install -y jq
 
-      - name: Detect Changed Layers (ordered)
+      - name: Detect Changed Layers (env-nested, ordered)
         id: detect
         shell: bash
         run: |
           set -euo pipefail
+          ENV_SLUG="${{ steps.parse.outputs.environment }}"
 
           # Determine changed files for PR vs tag push
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            BASE="origin/${{ github.base_ref }}"
             git fetch --no-tags origin "${{ github.base_ref }}" --depth=1
-            CHANGED=$(git diff --name-only "$BASE"...HEAD || true)
+            CHANGED="$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD || true)"
           else
-            # tag push: compare tag commit to its parent if available
             if git rev-parse -q --verify HEAD^ >/dev/null; then
-              CHANGED=$(git diff --name-only HEAD^ HEAD || true)
+              CHANGED="$(git diff --name-only HEAD^ HEAD || true)"
             else
-              CHANGED=$(git ls-tree -r --name-only HEAD || true)
+              CHANGED="$(git ls-tree -r --name-only HEAD || true)"
             fi
           fi
 
-          echo "Changed files:"
-          printf "%s\n" "$CHANGED"
+          echo "Changed files:"; printf "%s\n" "$CHANGED"
 
-          # Decide which layers to run based on changed paths
           need_foundation=false
           need_platform=false
           need_data=false
           need_apps=false
 
+          # Match changes inside the env/layer dirs
           while IFS= read -r f; do
             [[ -z "$f" ]] && continue
-            if [[ "$f" =~ ^environments/foundation/|^modules/vpc/|^modules/iam/|^modules/parameter-store/ ]]; then
-              need_foundation=true
-            fi
-            if [[ "$f" =~ ^environments/platform/|^modules/waf/|^modules/guardduty/ ]]; then
-              need_platform=true
-            fi
-            if [[ "$f" =~ ^environments/data/|^modules/rds/|^modules/redshift/|^modules/dms ]]; then
-              need_data=true
-            fi
-            if [[ "$f" =~ ^environments/apps/|^modules/ec2-|^modules/s3-|^modules/eb- ]]; then
-              need_apps=true
-            fi
+
+            if [[ "$f" =~ ^environments/${ENV_SLUG}/foundation/ ]]; then need_foundation=true; fi
+            if [[ "$f" =~ ^environments/${ENV_SLUG}/platform/   ]]; then need_platform=true;   fi
+            if [[ "$f" =~ ^environments/${ENV_SLUG}/data/       ]]; then need_data=true;       fi
+            if [[ "$f" =~ ^environments/${ENV_SLUG}/apps/       ]]; then need_apps=true;       fi
+
+            # Module → layer mapping
+            if [[ "$f" =~ ^modules/vpc/|^modules/iam/|^modules/parameter-store/ ]]; then need_foundation=true; fi
+            if [[ "$f" =~ ^modules/eb-waf/|^modules/s3-admin-waf/ ]]; then need_platform=true; fi
+            if [[ "$f" =~ ^modules/rds/|^modules/rds-restored/|^modules/redshift/|^modules/redshift-restored/|^modules/dms-mysql-to-redshift/|^modules/elastic-cache-redis/ ]]; then need_data=true; fi
+            if [[ "$f" =~ ^modules/ec2-|^modules/s3-admin/|^modules/s3-frontend/|^modules/eb-api/ ]]; then need_apps=true; fi
           done <<< "$CHANGED"
 
           # Build ordered list: foundation → platform → data → apps
@@ -113,29 +111,30 @@ jobs:
           $need_data       && LAYERS+=("data")
           $need_apps       && LAYERS+=("apps")
 
-          # If nothing matched but this is a tag push, default to running all layers (safe for promotions)
-          if [[ ${#LAYERS[@]} -eq 0 && "${{ github.event_name }}" == "push" ]]; then
+          # On tag deploy, if nothing matched, run all layers for that env
+          if [[ ${#LAYERS[@]} -eq 0 && "${{ steps.parse.outputs.is_deploy }}" == "true" ]]; then
             LAYERS=("foundation" "platform" "data" "apps")
           fi
 
-          # Output JSON array (or empty array)
-          printf -v JSON '%s' "$(printf '%s\n' "${LAYERS[@]}" | jq -R . | jq -s .)"
-          echo "layers=$JSON" >> "$GITHUB_OUTPUT"
+          # Compact JSON for GITHUB_OUTPUT (single line)
+          JSON=$(printf '%s\n' "${LAYERS[@]}" | jq -R . | jq -sc .)
+          echo "layers_json=$JSON" >> "$GITHUB_OUTPUT"
           echo "Detected layers: $JSON"
 
   terraform-plan-apply:
     needs: detect-environment
-    if: needs.detect-environment.outputs.layers != '[]'
+    if: needs.detect-environment.outputs.layers_json != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        layer: ${{ fromJson(needs.detect-environment.outputs.layers) }}
+        layer: ${{ fromJson(needs.detect-environment.outputs.layers_json) }}
     env:
-      ENVIRONMENT: ${{ needs.detect-environment.outputs.environment }}
-      ROLE_ARN: ${{ needs.detect-environment.outputs.role_arn }}
+      ENVIRONMENT: ${{ needs.detect-environment.outputs.environment }}   # test|staging|production
+      ROLE_ARN:  ${{ needs.detect-environment.outputs.role_arn }}
       IS_DEPLOY: ${{ needs.detect-environment.outputs.is_deploy }}
-      LAYER: ${{ matrix.layer }}
+      LAYER:     ${{ matrix.layer }}
+      AWS_REGION: ${{ env.AWS_REGION }}
 
     steps:
       - uses: actions/checkout@v4
@@ -152,30 +151,36 @@ jobs:
           terraform_wrapper: false
 
       - name: Terraform Init
-        working-directory: environments/${{ env.LAYER }}
+        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         run: |
-          terraform init \
-            -backend-config="backend-${ENVIRONMENT}.tfbackend"
+          if [[ -f backend.tf ]]; then
+            terraform init
+          elif [[ -f "backend-${ENVIRONMENT}.tfbackend" ]]; then
+            terraform init -backend-config="backend-${ENVIRONMENT}.tfbackend"
+          else
+            echo "No backend config found in $(pwd). Add backend.tf or backend-${ENVIRONMENT}.tfbackend"
+            exit 1
+          fi
 
       - name: Terraform Format Check
-        working-directory: environments/${{ env.LAYER }}
+        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         run: terraform fmt -check
 
       - name: Terraform Validate
-        working-directory: environments/${{ env.LAYER }}
+        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         run: terraform validate
 
       - name: Terraform Plan
         id: plan
-        working-directory: environments/${{ env.LAYER }}
+        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         continue-on-error: true
         run: |
           set +e
-          terraform plan -no-color -out=tfplan.bin -detailed-exitcode
+          terraform plan -no-color -out=tfplan.bin -detailed-exitcode -var="environment=${ENVIRONMENT}"
           code=$?
           echo "exit_code=$code" >> $GITHUB_OUTPUT
           if [ "$code" -eq 2 ]; then
@@ -193,11 +198,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tfplan-${{ env.ENVIRONMENT }}-${{ env.LAYER }}
-          path: environments/${{ env.LAYER }}/tfplan.bin
+          path: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}/tfplan.bin
           if-no-files-found: ignore
 
       - name: Terraform Apply (only on tag deploys and when changes)
         if: env.IS_DEPLOY == 'true' && steps.plan.outputs.has_changes == 'true'
-        working-directory: environments/${{ env.LAYER }}
+        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         run: terraform apply -auto-approve tfplan.bin
