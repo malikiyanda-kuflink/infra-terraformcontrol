@@ -35,11 +35,6 @@ locals {
 resource "aws_cloudwatch_dashboard" "eb_monitoring" {
   dashboard_name = local.dashboard_name
 
-  # Force dashboard to be created AFTER data sources refresh
-  lifecycle {
-    create_before_destroy = true
-  }
-
   dashboard_body = jsonencode({
     widgets = [
       # =========================================================================
@@ -65,46 +60,61 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       # =========================================================================
       # NEW TOP NUMBERS (height >= 3) — now filtered by TargetGroup + LoadBalancer
       # =========================================================================
-      {
-        type = "metric"
-        x    = 0
-        y    = 2
-        width = 12
-        height = 3
-        properties = {
-          metrics = [
-            ["AWS/ApplicationELB", "HealthyHostCount",
-                "TargetGroup",  local.target_group_dimension,
-                "LoadBalancer", local.alb_dimension,
-              { stat  = "Average", label = "Healthy Targets" }
-            ]
-          ]
-          view                 = "singleValue"
-          region               = var.aws_region
-          title                = "Healthy Targets"
-          setPeriodToTimeRange = true
-        }
-      },
-      {
-        type = "metric"
-        x    = 12
-        y    = 2
-        width = 12
-        height = 3
-        properties = {
-          metrics = [
-            ["AWS/ApplicationELB", "UnHealthyHostCount",
-                "TargetGroup",  local.target_group_dimension,
-                "LoadBalancer", local.alb_dimension,
-              { stat  = "Average", label = "Unhealthy Targets" }
-            ]
-          ]
-          view                 = "singleValue"
-          region               = var.aws_region
-          title                = "Unhealthy Targets"
-          setPeriodToTimeRange = true
-        }
-      },
+# Widget 1: Healthy Targets - WITH conditional check
+{
+  type = "metric"
+  x    = 0
+  y    = 2
+  width = 12
+  height = 3
+  properties = {
+    metrics = local.target_group_dimension != "" && local.alb_dimension != "" ? [
+      ["AWS/ApplicationELB", "HealthyHostCount",
+          "TargetGroup",  local.target_group_dimension,
+          "LoadBalancer", local.alb_dimension,
+        { stat  = "Average", label = "Healthy Targets" }
+      ]
+    ] : [
+      # Fallback when dimensions aren't ready - just show ALB-level metric
+      ["AWS/ApplicationELB", "HealthyHostCount",
+          "LoadBalancer", "placeholder/app/temp/000000000000",
+        { stat  = "Average", label = "Healthy Targets (Initializing...)" }
+      ]
+    ]
+    view                 = "singleValue"
+    region               = var.aws_region
+    title                = "Healthy Targets"
+    setPeriodToTimeRange = true
+  }
+},
+
+# Widget 2: Unhealthy Targets - WITH conditional check
+{
+  type = "metric"
+  x    = 12
+  y    = 2
+  width = 12
+  height = 3
+  properties = {
+    metrics = local.target_group_dimension != "" && local.alb_dimension != "" ? [
+      ["AWS/ApplicationELB", "UnHealthyHostCount",
+          "TargetGroup",  local.target_group_dimension,
+          "LoadBalancer", local.alb_dimension,
+        { stat  = "Average", label = "Unhealthy Targets" }
+      ]
+    ] : [
+      # Fallback when dimensions aren't ready
+      ["AWS/ApplicationELB", "UnHealthyHostCount",
+          "LoadBalancer", "placeholder/app/temp/000000000000",
+        { stat  = "Average", label = "Unhealthy Targets (Initializing...)" }
+      ]
+    ]
+    view                 = "singleValue"
+    region               = var.aws_region
+    title                = "Unhealthy Targets"
+    setPeriodToTimeRange = true
+  }
+},
 
       # =========================================================================
       # ROW 1 HEADER: Environment Health & Traffic Volume
