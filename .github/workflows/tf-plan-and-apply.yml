@@ -134,7 +134,7 @@ jobs:
       ROLE_ARN:  ${{ needs.detect-environment.outputs.role_arn }}
       IS_DEPLOY: ${{ needs.detect-environment.outputs.is_deploy }}
       LAYER:     ${{ matrix.layer }}
-      AWS_REGION: ${{ env.AWS_REGION }}
+      AWS_REGION:  ${{ vars.AWS_REGION || 'eu-west-2' }}
 
     steps:
       - uses: actions/checkout@v4
