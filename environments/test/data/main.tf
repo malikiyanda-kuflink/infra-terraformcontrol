@@ -61,7 +61,7 @@ module "rds" {
 
 # RDS Restore Module - restore from snapshot
 module "rds_restore" {
-  source = "../../../modules/rds_restored"
+  source = "../../../modules/rds-restored"
   # If restoring from snapshot → true, else false for new instance
   # restore_rds_from_snapshot = local.restore_rds_from_snapshot 
   count = local.restore_rds_from_snapshot ? 1 : 0
@@ -139,7 +139,7 @@ module "redshift" {
 
 
 module "redshift_restore" {
-  source                           = "../../../modules/redshift_restored"
+  source                           = "../../../modules/redshift-restored"
   count                            = local.enable_redshift && local.restore_redshift_from_snapshot ? 1 : 0
   redshift_cluster_identifier_name = local.restored_redshift_cluster_identifier
   redshift_snapshot_identifier     = local.redshift_snapshot_identifier
