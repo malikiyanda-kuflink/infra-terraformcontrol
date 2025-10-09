@@ -35,6 +35,8 @@ locals {
 resource "aws_cloudwatch_dashboard" "eb_monitoring" {
   dashboard_name = local.dashboard_name
 
+  depends_on = [ aws_elastic_beanstalk_environment.web_env ]
+
   dashboard_body = jsonencode({
     widgets = [
       # =========================================================================
