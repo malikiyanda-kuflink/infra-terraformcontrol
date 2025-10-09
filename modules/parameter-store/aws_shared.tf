@@ -103,9 +103,9 @@ data "aws_ssm_parameter" "frontend_repo" {
   name = "/kuflink/${var.environment}/frontend-repo"
 }
 
-# data "aws_ssm_parameter" "api_repo" {
-#   name = "/kuflink/${var.environment}/api-repo"
-# }
+data "aws_ssm_parameter" "api_repo" {
+  name = "/kuflink/${var.environment}/api-repo"
+}
 
 # Infrastructure data sources
 data "aws_ssm_parameter" "ec2_key_name" {
