@@ -9,6 +9,11 @@ resource "aws_elastic_beanstalk_application" "kuflink_app" {
   name        = var.application_name
   description = var.application_description
   tags        = var.tags
+
+  depends_on = [
+    aws_elastic_beanstalk_environment.web_env,
+    aws_elastic_beanstalk_environment.worker_env
+  ]
 }
 
 # ---------------------------------------------------------------#
