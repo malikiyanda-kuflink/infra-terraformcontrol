@@ -21,8 +21,8 @@ env:
   AWS_REGION: eu-west-2
   TF_IN_AUTOMATION: "true"
   TF_INPUT: "false"
-  TF_STATE_BUCKET: kuflink-test-states      # ✅ Changed from kuflink-states
-  TF_LOCK_TABLE: kuflink-tf-locks-test      # ✅ Changed from kuflink-tf-locks
+  TF_STATE_BUCKET: kuflink-test-states
+  TF_LOCK_TABLE: kuflink-tf-locks-test
 
 jobs:
   detect-environment:
@@ -63,7 +63,7 @@ jobs:
       - name: Ensure jq is available
         run: sudo apt-get update && sudo apt-get install -y jq
 
-      - name: Detect Changed Layers (env-nested, ordered)
+      - name: Detect Changed Layers
         id: detect
         shell: bash
         run: |
@@ -91,13 +91,11 @@ jobs:
           while IFS= read -r f; do
             [[ -z "$f" ]] && continue
 
-            # env/layer dirs
             if [[ "$f" =~ ^environments/${ENV_SLUG}/foundation/ ]]; then need_foundation=true; fi
             if [[ "$f" =~ ^environments/${ENV_SLUG}/platform/   ]]; then need_platform=true;   fi
             if [[ "$f" =~ ^environments/${ENV_SLUG}/data/       ]]; then need_data=true;       fi
             if [[ "$f" =~ ^environments/${ENV_SLUG}/apps/       ]]; then need_apps=true;       fi
 
-            # module → layer mapping
             if [[ "$f" =~ ^modules/vpc/|^modules/iam/|^modules/parameter-store/ ]]; then need_foundation=true; fi
             if [[ "$f" =~ ^modules/eb-waf/|^modules/s3-admin-waf/ ]]; then need_platform=true; fi
             if [[ "$f" =~ ^modules/rds/|^modules/rds-restored/|^modules/redshift/|^modules/redshift-restored/|^modules/dms-mysql-to-redshift/|^modules/elastic-cache-redis/ ]]; then need_data=true; fi
@@ -110,19 +108,17 @@ jobs:
           $need_data       && LAYERS+=("data")
           $need_apps       && LAYERS+=("apps")
 
-          # On tag deploy, if nothing matched, run all layers for that env
           if [[ ${#LAYERS[@]} -eq 0 && "${{ steps.parse.outputs.is_deploy }}" == "true" ]]; then
             LAYERS=("foundation" "platform" "data" "apps")
           fi
 
           JSON=$(printf '%s\n' "${LAYERS[@]}" | jq -R . | jq -sc .)
           echo "layers_json=$JSON" >> "$GITHUB_OUTPUT"
-          echo "Detected layers (ordered): $JSON"
+          echo "Detected layers: $JSON"
 
-  # =======================
   # Foundation Layer
-  # =======================
-  terraform-foundation:
+  foundation:
+    name: Foundation
     needs: detect-environment
     if: contains(fromJson(needs.detect-environment.outputs.layers_json), 'foundation')
     runs-on: ubuntu-latest
@@ -131,12 +127,11 @@ jobs:
       ROLE_ARN:    ${{ needs.detect-environment.outputs.role_arn }}
       IS_DEPLOY:   ${{ needs.detect-environment.outputs.is_deploy }}
       LAYER:       foundation
-      AWS_REGION:  ${{ vars.AWS_REGION || 'eu-west-2' }}
       
     steps:
       - uses: actions/checkout@v4
       
-      - name: Configure AWS (OIDC)
+      - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.ROLE_ARN }}
@@ -149,7 +144,6 @@ jobs:
       
       - name: Terraform Init
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        shell: bash
         run: |
           terraform init \
             -backend-config="bucket=${TF_STATE_BUCKET}" \
@@ -160,7 +154,6 @@ jobs:
       
       - name: Terraform Fmt & Validate
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        shell: bash
         run: |
           terraform fmt -check -recursive
           terraform validate
@@ -168,11 +161,10 @@ jobs:
       - name: Terraform Plan
         id: plan
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        shell: bash
         continue-on-error: true
         run: |
           set +e
-          terraform plan -no-color -out=tfplan.bin -detailed-exitcode -var="environment=${ENVIRONMENT}"
+          terraform plan -no-color -out=tfplan.bin -detailed-exitcode
           code=$?
           echo "exit_code=$code" >> $GITHUB_OUTPUT
           
@@ -186,7 +178,7 @@ jobs:
             exit "$code"
           fi
       
-      - name: Upload Plan Artifact
+      - name: Upload Plan
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -198,33 +190,30 @@ jobs:
       - name: Terraform Apply
         if: env.IS_DEPLOY == 'true' && steps.plan.outputs.has_changes == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        shell: bash
         run: |
           terraform apply -auto-approve tfplan.bin
           echo "✅ Foundation deployed to ${ENVIRONMENT}" >> $GITHUB_STEP_SUMMARY
 
-  # =======================
   # Platform Layer
-  # =======================
-  terraform-platform:
-    needs: [detect-environment, terraform-foundation]
+  platform:
+    name: Platform
+    needs: [detect-environment, foundation]
     if: |
       always() &&
       !cancelled() &&
       contains(fromJson(needs.detect-environment.outputs.layers_json), 'platform') &&
-      (needs.terraform-foundation.result == 'success' || needs.terraform-foundation.result == 'skipped')
+      (needs.foundation.result == 'success' || needs.foundation.result == 'skipped')
     runs-on: ubuntu-latest
     env:
       ENVIRONMENT: ${{ needs.detect-environment.outputs.environment }}
       ROLE_ARN:    ${{ needs.detect-environment.outputs.role_arn }}
       IS_DEPLOY:   ${{ needs.detect-environment.outputs.is_deploy }}
       LAYER:       platform
-      AWS_REGION:  ${{ vars.AWS_REGION || 'eu-west-2' }}
       
     steps:
       - uses: actions/checkout@v4
       
-      - name: Configure AWS (OIDC)
+      - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.ROLE_ARN }}
@@ -237,7 +226,6 @@ jobs:
       
       - name: Terraform Init
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        shell: bash
         run: |
           terraform init \
             -backend-config="bucket=${TF_STATE_BUCKET}" \
@@ -248,7 +236,6 @@ jobs:
       
       - name: Terraform Fmt & Validate
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        shell: bash
         run: |
           terraform fmt -check -recursive
           terraform validate
@@ -256,11 +243,10 @@ jobs:
       - name: Terraform Plan
         id: plan
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        shell: bash
         continue-on-error: true
         run: |
           set +e
-          terraform plan -no-color -out=tfplan.bin -detailed-exitcode -var="environment=${ENVIRONMENT}"
+          terraform plan -no-color -out=tfplan.bin -detailed-exitcode
           code=$?
           echo "exit_code=$code" >> $GITHUB_OUTPUT
           
@@ -274,7 +260,7 @@ jobs:
             exit "$code"
           fi
       
-      - name: Upload Plan Artifact
+      - name: Upload Plan
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -286,33 +272,30 @@ jobs:
       - name: Terraform Apply
         if: env.IS_DEPLOY == 'true' && steps.plan.outputs.has_changes == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        shell: bash
         run: |
           terraform apply -auto-approve tfplan.bin
           echo "✅ Platform deployed to ${ENVIRONMENT}" >> $GITHUB_STEP_SUMMARY
 
-  # =======================
   # Data Layer
-  # =======================
-  terraform-data:
-    needs: [detect-environment, terraform-foundation, terraform-platform]
+  data:
+    name: Data
+    needs: [detect-environment, foundation, platform]
     if: |
       always() &&
       !cancelled() &&
       contains(fromJson(needs.detect-environment.outputs.layers_json), 'data') &&
-      (needs.terraform-platform.result == 'success' || needs.terraform-platform.result == 'skipped')
+      (needs.platform.result == 'success' || needs.platform.result == 'skipped')
     runs-on: ubuntu-latest
     env:
       ENVIRONMENT: ${{ needs.detect-environment.outputs.environment }}
       ROLE_ARN:    ${{ needs.detect-environment.outputs.role_arn }}
       IS_DEPLOY:   ${{ needs.detect-environment.outputs.is_deploy }}
       LAYER:       data
-      AWS_REGION:  ${{ vars.AWS_REGION || 'eu-west-2' }}
       
     steps:
       - uses: actions/checkout@v4
       
-      - name: Configure AWS (OIDC)
+      - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.ROLE_ARN }}
@@ -325,7 +308,6 @@ jobs:
       
       - name: Terraform Init
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        shell: bash
         run: |
           terraform init \
             -backend-config="bucket=${TF_STATE_BUCKET}" \
@@ -336,7 +318,6 @@ jobs:
       
       - name: Terraform Fmt & Validate
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        shell: bash
         run: |
           terraform fmt -check -recursive
           terraform validate
@@ -344,11 +325,10 @@ jobs:
       - name: Terraform Plan
         id: plan
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        shell: bash
         continue-on-error: true
         run: |
           set +e
-          terraform plan -no-color -out=tfplan.bin -detailed-exitcode -var="environment=${ENVIRONMENT}"
+          terraform plan -no-color -out=tfplan.bin -detailed-exitcode
           code=$?
           echo "exit_code=$code" >> $GITHUB_OUTPUT
           
@@ -362,7 +342,7 @@ jobs:
             exit "$code"
           fi
       
-      - name: Upload Plan Artifact
+      - name: Upload Plan
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -374,33 +354,30 @@ jobs:
       - name: Terraform Apply
         if: env.IS_DEPLOY == 'true' && steps.plan.outputs.has_changes == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        shell: bash
         run: |
           terraform apply -auto-approve tfplan.bin
           echo "✅ Data deployed to ${ENVIRONMENT}" >> $GITHUB_STEP_SUMMARY
 
-  # =======================
   # Apps Layer
-  # =======================
-  terraform-apps:
-    needs: [detect-environment, terraform-foundation, terraform-platform, terraform-data]
+  apps:
+    name: Apps
+    needs: [detect-environment, foundation, platform, data]
     if: |
       always() &&
       !cancelled() &&
       contains(fromJson(needs.detect-environment.outputs.layers_json), 'apps') &&
-      (needs.terraform-data.result == 'success' || needs.terraform-data.result == 'skipped')
+      (needs.data.result == 'success' || needs.data.result == 'skipped')
     runs-on: ubuntu-latest
     env:
       ENVIRONMENT: ${{ needs.detect-environment.outputs.environment }}
       ROLE_ARN:    ${{ needs.detect-environment.outputs.role_arn }}
       IS_DEPLOY:   ${{ needs.detect-environment.outputs.is_deploy }}
       LAYER:       apps
-      AWS_REGION:  ${{ vars.AWS_REGION || 'eu-west-2' }}
       
     steps:
       - uses: actions/checkout@v4
       
-      - name: Configure AWS (OIDC)
+      - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.ROLE_ARN }}
@@ -413,7 +390,6 @@ jobs:
       
       - name: Terraform Init
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        shell: bash
         run: |
           terraform init \
             -backend-config="bucket=${TF_STATE_BUCKET}" \
@@ -424,7 +400,6 @@ jobs:
       
       - name: Terraform Fmt & Validate
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        shell: bash
         run: |
           terraform fmt -check -recursive
           terraform validate
@@ -432,11 +407,10 @@ jobs:
       - name: Terraform Plan
         id: plan
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        shell: bash
         continue-on-error: true
         run: |
           set +e
-          terraform plan -no-color -out=tfplan.bin -detailed-exitcode -var="environment=${ENVIRONMENT}"
+          terraform plan -no-color -out=tfplan.bin -detailed-exitcode
           code=$?
           echo "exit_code=$code" >> $GITHUB_OUTPUT
           
@@ -450,7 +424,7 @@ jobs:
             exit "$code"
           fi
       
-      - name: Upload Plan Artifact
+      - name: Upload Plan
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -462,22 +436,19 @@ jobs:
       - name: Terraform Apply
         if: env.IS_DEPLOY == 'true' && steps.plan.outputs.has_changes == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        shell: bash
         run: |
           terraform apply -auto-approve tfplan.bin
           echo "✅ Apps deployed to ${ENVIRONMENT}" >> $GITHUB_STEP_SUMMARY
 
-  # =======================
   # Deployment Summary
-  # =======================
-  deployment-summary:
-    name: Deployment Summary
-    needs: [detect-environment, terraform-foundation, terraform-platform, terraform-data, terraform-apps]
+  summary:
+    name: Summary
+    needs: [detect-environment, foundation, platform, data, apps]
     if: always()
     runs-on: ubuntu-latest
     
     steps:
-      - name: Generate Summary
+      - name: Generate Deployment Summary
         run: |
           echo "## 🎯 Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -489,55 +460,55 @@ jobs:
           
           # Foundation
           if echo '${{ needs.detect-environment.outputs.layers_json }}' | jq -e 'contains(["foundation"])' > /dev/null; then
-            if [ "${{ needs.terraform-foundation.result }}" == "success" ]; then
+            if [ "${{ needs.foundation.result }}" == "success" ]; then
               echo "✅ **Foundation:** Success" >> $GITHUB_STEP_SUMMARY
-            elif [ "${{ needs.terraform-foundation.result }}" == "skipped" ]; then
-              echo "⏭️ **Foundation:** Skipped (no changes)" >> $GITHUB_STEP_SUMMARY
+            elif [ "${{ needs.foundation.result }}" == "skipped" ]; then
+              echo "⏭️ **Foundation:** Skipped" >> $GITHUB_STEP_SUMMARY
             else
-              echo "❌ **Foundation:** Failed (${{ needs.terraform-foundation.result }})" >> $GITHUB_STEP_SUMMARY
+              echo "❌ **Foundation:** Failed" >> $GITHUB_STEP_SUMMARY
             fi
           fi
           
           # Platform
           if echo '${{ needs.detect-environment.outputs.layers_json }}' | jq -e 'contains(["platform"])' > /dev/null; then
-            if [ "${{ needs.terraform-platform.result }}" == "success" ]; then
+            if [ "${{ needs.platform.result }}" == "success" ]; then
               echo "✅ **Platform:** Success" >> $GITHUB_STEP_SUMMARY
-            elif [ "${{ needs.terraform-platform.result }}" == "skipped" ]; then
-              echo "⏭️ **Platform:** Skipped (no changes)" >> $GITHUB_STEP_SUMMARY
+            elif [ "${{ needs.platform.result }}" == "skipped" ]; then
+              echo "⏭️ **Platform:** Skipped" >> $GITHUB_STEP_SUMMARY
             else
-              echo "❌ **Platform:** Failed (${{ needs.terraform-platform.result }})" >> $GITHUB_STEP_SUMMARY
+              echo "❌ **Platform:** Failed" >> $GITHUB_STEP_SUMMARY
             fi
           fi
           
           # Data
           if echo '${{ needs.detect-environment.outputs.layers_json }}' | jq -e 'contains(["data"])' > /dev/null; then
-            if [ "${{ needs.terraform-data.result }}" == "success" ]; then
+            if [ "${{ needs.data.result }}" == "success" ]; then
               echo "✅ **Data:** Success" >> $GITHUB_STEP_SUMMARY
-            elif [ "${{ needs.terraform-data.result }}" == "skipped" ]; then
-              echo "⏭️ **Data:** Skipped (no changes)" >> $GITHUB_STEP_SUMMARY
+            elif [ "${{ needs.data.result }}" == "skipped" ]; then
+              echo "⏭️ **Data:** Skipped" >> $GITHUB_STEP_SUMMARY
             else
-              echo "❌ **Data:** Failed (${{ needs.terraform-data.result }})" >> $GITHUB_STEP_SUMMARY
+              echo "❌ **Data:** Failed" >> $GITHUB_STEP_SUMMARY
             fi
           fi
           
           # Apps
           if echo '${{ needs.detect-environment.outputs.layers_json }}' | jq -e 'contains(["apps"])' > /dev/null; then
-            if [ "${{ needs.terraform-apps.result }}" == "success" ]; then
+            if [ "${{ needs.apps.result }}" == "success" ]; then
               echo "✅ **Apps:** Success" >> $GITHUB_STEP_SUMMARY
-            elif [ "${{ needs.terraform-apps.result }}" == "skipped" ]; then
-              echo "⏭️ **Apps:** Skipped (no changes)" >> $GITHUB_STEP_SUMMARY
+            elif [ "${{ needs.apps.result }}" == "skipped" ]; then
+              echo "⏭️ **Apps:** Skipped" >> $GITHUB_STEP_SUMMARY
             else
-              echo "❌ **Apps:** Failed (${{ needs.terraform-apps.result }})" >> $GITHUB_STEP_SUMMARY
+              echo "❌ **Apps:** Failed" >> $GITHUB_STEP_SUMMARY
             fi
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
           
           # Overall result
-          if [ "${{ needs.terraform-foundation.result }}" == "failure" ] || \
-             [ "${{ needs.terraform-platform.result }}" == "failure" ] || \
-             [ "${{ needs.terraform-data.result }}" == "failure" ] || \
-             [ "${{ needs.terraform-apps.result }}" == "failure" ]; then
+          if [ "${{ needs.foundation.result }}" == "failure" ] || \
+             [ "${{ needs.platform.result }}" == "failure" ] || \
+             [ "${{ needs.data.result }}" == "failure" ] || \
+             [ "${{ needs.apps.result }}" == "failure" ]; then
             echo "## ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
             exit 1
           else
