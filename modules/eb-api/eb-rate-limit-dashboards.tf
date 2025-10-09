@@ -35,7 +35,10 @@ locals {
 resource "aws_cloudwatch_dashboard" "eb_monitoring" {
   dashboard_name = local.dashboard_name
 
-  depends_on = [ aws_elastic_beanstalk_environment.web_env ]
+  # Force dashboard to be created AFTER data sources refresh
+  lifecycle {
+    create_before_destroy = true
+  }
 
   dashboard_body = jsonencode({
     widgets = [
