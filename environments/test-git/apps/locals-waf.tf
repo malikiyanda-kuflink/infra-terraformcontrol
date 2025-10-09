@@ -7,11 +7,11 @@ locals {
   # Comptue layer locals (controls)
   # --------------------------------------
 
-  enable_eb     = false
-  enable_eb_waf = false
+  enable_eb     = true
+  enable_eb_waf = true
 
   enable_redis       = true
-  enable_bastion     = false
+  enable_bastion     = true
   enable_bastion_dns = true
   enable_dbt         = false
   enable_wordpress    = true
