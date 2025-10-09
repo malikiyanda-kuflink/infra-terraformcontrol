@@ -60,7 +60,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       # =========================================================================
       # NEW TOP NUMBERS (height >= 3) — now filtered by TargetGroup + LoadBalancer
       # =========================================================================
-# Widget 1: Healthy Targets - WITH conditional check
+# Widget 1: Healthy Targets - FIXED
 {
   type = "metric"
   x    = 0
@@ -75,10 +75,11 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
         { stat  = "Average", label = "Healthy Targets" }
       ]
     ] : [
-      # Fallback when dimensions aren't ready - just show ALB-level metric
+      # MUST have same structure - 7 elements
       ["AWS/ApplicationELB", "HealthyHostCount",
-          "LoadBalancer", "placeholder/app/temp/000000000000",
-        { stat  = "Average", label = "Healthy Targets (Initializing...)" }
+          "TargetGroup",  "targetgroup/placeholder/0000000000000000",
+          "LoadBalancer", "app/placeholder/0000000000000000",
+        { stat  = "Average", label = "Healthy Targets (Initializing)" }
       ]
     ]
     view                 = "singleValue"
@@ -88,7 +89,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
   }
 },
 
-# Widget 2: Unhealthy Targets - WITH conditional check
+# Widget 2: Unhealthy Targets - FIXED
 {
   type = "metric"
   x    = 12
@@ -103,10 +104,11 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
         { stat  = "Average", label = "Unhealthy Targets" }
       ]
     ] : [
-      # Fallback when dimensions aren't ready
+      # MUST have same structure - 7 elements
       ["AWS/ApplicationELB", "UnHealthyHostCount",
-          "LoadBalancer", "placeholder/app/temp/000000000000",
-        { stat  = "Average", label = "Unhealthy Targets (Initializing...)" }
+          "TargetGroup",  "targetgroup/placeholder/0000000000000000",
+          "LoadBalancer", "app/placeholder/0000000000000000",
+        { stat  = "Average", label = "Unhealthy Targets (Initializing)" }
       ]
     ]
     view                 = "singleValue"
