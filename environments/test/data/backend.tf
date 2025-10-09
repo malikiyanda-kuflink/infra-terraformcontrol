@@ -1,6 +1,9 @@
-# environments/test/data/backend.tf
 terraform {
   backend "s3" {
-    # Config provided via -backend-config during init
+    bucket         = "kuflink-test-states"
+    key            = "test/data/terraform.tfstate"
+    region         = "eu-west-2"
+    dynamodb_table = "kuflink-tf-locks-test"
+    encrypt        = true
   }
 }
