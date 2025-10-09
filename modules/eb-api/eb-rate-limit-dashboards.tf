@@ -9,13 +9,6 @@
 # - Request rates, errors, response times, and connection metrics
 # =============================================================================
 
-# Get the Load Balancer by Elastic Beanstalk tags
-data "aws_lb" "web_alb" {
-  tags = {
-    "elasticbeanstalk:environment-name" = var.web_env_name
-  }
-}
-
 # Discover EB Target Group(s) by tag via Resource Groups Tagging API
 data "aws_resourcegroupstaggingapi_resources" "eb_tgs" {
   resource_type_filters = ["elasticloadbalancing:targetgroup"]
@@ -32,10 +25,10 @@ locals {
   # Extract the load balancer dimension in the format CloudWatch expects
   # From: arn:aws:elasticloadbalancing:region:account:loadbalancer/app/name/id
   # To: app/name/id (required format for CloudWatch metrics)
-  alb_dimension = try(
-    regex("app/.+$", data.aws_lb.web_alb.arn),
-    ""
-  )
+  # Derive CloudWatch dimension directly from the ARN
+  # ARN form: arn:aws:elasticloadbalancing:REGION:ACCT:loadbalancer/app/NAME/ID
+  # Needed dimension: app/NAME/ID
+  alb_dimension = try(regex("app/.+$", var.web_alb_arn), "")
 
   # NEW: first TG ARN returned by the tag query
   target_group_arn       = try(element(data.aws_resourcegroupstaggingapi_resources.eb_tgs.resource_tag_mapping_list[*].resource_arn, 0), "")
@@ -854,9 +847,6 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
     ]
   })
 
-  depends_on = [
-    data.aws_lb.web_alb
-  ]
 }
 
 # =============================================================================

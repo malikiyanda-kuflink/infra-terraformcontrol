@@ -12,7 +12,7 @@ resource "aws_wafv2_web_acl_association" "eb_alb" {
 
 module "eb-api" {
   count  = local.enable_eb ? 1 : 0
-  source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/eb-api?ref=v0.1.99"
+  source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/eb-api?ref=v0.2.3"
 
   codepipeline_role_name = local.codepipeline_role_name
   # --- EB & Pipeline notifications (pass-through to module) ---
@@ -45,6 +45,7 @@ module "eb-api" {
   # Env resource names
   web_env_name    = local.web_env_name
   worker_env_name = local.worker_env_name
+  web_alb_arn = local.eb_alb_arn
 
   # Access / IAM / SG / SSH
   office_ip               = data.terraform_remote_state.foundation.outputs.office_ip

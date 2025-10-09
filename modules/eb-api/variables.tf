@@ -98,6 +98,12 @@ variable "github_branch" { type = string }
 variable "kuflink_codestar_connection" { type = string }
 variable "tags" { type = map(string) }
 
+variable "web_alb_arn" {
+  type        = string
+  description = "ARN of the Web ALB backing the EB environment (eu-west-2)."
+}
+
+
 # =============================================================================
 # Access / IAM / Security Groups / SSH
 # =============================================================================
