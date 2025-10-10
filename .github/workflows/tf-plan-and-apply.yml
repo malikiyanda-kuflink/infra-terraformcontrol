@@ -189,7 +189,7 @@ jobs:
             -backend-config="bucket=${TF_STATE_BUCKET}" \
             -backend-config="key=${ENVIRONMENT}/${LAYER}/terraform.tfstate" \
             -backend-config="region=${AWS_REGION}" \
-            -backend-config="dynamodb_table=${TF_LOCK_TABLE}" \
+            -backend-config="use_lockfile=${TF_LOCK_TABLE}" \
             -backend-config="encrypt=true"
       - name: Terraform Fmt & Validate
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
@@ -254,7 +254,7 @@ jobs:
             -backend-config="bucket=${TF_STATE_BUCKET}" \
             -backend-config="key=${ENVIRONMENT}/${LAYER}/terraform.tfstate" \
             -backend-config="region=${AWS_REGION}" \
-            -backend-config="dynamodb_table=${TF_LOCK_TABLE}" \
+            -backend-config="use_lockfile=${TF_LOCK_TABLE}" \
             -backend-config="encrypt=true"
       - name: Terraform Fmt & Validate
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
@@ -319,7 +319,7 @@ jobs:
             -backend-config="bucket=${TF_STATE_BUCKET}" \
             -backend-config="key=${ENVIRONMENT}/${LAYER}/terraform.tfstate" \
             -backend-config="region=${AWS_REGION}" \
-            -backend-config="dynamodb_table=${TF_LOCK_TABLE}" \
+            -backend-config="use_lockfile=${TF_LOCK_TABLE}" \
             -backend-config="encrypt=true"
       - name: Terraform Fmt & Validate
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
@@ -384,7 +384,7 @@ jobs:
             -backend-config="bucket=${TF_STATE_BUCKET}" \
             -backend-config="key=${ENVIRONMENT}/${LAYER}/terraform.tfstate" \
             -backend-config="region=${AWS_REGION}" \
-            -backend-config="dynamodb_table=${TF_LOCK_TABLE}" \
+            -backend-config="use_lockfile=${TF_LOCK_TABLE}" \
             -backend-config="encrypt=true"
       - name: Terraform Fmt & Validate
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}

@@ -20,7 +20,7 @@ locals {
 
   # --- Frontend/Admin S3 toggles --- # flip to true/false to skip creating the stacks
   enable_s3_admin     = true
-  enable_s3_admin_waf = true
+  enable_s3_admin_waf = false
 
   enable_s3_frontend         = true
   serve_frontend_maintenance = false
