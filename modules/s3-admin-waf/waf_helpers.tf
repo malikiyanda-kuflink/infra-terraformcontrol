@@ -38,14 +38,14 @@ data "aws_iam_policy_document" "waf_logs" {
 
 
 resource "aws_cloudwatch_log_resource_policy" "waf_logs" {
-  # provider        = aws.use1
+  provider        = aws.use1
   count           = var.logging.enabled && var.logging.create_policy ? 1 : 0
   policy_name     = "${local.name}-AllowWAFLogging"
   policy_document = data.aws_iam_policy_document.waf_logs[0].json
 }
 
 resource "aws_wafv2_web_acl_logging_configuration" "this" {
-  # provider                = aws.use1
+  provider                = aws.use1
   count                   = var.logging.enabled ? 1 : 0
   resource_arn            = aws_wafv2_web_acl.admin_waf.arn
   log_destination_configs = [aws_cloudwatch_log_group.waf[0].arn]
