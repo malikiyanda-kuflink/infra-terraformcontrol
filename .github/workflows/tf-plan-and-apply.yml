@@ -176,7 +176,7 @@ jobs:
       ROLE_ARN:     ${{ needs.detect-environment.outputs.role_arn }}
       IS_DEPLOY:    ${{ needs.detect-environment.outputs.is_deploy }}
       LAYER:        foundation
-      aws-region: ${{ vars.AWS_REGION }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
       TF_STATE_BUCKET: ${{ needs.detect-environment.outputs.state_bucket }}
       TF_LOCK_TABLE:   ${{ needs.detect-environment.outputs.lock_table }}
     steps:
@@ -185,7 +185,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
 
       # (Optional) Bootstrap backend infra if missing — uncomment if you want first-run creation
       # - name: Ensure backend bucket & lock table exist
@@ -274,7 +274,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with: { terraform_wrapper: false }
@@ -338,7 +338,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with: { terraform_wrapper: false }
@@ -402,7 +402,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with: { terraform_wrapper: false }
