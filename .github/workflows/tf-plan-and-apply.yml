@@ -176,7 +176,7 @@ jobs:
       ROLE_ARN:     ${{ needs.detect-environment.outputs.role_arn }}
       IS_DEPLOY:    ${{ needs.detect-environment.outputs.is_deploy }}
       LAYER:        foundation
-      AWS_REGION:  ${{ vars.AWS_REGION || 'eu-west-2' }}
+      aws-region: ${{ vars.AWS_REGION }}
       TF_STATE_BUCKET: ${{ needs.detect-environment.outputs.state_bucket }}
       TF_LOCK_TABLE:   ${{ needs.detect-environment.outputs.lock_table }}
     steps:

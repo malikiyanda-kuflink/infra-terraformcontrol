@@ -1,6 +1,4 @@
-# environments/test/platform/backend.tf
+# environments/test/foundation/backend.tf
 terraform {
-  backend "s3" {
-    
-    }
+  backend "s3" {}
 }
