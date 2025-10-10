@@ -145,7 +145,7 @@ resource "aws_vpc_security_group_ingress_rule" "bastion_to_eb_web_app_ssh" {
 # Bastion -> WordPress EC2 SSH (22)
 # Bastion -> WordPress EC2 SSH (22)
 resource "aws_vpc_security_group_ingress_rule" "bastion_to_wp_ssh" {
-  count                        = local.enable_bastion ? 1 : 0  # Add enable_wordpress toggle if you have one
+  count                        = local.enable_bastion ? 1 : 0 # Add enable_wordpress toggle if you have one
   security_group_id            = aws_security_group.kuflink_wp_sg.id
   referenced_security_group_id = aws_security_group.bastion_sg.id
   description                  = "Bastion to WordPress SSH"
@@ -156,7 +156,7 @@ resource "aws_vpc_security_group_ingress_rule" "bastion_to_wp_ssh" {
 
 # Bastion -> Test Instance SSH (22)
 resource "aws_vpc_security_group_ingress_rule" "bastion_to_test_instance_ssh" {
-  count                        = local.enable_bastion ? 1 : 0  # Add enable_test_instance toggle if you have one
+  count                        = local.enable_bastion ? 1 : 0 # Add enable_test_instance toggle if you have one
   security_group_id            = aws_security_group.test_instance_sg.id
   referenced_security_group_id = aws_security_group.bastion_sg.id
   description                  = "Bastion to Test SSH"

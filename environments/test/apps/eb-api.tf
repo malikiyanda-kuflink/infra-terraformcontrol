@@ -45,7 +45,7 @@ module "eb-api" {
   # Env resource names
   web_env_name    = local.web_env_name
   worker_env_name = local.worker_env_name
-  web_alb_arn = local.eb_alb_arn
+  web_alb_arn     = local.eb_alb_arn
   # target_group_arn = try(
   #   data.aws_resourcegroupstaggingapi_resources.eb_alb[0].resource_tag_mapping_list[0].resource_arn,
   #   ""

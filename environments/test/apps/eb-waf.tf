@@ -1,10 +1,10 @@
 module "eb_waf" {
-  count       = local.enable_eb_waf ? 1 : 0
-  source      = "../../../modules/eb-waf"
-  name_prefix = local.name_prefix
+  count             = local.enable_eb_waf ? 1 : 0
+  source            = "../../../modules/eb-waf"
+  name_prefix       = local.name_prefix
   name_prefix_upper = local.name_prefix_upper
-  environment = local.environment
-  scope       = "REGIONAL"
+  environment       = local.environment
+  scope             = "REGIONAL"
 
   # Auto-associate to EB ALB if available
   alb_arn = null

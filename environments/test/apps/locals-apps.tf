@@ -326,7 +326,7 @@ locals {
   # -------------------------
   # CodePipeline core
   # -------------------------
-  eb_app_name            =  local.name_prefix_upper
+  eb_app_name            = local.name_prefix_upper
   pipeline_name          = "${local.eb_app_name}-api-pipeline"
   codepipeline_role_name = "${local.eb_app_name}-API-Pipeline-Role"
   pipeline_type          = "V2"
