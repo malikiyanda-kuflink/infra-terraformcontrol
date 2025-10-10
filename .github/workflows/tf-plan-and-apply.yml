@@ -201,7 +201,6 @@ jobs:
         id: plan
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
-        continue-on-error: true
         run: |
           set +e
           terraform plan -no-color -out=tfplan.bin -detailed-exitcode -var="environment=${ENVIRONMENT}"
@@ -267,7 +266,6 @@ jobs:
         id: plan
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
-        continue-on-error: true
         run: |
           set +e
           terraform plan -no-color -out=tfplan.bin -detailed-exitcode -var="environment=${ENVIRONMENT}"
@@ -333,7 +331,6 @@ jobs:
         id: plan
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
-        continue-on-error: true
         run: |
           set +e
           terraform plan -no-color -out=tfplan.bin -detailed-exitcode -var="environment=${ENVIRONMENT}"
@@ -399,7 +396,6 @@ jobs:
         id: plan
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
-        continue-on-error: true
         run: |
           set +e
           terraform plan -no-color -out=tfplan.bin -detailed-exitcode -var="environment=${ENVIRONMENT}"
