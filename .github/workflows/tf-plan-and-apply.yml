@@ -236,7 +236,7 @@ jobs:
 
   terraform-platform:
     needs: [detect-environment, terraform-foundation]
-    if: contains(fromJson(needs.detect-environment.outputs.layers_json), 'platform')
+    if: success() && contains(fromJson(needs.detect-environment.outputs.layers_json), 'platform')
     runs-on: ubuntu-latest
     env:
       ENVIRONMENT:  ${{ needs.detect-environment.outputs.environment }}
@@ -300,7 +300,7 @@ jobs:
 
   terraform-data:
     needs: [detect-environment, terraform-platform]
-    if: contains(fromJson(needs.detect-environment.outputs.layers_json), 'data')
+    if: success() && contains(fromJson(needs.detect-environment.outputs.layers_json), 'data')
     runs-on: ubuntu-latest
     env:
       ENVIRONMENT:  ${{ needs.detect-environment.outputs.environment }}
@@ -364,7 +364,7 @@ jobs:
 
   terraform-apps:
     needs: [detect-environment, terraform-data]
-    if: contains(fromJson(needs.detect-environment.outputs.layers_json), 'apps')
+    if: success() && contains(fromJson(needs.detect-environment.outputs.layers_json), 'apps')
     runs-on: ubuntu-latest
     env:
       ENVIRONMENT:  ${{ needs.detect-environment.outputs.environment }}
