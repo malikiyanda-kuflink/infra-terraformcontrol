@@ -26,9 +26,9 @@ jobs:
   detect-environment:
     runs-on: ubuntu-latest
     outputs:
-      environment:   ${{ steps.parse.outputs.environment }}     # test|staging|production
+      environment:   ${{ steps.parse.outputs.environment }}
       role_arn:      ${{ steps.parse.outputs.role_arn }}
-      is_deploy:     ${{ steps.parse.outputs.is_deploy }}       # true on tag pushes
+      is_deploy:     ${{ steps.parse.outputs.is_deploy }}
       layers_json:   ${{ steps.detect.outputs.layers_json }}
       state_bucket:  ${{ steps.derive.outputs.state_bucket }}
       lock_table:    ${{ steps.derive.outputs.lock_table }}
@@ -137,7 +137,6 @@ jobs:
           echo "layers_json=$JSON" >> "$GITHUB_OUTPUT"
           echo "Detected layers after cascade (ordered): $JSON"
 
-
       - name: Derive backend bucket & lock table per environment
         id: derive
         shell: bash
@@ -160,10 +159,6 @@ jobs:
           echo "lock_table=$LOCK_TABLE"     >> $GITHUB_OUTPUT
           echo "Using backend: bucket=$STATE_BUCKET, lock=$LOCK_TABLE"
 
-  # =======================
-  # Layer jobs (sequential)
-  # =======================
-
   terraform-foundation:
     needs: detect-environment
     if: contains(fromJson(needs.detect-environment.outputs.layers_json), 'foundation')
@@ -183,11 +178,9 @@ jobs:
         with:
           role-to-assume: ${{ env.ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
-
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with: { terraform_wrapper: false }
-
       - name: Terraform Init (CLI backend)
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
@@ -198,14 +191,12 @@ jobs:
             -backend-config="region=${AWS_REGION}" \
             -backend-config="dynamodb_table=${TF_LOCK_TABLE}" \
             -backend-config="encrypt=true"
-
       - name: Terraform Fmt & Validate
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         run: |
           terraform fmt -check
           terraform validate
-
       - name: Terraform Plan
         id: plan
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
@@ -219,7 +210,6 @@ jobs:
           if [ "$code" -eq 2 ]; then echo "has_changes=true" >> $GITHUB_OUTPUT; exit 0
           elif [ "$code" -eq 0 ]; then echo "has_changes=false" >> $GITHUB_OUTPUT; exit 0
           else exit "$code"; fi
-
       - name: Upload Plan
         if: always()
         uses: actions/upload-artifact@v4
@@ -227,7 +217,6 @@ jobs:
           name: tfplan-${{ env.ENVIRONMENT }}-${{ env.LAYER }}
           path: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}/tfplan.bin
           if-no-files-found: ignore
-
       - name: Terraform Apply
         if: env.IS_DEPLOY == 'true' && steps.plan.outputs.has_changes == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
@@ -236,7 +225,9 @@ jobs:
 
   terraform-platform:
     needs: [detect-environment, terraform-foundation]
-    if: success() && contains(fromJson(needs.detect-environment.outputs.layers_json), 'platform')
+    if: |
+      !failure() && !cancelled() &&
+      contains(fromJson(needs.detect-environment.outputs.layers_json), 'platform')
     runs-on: ubuntu-latest
     env:
       ENVIRONMENT:  ${{ needs.detect-environment.outputs.environment }}
@@ -300,7 +291,9 @@ jobs:
 
   terraform-data:
     needs: [detect-environment, terraform-platform]
-    if: success() && contains(fromJson(needs.detect-environment.outputs.layers_json), 'data')
+    if: |
+      !failure() && !cancelled() &&
+      contains(fromJson(needs.detect-environment.outputs.layers_json), 'data')
     runs-on: ubuntu-latest
     env:
       ENVIRONMENT:  ${{ needs.detect-environment.outputs.environment }}
@@ -364,7 +357,9 @@ jobs:
 
   terraform-apps:
     needs: [detect-environment, terraform-data]
-    if: success() && contains(fromJson(needs.detect-environment.outputs.layers_json), 'apps')
+    if: |
+      !failure() && !cancelled() &&
+      contains(fromJson(needs.detect-environment.outputs.layers_json), 'apps')
     runs-on: ubuntu-latest
     env:
       ENVIRONMENT:  ${{ needs.detect-environment.outputs.environment }}
