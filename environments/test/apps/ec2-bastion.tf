@@ -10,7 +10,7 @@ resource "aws_route53_record" "db_proxy" {
 
 module "ec2-bastion" {
   count                         = local.enable_bastion ? 1 : 0
-  source                        = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/ec2-bastion?ref=v0.1.60"
+  source                        = "../../../modules/ec2-bastion"
   vpc_id                        = data.terraform_remote_state.foundation.outputs.vpc_id
   public_subnet_id              = data.terraform_remote_state.foundation.outputs.public_subnet_ids[0]
   bastion_sg_id                 = aws_security_group.bastion_sg.id

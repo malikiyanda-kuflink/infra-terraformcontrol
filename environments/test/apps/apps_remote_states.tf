@@ -3,7 +3,7 @@ data "terraform_remote_state" "foundation" {
   backend = "s3"
   config = {
     bucket = "kuflink-test-states"
-    key    = "test-git/foundation/terraform.tfstate"
+    key    = "test/foundation/terraform.tfstate"
     region = "eu-west-2"
   }
 }
@@ -13,7 +13,7 @@ data "terraform_remote_state" "data" {
   backend = "s3"
   config = {
     bucket = "kuflink-test-states"
-    key    = "test-git/data/terraform.tfstate"
+    key    = "test/data/terraform.tfstate"
     region = "eu-west-2"
   }
 }
@@ -23,7 +23,7 @@ data "terraform_remote_state" "platform" {
   backend = "s3"
   config = {
     bucket = "kuflink-test-states"
-    key    = "test-git/platform/terraform.tfstate"
+    key    = "test/platform/terraform.tfstate"
     region = "eu-west-2"
   }
 }

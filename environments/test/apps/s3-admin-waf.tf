@@ -1,7 +1,7 @@
 
 module "s3_admin_waf" {
   count  = local.enable_s3_admin_waf ? 1 : 0
-  source = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/s3-admin-waf?ref=v0.1.8"
+  source = "../../../modules/s3-admin-waf"
 
   providers = { aws.use1 = aws.use1 } # makes module default provider us-east-1
 

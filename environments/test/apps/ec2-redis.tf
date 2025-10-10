@@ -1,6 +1,6 @@
 module "ec2-redis" {
   count                       = local.enable_redis ? 1 : 0
-  source                      = "git::ssh://git@github.com/malikiyanda-kuflink/infra-terraformcontrol.git//modules/ec2-redis?ref=v0.1.0"
+  source                      = "../../../modules/ec2-redis"
   vpc_id                      = data.terraform_remote_state.foundation.outputs.vpc_id
   private_subnet_id           = data.terraform_remote_state.foundation.outputs.private_subnet_ids[2]
   redis_sg_id                 = aws_security_group.redis_sg.id
