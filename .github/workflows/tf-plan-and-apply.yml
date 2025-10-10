@@ -159,7 +159,7 @@ jobs:
           echo "lock_table=$LOCK_TABLE"     >> $GITHUB_OUTPUT
           echo "Using backend: bucket=$STATE_BUCKET, lock=$LOCK_TABLE"
 
-  terraform-foundation:
+  apply-foundation:
     needs: detect-environment
     if: contains(fromJson(needs.detect-environment.outputs.layers_json), 'foundation')
     runs-on: ubuntu-latest
@@ -222,8 +222,8 @@ jobs:
         shell: bash
         run: terraform apply -auto-approve tfplan.bin
 
-  terraform-platform:
-    needs: [detect-environment, terraform-foundation]
+  apply-platform:
+    needs: [detect-environment, apply-foundation]
     if: |
       !failure() && !cancelled() &&
       contains(fromJson(needs.detect-environment.outputs.layers_json), 'platform')
@@ -287,8 +287,8 @@ jobs:
         shell: bash
         run: terraform apply -auto-approve tfplan.bin
 
-  terraform-data:
-    needs: [detect-environment, terraform-platform]
+  apply-data:
+    needs: [detect-environment, apply-platform]
     if: |
       !failure() && !cancelled() &&
       contains(fromJson(needs.detect-environment.outputs.layers_json), 'data')
@@ -352,8 +352,8 @@ jobs:
         shell: bash
         run: terraform apply -auto-approve tfplan.bin
 
-  terraform-apps:
-    needs: [detect-environment, terraform-data]
+  apply-apps:
+    needs: [detect-environment, apply-data]
     if: |
       !failure() && !cancelled() &&
       contains(fromJson(needs.detect-environment.outputs.layers_json), 'apps')
