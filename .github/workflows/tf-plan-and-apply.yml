@@ -61,13 +61,14 @@ jobs:
       - name: Ensure jq is available
         run: sudo apt-get update && sudo apt-get install -y jq
 
-      - name: Detect Changed Layers (env-nested, ordered)
+      - name: Detect Changed Layers (env-nested, cascade, ordered)
         id: detect
         shell: bash
         run: |
           set -euo pipefail
           ENV_SLUG="${{ steps.parse.outputs.environment }}"
 
+          # Build change list
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             git fetch --no-tags origin "${{ github.base_ref }}" --depth=1
             CHANGED="$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD || true)"
@@ -78,37 +79,64 @@ jobs:
               CHANGED="$(git ls-tree -r --name-only HEAD || true)"
             fi
           fi
-
           echo "Changed files:"; printf "%s\n" "$CHANGED"
 
-          need_foundation=false; need_platform=false; need_data=false; need_apps=false
+          # Detect direct layer touches
+          need_foundation=false
+          need_platform=false
+          need_data=false
+          need_apps=false
 
           while IFS= read -r f; do
             [[ -z "$f" ]] && continue
-            if [[ "$f" =~ ^environments/${ENV_SLUG}/foundation/ ]]; then need_foundation=true; fi
-            if [[ "$f" =~ ^environments/${ENV_SLUG}/platform/   ]]; then need_platform=true;   fi
-            if [[ "$f" =~ ^environments/${ENV_SLUG}/data/       ]]; then need_data=true;       fi
-            if [[ "$f" =~ ^environments/${ENV_SLUG}/apps/       ]]; then need_apps=true;       fi
 
-            if [[ "$f" =~ ^modules/vpc/|^modules/iam/|^modules/parameter-store/ ]]; then need_foundation=true; fi
-            if [[ "$f" =~ ^modules/eb-waf/|^modules/s3-admin-waf/ ]]; then need_platform=true; fi
-            if [[ "$f" =~ ^modules/rds/|^modules/rds-restored/|^modules/redshift/|^modules/redshift-restored/|^modules/dms-mysql-to-redshift/|^modules/elastic-cache-redis/ ]]; then need_data=true; fi
-            if [[ "$f" =~ ^modules/ec2-|^modules/s3-admin/|^modules/s3-frontend/|^modules/eb-api/ ]]; then need_apps=true; fi
+            # env/layer dirs
+            [[ "$f" =~ ^environments/${ENV_SLUG}/foundation/ ]] && need_foundation=true
+            [[ "$f" =~ ^environments/${ENV_SLUG}/platform/   ]] && need_platform=true
+            [[ "$f" =~ ^environments/${ENV_SLUG}/data/       ]] && need_data=true
+            [[ "$f" =~ ^environments/${ENV_SLUG}/apps/       ]] && need_apps=true
+
+            # modules → owning layers
+            [[ "$f" =~ ^modules/vpc/|^modules/iam/|^modules/parameter-store/ ]] && need_foundation=true
+            [[ "$f" =~ ^modules/eb-waf/|^modules/s3-admin-waf/               ]] && need_platform=true
+            [[ "$f" =~ ^modules/rds/|^modules/rds-restored/|^modules/redshift/|^modules/redshift-restored/|^modules/dms-mysql-to-redshift/|^modules/elastic-cache-redis/ ]] && need_data=true
+            [[ "$f" =~ ^modules/ec2-|^modules/s3-admin/|^modules/s3-frontend/|^modules/eb-api/ ]] && need_apps=true
           done <<< "$CHANGED"
 
+          # ----- Cascade rules -----
+          # foundation ⇒ platform,data,apps
+          if $need_foundation; then
+            need_platform=true
+            need_data=true
+            need_apps=true
+          fi
+          # platform ⇒ data,apps
+          if $need_platform; then
+            need_data=true
+            need_apps=true
+          fi
+          # data ⇒ apps
+          if $need_data; then
+            need_apps=true
+          fi
+
+          # Build ordered unique list
           LAYERS=()
           $need_foundation && LAYERS+=("foundation")
           $need_platform   && LAYERS+=("platform")
           $need_data       && LAYERS+=("data")
           $need_apps       && LAYERS+=("apps")
 
+          # On tag deploy, if *nothing* matched, deploy everything (promotion)
           if [[ ${#LAYERS[@]} -eq 0 && "${{ steps.parse.outputs.is_deploy }}" == "true" ]]; then
             LAYERS=("foundation" "platform" "data" "apps")
           fi
 
+          # Emit compact JSON for downstream matrix/contains()
           JSON=$(printf '%s\n' "${LAYERS[@]}" | jq -R . | jq -sc .)
           echo "layers_json=$JSON" >> "$GITHUB_OUTPUT"
-          echo "Detected layers (ordered): $JSON"
+          echo "Detected layers after cascade (ordered): $JSON"
+
 
       - name: Derive backend bucket & lock table per environment
         id: derive
