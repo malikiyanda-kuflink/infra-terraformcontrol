@@ -156,7 +156,7 @@ jobs:
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
         run: |
-          terraform plan -destroy -out=destroy.tfplan -var="environment=${ENVIRONMENT}"
+          terraform plan -destroy -no-color -out=destroy.tfplan -var="environment=${ENVIRONMENT}" 2>&1 | tee destroy_plan_output.txt
           echo "exit_code=$?" >> $GITHUB_OUTPUT
       
       - name: Show Destroy Plan
@@ -172,7 +172,7 @@ jobs:
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
         run: |
-          terraform apply -auto-approve destroy.tfplan
+          terraform apply -auto-approve destroy.tfplan 2>&1 | tee destroy_attempt1_output.txt
           echo "exit_code=$?" >> $GITHUB_OUTPUT
       
       - name: Wait Before Retry
@@ -189,7 +189,7 @@ jobs:
         run: |
           echo "🔄 Refreshing state and retrying destroy..."
           terraform refresh -var="environment=${ENVIRONMENT}" || true
-          terraform destroy -auto-approve -var="environment=${ENVIRONMENT}"
+          terraform destroy -auto-approve -var="environment=${ENVIRONMENT}" 2>&1 | tee destroy_attempt2_output.txt
           echo "exit_code=$?" >> $GITHUB_OUTPUT
       
       - name: Final Status Check
@@ -213,6 +213,68 @@ jobs:
             echo "status=failed" >> $GITHUB_OUTPUT
             echo "::error::Apps layer destroy failed. Review logs and manually clean up if needed."
             exit 1
+          fi
+
+      - name: Generate Summary
+        if: always()
+        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
+        shell: bash
+        run: |
+          echo "## Terraform Destroy Summary - ${{ env.LAYER }} (${{ env.ENVIRONMENT }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f destroy_plan_output.txt ]; then
+            PLAN_SUMMARY=$(grep -E "Plan:|No changes\." destroy_plan_output.txt | tail -1 || echo "Destroy plan completed")
+            echo "### 📋 Destroy Plan" >> $GITHUB_STEP_SUMMARY
+            echo "$PLAN_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full destroy plan output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat destroy_plan_output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f destroy_attempt1_output.txt ]; then
+            sed 's/\x1b\[[0-9;]*m//g' destroy_attempt1_output.txt > destroy_attempt1_clean.txt
+            DESTROY_SUMMARY=$(grep -E "Destroy complete!|Apply complete!" destroy_attempt1_clean.txt | tail -1 || echo "Destroy attempt 1 completed")
+            
+            if [[ "${{ steps.destroy_attempt1.outcome }}" == "success" ]]; then
+              echo "### ✅ Destroy (Attempt 1 - Success)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "### ❌ Destroy (Attempt 1 - Failed)" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "$DESTROY_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full destroy attempt 1 output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat destroy_attempt1_clean.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f destroy_attempt2_output.txt ]; then
+            sed 's/\x1b\[[0-9;]*m//g' destroy_attempt2_output.txt > destroy_attempt2_clean.txt
+            DESTROY_SUMMARY=$(grep -E "Destroy complete!|Apply complete!" destroy_attempt2_clean.txt | tail -1 || echo "Destroy attempt 2 completed")
+            
+            if [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
+              echo "### ✅ Destroy (Attempt 2 - Success after retry)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "### ❌ Destroy (Attempt 2 - Failed)" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "$DESTROY_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full destroy attempt 2 output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat destroy_attempt2_clean.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           fi
 
   destroy-data:
@@ -265,7 +327,7 @@ jobs:
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
         run: |
-          terraform plan -destroy -out=destroy.tfplan -var="environment=${ENVIRONMENT}"
+          terraform plan -destroy -no-color -out=destroy.tfplan -var="environment=${ENVIRONMENT}" 2>&1 | tee destroy_plan_output.txt
           echo "exit_code=$?" >> $GITHUB_OUTPUT
       
       - name: Show Destroy Plan
@@ -281,7 +343,7 @@ jobs:
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
         run: |
-          terraform apply -auto-approve destroy.tfplan
+          terraform apply -auto-approve destroy.tfplan 2>&1 | tee destroy_attempt1_output.txt
           echo "exit_code=$?" >> $GITHUB_OUTPUT
       
       - name: Wait Before Retry
@@ -298,7 +360,7 @@ jobs:
         run: |
           echo "🔄 Refreshing state and retrying destroy..."
           terraform refresh -var="environment=${ENVIRONMENT}" || true
-          terraform destroy -auto-approve -var="environment=${ENVIRONMENT}"
+          terraform destroy -auto-approve -var="environment=${ENVIRONMENT}" 2>&1 | tee destroy_attempt2_output.txt
           echo "exit_code=$?" >> $GITHUB_OUTPUT
       
       - name: Final Status Check
@@ -322,6 +384,68 @@ jobs:
             echo "status=failed" >> $GITHUB_OUTPUT
             echo "::error::Data layer destroy failed. Review logs and manually clean up if needed."
             exit 1
+          fi
+
+      - name: Generate Summary
+        if: always()
+        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
+        shell: bash
+        run: |
+          echo "## Terraform Destroy Summary - ${{ env.LAYER }} (${{ env.ENVIRONMENT }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f destroy_plan_output.txt ]; then
+            PLAN_SUMMARY=$(grep -E "Plan:|No changes\." destroy_plan_output.txt | tail -1 || echo "Destroy plan completed")
+            echo "### 📋 Destroy Plan" >> $GITHUB_STEP_SUMMARY
+            echo "$PLAN_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full destroy plan output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat destroy_plan_output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f destroy_attempt1_output.txt ]; then
+            sed 's/\x1b\[[0-9;]*m//g' destroy_attempt1_output.txt > destroy_attempt1_clean.txt
+            DESTROY_SUMMARY=$(grep -E "Destroy complete!|Apply complete!" destroy_attempt1_clean.txt | tail -1 || echo "Destroy attempt 1 completed")
+            
+            if [[ "${{ steps.destroy_attempt1.outcome }}" == "success" ]]; then
+              echo "### ✅ Destroy (Attempt 1 - Success)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "### ❌ Destroy (Attempt 1 - Failed)" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "$DESTROY_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full destroy attempt 1 output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat destroy_attempt1_clean.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f destroy_attempt2_output.txt ]; then
+            sed 's/\x1b\[[0-9;]*m//g' destroy_attempt2_output.txt > destroy_attempt2_clean.txt
+            DESTROY_SUMMARY=$(grep -E "Destroy complete!|Apply complete!" destroy_attempt2_clean.txt | tail -1 || echo "Destroy attempt 2 completed")
+            
+            if [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
+              echo "### ✅ Destroy (Attempt 2 - Success after retry)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "### ❌ Destroy (Attempt 2 - Failed)" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "$DESTROY_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full destroy attempt 2 output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat destroy_attempt2_clean.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           fi
 
   destroy-platform:
@@ -374,7 +498,7 @@ jobs:
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
         run: |
-          terraform plan -destroy -out=destroy.tfplan -var="environment=${ENVIRONMENT}"
+          terraform plan -destroy -no-color -out=destroy.tfplan -var="environment=${ENVIRONMENT}" 2>&1 | tee destroy_plan_output.txt
           echo "exit_code=$?" >> $GITHUB_OUTPUT
       
       - name: Show Destroy Plan
@@ -390,7 +514,7 @@ jobs:
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
         run: |
-          terraform apply -auto-approve destroy.tfplan
+          terraform apply -auto-approve destroy.tfplan 2>&1 | tee destroy_attempt1_output.txt
           echo "exit_code=$?" >> $GITHUB_OUTPUT
       
       - name: Wait Before Retry
@@ -407,7 +531,7 @@ jobs:
         run: |
           echo "🔄 Refreshing state and retrying destroy..."
           terraform refresh -var="environment=${ENVIRONMENT}" || true
-          terraform destroy -auto-approve -var="environment=${ENVIRONMENT}"
+          terraform destroy -auto-approve -var="environment=${ENVIRONMENT}" 2>&1 | tee destroy_attempt2_output.txt
           echo "exit_code=$?" >> $GITHUB_OUTPUT
       
       - name: Final Status Check
@@ -431,6 +555,68 @@ jobs:
             echo "status=failed" >> $GITHUB_OUTPUT
             echo "::error::Platform layer destroy failed. Review logs and manually clean up if needed."
             exit 1
+          fi
+
+      - name: Generate Summary
+        if: always()
+        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
+        shell: bash
+        run: |
+          echo "## Terraform Destroy Summary - ${{ env.LAYER }} (${{ env.ENVIRONMENT }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f destroy_plan_output.txt ]; then
+            PLAN_SUMMARY=$(grep -E "Plan:|No changes\." destroy_plan_output.txt | tail -1 || echo "Destroy plan completed")
+            echo "### 📋 Destroy Plan" >> $GITHUB_STEP_SUMMARY
+            echo "$PLAN_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full destroy plan output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat destroy_plan_output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f destroy_attempt1_output.txt ]; then
+            sed 's/\x1b\[[0-9;]*m//g' destroy_attempt1_output.txt > destroy_attempt1_clean.txt
+            DESTROY_SUMMARY=$(grep -E "Destroy complete!|Apply complete!" destroy_attempt1_clean.txt | tail -1 || echo "Destroy attempt 1 completed")
+            
+            if [[ "${{ steps.destroy_attempt1.outcome }}" == "success" ]]; then
+              echo "### ✅ Destroy (Attempt 1 - Success)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "### ❌ Destroy (Attempt 1 - Failed)" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "$DESTROY_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full destroy attempt 1 output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat destroy_attempt1_clean.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f destroy_attempt2_output.txt ]; then
+            sed 's/\x1b\[[0-9;]*m//g' destroy_attempt2_output.txt > destroy_attempt2_clean.txt
+            DESTROY_SUMMARY=$(grep -E "Destroy complete!|Apply complete!" destroy_attempt2_clean.txt | tail -1 || echo "Destroy attempt 2 completed")
+            
+            if [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
+              echo "### ✅ Destroy (Attempt 2 - Success after retry)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "### ❌ Destroy (Attempt 2 - Failed)" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "$DESTROY_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full destroy attempt 2 output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat destroy_attempt2_clean.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           fi
 
   destroy-foundation:
@@ -483,7 +669,7 @@ jobs:
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
         run: |
-          terraform plan -destroy -out=destroy.tfplan -var="environment=${ENVIRONMENT}"
+          terraform plan -destroy -no-color -out=destroy.tfplan -var="environment=${ENVIRONMENT}" 2>&1 | tee destroy_plan_output.txt
           echo "exit_code=$?" >> $GITHUB_OUTPUT
       
       - name: Show Destroy Plan
@@ -499,7 +685,7 @@ jobs:
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
         run: |
-          terraform apply -auto-approve destroy.tfplan
+          terraform apply -auto-approve destroy.tfplan 2>&1 | tee destroy_attempt1_output.txt
           echo "exit_code=$?" >> $GITHUB_OUTPUT
       
       - name: Wait Before Retry
@@ -516,7 +702,7 @@ jobs:
         run: |
           echo "🔄 Refreshing state and retrying destroy..."
           terraform refresh -var="environment=${ENVIRONMENT}" || true
-          terraform destroy -auto-approve -var="environment=${ENVIRONMENT}"
+          terraform destroy -auto-approve -var="environment=${ENVIRONMENT}" 2>&1 | tee destroy_attempt2_output.txt
           echo "exit_code=$?" >> $GITHUB_OUTPUT
       
       - name: Final Status Check
@@ -540,6 +726,68 @@ jobs:
             echo "status=failed" >> $GITHUB_OUTPUT
             echo "::error::Foundation layer destroy failed. Review logs and manually clean up if needed."
             exit 1
+          fi
+
+      - name: Generate Summary
+        if: always()
+        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
+        shell: bash
+        run: |
+          echo "## Terraform Destroy Summary - ${{ env.LAYER }} (${{ env.ENVIRONMENT }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f destroy_plan_output.txt ]; then
+            PLAN_SUMMARY=$(grep -E "Plan:|No changes\." destroy_plan_output.txt | tail -1 || echo "Destroy plan completed")
+            echo "### 📋 Destroy Plan" >> $GITHUB_STEP_SUMMARY
+            echo "$PLAN_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full destroy plan output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat destroy_plan_output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f destroy_attempt1_output.txt ]; then
+            sed 's/\x1b\[[0-9;]*m//g' destroy_attempt1_output.txt > destroy_attempt1_clean.txt
+            DESTROY_SUMMARY=$(grep -E "Destroy complete!|Apply complete!" destroy_attempt1_clean.txt | tail -1 || echo "Destroy attempt 1 completed")
+            
+            if [[ "${{ steps.destroy_attempt1.outcome }}" == "success" ]]; then
+              echo "### ✅ Destroy (Attempt 1 - Success)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "### ❌ Destroy (Attempt 1 - Failed)" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "$DESTROY_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full destroy attempt 1 output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat destroy_attempt1_clean.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f destroy_attempt2_output.txt ]; then
+            sed 's/\x1b\[[0-9;]*m//g' destroy_attempt2_output.txt > destroy_attempt2_clean.txt
+            DESTROY_SUMMARY=$(grep -E "Destroy complete!|Apply complete!" destroy_attempt2_clean.txt | tail -1 || echo "Destroy attempt 2 completed")
+            
+            if [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
+              echo "### ✅ Destroy (Attempt 2 - Success after retry)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "### ❌ Destroy (Attempt 2 - Failed)" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "$DESTROY_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full destroy attempt 2 output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat destroy_attempt2_clean.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           fi
 
   summary:
