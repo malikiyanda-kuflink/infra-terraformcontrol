@@ -244,14 +244,16 @@ jobs:
           fi
           
           if [ -f apply_output.txt ]; then
-            APPLY_SUMMARY=$(grep -E "Apply complete!" apply_output.txt | tail -1 || echo "Apply completed")
+            # Strip ANSI color codes from apply output
+            sed 's/\x1b\[[0-9;]*m//g' apply_output.txt > apply_output_clean.txt
+            APPLY_SUMMARY=$(grep -E "Apply complete!" apply_output_clean.txt | tail -1 || echo "Apply completed")
             echo "### ✅ Apply" >> $GITHUB_STEP_SUMMARY
             echo "$APPLY_SUMMARY" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "<details><summary>View full apply output</summary>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-            cat apply_output.txt >> $GITHUB_STEP_SUMMARY
+            cat apply_output_clean.txt >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
             echo "</details>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -344,14 +346,16 @@ jobs:
           fi
           
           if [ -f apply_output.txt ]; then
-            APPLY_SUMMARY=$(grep -E "Apply complete!" apply_output.txt | tail -1 || echo "Apply completed")
+            # Strip ANSI color codes from apply output
+            sed 's/\x1b\[[0-9;]*m//g' apply_output.txt > apply_output_clean.txt
+            APPLY_SUMMARY=$(grep -E "Apply complete!" apply_output_clean.txt | tail -1 || echo "Apply completed")
             echo "### ✅ Apply" >> $GITHUB_STEP_SUMMARY
             echo "$APPLY_SUMMARY" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "<details><summary>View full apply output</summary>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-            cat apply_output.txt >> $GITHUB_STEP_SUMMARY
+            cat apply_output_clean.txt >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
             echo "</details>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -444,14 +448,16 @@ jobs:
           fi
           
           if [ -f apply_output.txt ]; then
-            APPLY_SUMMARY=$(grep -E "Apply complete!" apply_output.txt | tail -1 || echo "Apply completed")
+            # Strip ANSI color codes from apply output
+            sed 's/\x1b\[[0-9;]*m//g' apply_output.txt > apply_output_clean.txt
+            APPLY_SUMMARY=$(grep -E "Apply complete!" apply_output_clean.txt | tail -1 || echo "Apply completed")
             echo "### ✅ Apply" >> $GITHUB_STEP_SUMMARY
             echo "$APPLY_SUMMARY" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "<details><summary>View full apply output</summary>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-            cat apply_output.txt >> $GITHUB_STEP_SUMMARY
+            cat apply_output_clean.txt >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
             echo "</details>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -544,14 +550,16 @@ jobs:
           fi
           
           if [ -f apply_output.txt ]; then
-            APPLY_SUMMARY=$(grep -E "Apply complete!" apply_output.txt | tail -1 || echo "Apply completed")
+            # Strip ANSI color codes from apply output
+            sed 's/\x1b\[[0-9;]*m//g' apply_output.txt > apply_output_clean.txt
+            APPLY_SUMMARY=$(grep -E "Apply complete!" apply_output_clean.txt | tail -1 || echo "Apply completed")
             echo "### ✅ Apply" >> $GITHUB_STEP_SUMMARY
             echo "$APPLY_SUMMARY" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "<details><summary>View full apply output</summary>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-            cat apply_output.txt >> $GITHUB_STEP_SUMMARY
+            cat apply_output_clean.txt >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
             echo "</details>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
