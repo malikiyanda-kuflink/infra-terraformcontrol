@@ -11,7 +11,7 @@ locals {
   enable_eb_waf = true
 
   enable_redis         = true
-  enable_bastion       = true
+  enable_bastion       = false
   enable_bastion_dns   = true
   enable_dbt           = false
   enable_wordpress     = false
