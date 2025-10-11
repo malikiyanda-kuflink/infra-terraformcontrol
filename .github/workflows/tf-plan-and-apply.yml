@@ -203,8 +203,8 @@ jobs:
         shell: bash
         run: |
           set +e
-          terraform plan -no-color -out=tfplan.bin -detailed-exitcode -var="environment=${ENVIRONMENT}"
-          code=$?
+          terraform plan -no-color -out=tfplan.bin -detailed-exitcode -var="environment=${ENVIRONMENT}" 2>&1 | tee plan_output.txt
+          code=${PIPESTATUS[0]}
           echo "exit_code=$code" >> $GITHUB_OUTPUT
           if [ "$code" -eq 2 ]; then echo "has_changes=true" >> $GITHUB_OUTPUT; exit 0
           elif [ "$code" -eq 0 ]; then echo "has_changes=false" >> $GITHUB_OUTPUT; exit 0
@@ -220,7 +220,42 @@ jobs:
         if: env.IS_DEPLOY == 'true' && steps.plan.outputs.has_changes == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
-        run: terraform apply -auto-approve tfplan.bin
+        run: terraform apply -auto-approve tfplan.bin 2>&1 | tee apply_output.txt
+      - name: Generate Summary
+        if: always()
+        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
+        shell: bash
+        run: |
+          echo "## Terraform Summary - ${{ env.LAYER }} (${{ env.ENVIRONMENT }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f plan_output.txt ]; then
+            PLAN_SUMMARY=$(grep -E "Plan:|No changes\." plan_output.txt | tail -1 || echo "Plan completed")
+            echo "### 📋 Plan" >> $GITHUB_STEP_SUMMARY
+            echo "$PLAN_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full plan output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat plan_output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f apply_output.txt ]; then
+            APPLY_SUMMARY=$(grep -E "Apply complete!" apply_output.txt | tail -1 || echo "Apply completed")
+            echo "### ✅ Apply" >> $GITHUB_STEP_SUMMARY
+            echo "$APPLY_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full apply output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat apply_output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
 
   apply-platform:
     needs: [detect-environment, apply-foundation]
@@ -268,8 +303,8 @@ jobs:
         shell: bash
         run: |
           set +e
-          terraform plan -no-color -out=tfplan.bin -detailed-exitcode -var="environment=${ENVIRONMENT}"
-          code=$?
+          terraform plan -no-color -out=tfplan.bin -detailed-exitcode -var="environment=${ENVIRONMENT}" 2>&1 | tee plan_output.txt
+          code=${PIPESTATUS[0]}
           echo "exit_code=$code" >> $GITHUB_OUTPUT
           if [ "$code" -eq 2 ]; then echo "has_changes=true" >> $GITHUB_OUTPUT; exit 0
           elif [ "$code" -eq 0 ]; then echo "has_changes=false" >> $GITHUB_OUTPUT; exit 0
@@ -285,7 +320,42 @@ jobs:
         if: env.IS_DEPLOY == 'true' && steps.plan.outputs.has_changes == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
-        run: terraform apply -auto-approve tfplan.bin
+        run: terraform apply -auto-approve tfplan.bin 2>&1 | tee apply_output.txt
+      - name: Generate Summary
+        if: always()
+        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
+        shell: bash
+        run: |
+          echo "## Terraform Summary - ${{ env.LAYER }} (${{ env.ENVIRONMENT }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f plan_output.txt ]; then
+            PLAN_SUMMARY=$(grep -E "Plan:|No changes\." plan_output.txt | tail -1 || echo "Plan completed")
+            echo "### 📋 Plan" >> $GITHUB_STEP_SUMMARY
+            echo "$PLAN_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full plan output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat plan_output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f apply_output.txt ]; then
+            APPLY_SUMMARY=$(grep -E "Apply complete!" apply_output.txt | tail -1 || echo "Apply completed")
+            echo "### ✅ Apply" >> $GITHUB_STEP_SUMMARY
+            echo "$APPLY_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full apply output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat apply_output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
 
   apply-data:
     needs: [detect-environment, apply-platform]
@@ -333,8 +403,8 @@ jobs:
         shell: bash
         run: |
           set +e
-          terraform plan -no-color -out=tfplan.bin -detailed-exitcode -var="environment=${ENVIRONMENT}"
-          code=$?
+          terraform plan -no-color -out=tfplan.bin -detailed-exitcode -var="environment=${ENVIRONMENT}" 2>&1 | tee plan_output.txt
+          code=${PIPESTATUS[0]}
           echo "exit_code=$code" >> $GITHUB_OUTPUT
           if [ "$code" -eq 2 ]; then echo "has_changes=true" >> $GITHUB_OUTPUT; exit 0
           elif [ "$code" -eq 0 ]; then echo "has_changes=false" >> $GITHUB_OUTPUT; exit 0
@@ -350,7 +420,42 @@ jobs:
         if: env.IS_DEPLOY == 'true' && steps.plan.outputs.has_changes == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
-        run: terraform apply -auto-approve tfplan.bin
+        run: terraform apply -auto-approve tfplan.bin 2>&1 | tee apply_output.txt
+      - name: Generate Summary
+        if: always()
+        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
+        shell: bash
+        run: |
+          echo "## Terraform Summary - ${{ env.LAYER }} (${{ env.ENVIRONMENT }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f plan_output.txt ]; then
+            PLAN_SUMMARY=$(grep -E "Plan:|No changes\." plan_output.txt | tail -1 || echo "Plan completed")
+            echo "### 📋 Plan" >> $GITHUB_STEP_SUMMARY
+            echo "$PLAN_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full plan output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat plan_output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f apply_output.txt ]; then
+            APPLY_SUMMARY=$(grep -E "Apply complete!" apply_output.txt | tail -1 || echo "Apply completed")
+            echo "### ✅ Apply" >> $GITHUB_STEP_SUMMARY
+            echo "$APPLY_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full apply output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat apply_output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
 
   apply-apps:
     needs: [detect-environment, apply-data]
@@ -398,8 +503,8 @@ jobs:
         shell: bash
         run: |
           set +e
-          terraform plan -no-color -out=tfplan.bin -detailed-exitcode -var="environment=${ENVIRONMENT}"
-          code=$?
+          terraform plan -no-color -out=tfplan.bin -detailed-exitcode -var="environment=${ENVIRONMENT}" 2>&1 | tee plan_output.txt
+          code=${PIPESTATUS[0]}
           echo "exit_code=$code" >> $GITHUB_OUTPUT
           if [ "$code" -eq 2 ]; then echo "has_changes=true" >> $GITHUB_OUTPUT; exit 0
           elif [ "$code" -eq 0 ]; then echo "has_changes=false" >> $GITHUB_OUTPUT; exit 0
@@ -415,4 +520,39 @@ jobs:
         if: env.IS_DEPLOY == 'true' && steps.plan.outputs.has_changes == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
-        run: terraform apply -auto-approve tfplan.bin
+        run: terraform apply -auto-approve tfplan.bin 2>&1 | tee apply_output.txt
+      - name: Generate Summary
+        if: always()
+        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
+        shell: bash
+        run: |
+          echo "## Terraform Summary - ${{ env.LAYER }} (${{ env.ENVIRONMENT }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f plan_output.txt ]; then
+            PLAN_SUMMARY=$(grep -E "Plan:|No changes\." plan_output.txt | tail -1 || echo "Plan completed")
+            echo "### 📋 Plan" >> $GITHUB_STEP_SUMMARY
+            echo "$PLAN_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full plan output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat plan_output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f apply_output.txt ]; then
+            APPLY_SUMMARY=$(grep -E "Apply complete!" apply_output.txt | tail -1 || echo "Apply completed")
+            echo "### ✅ Apply" >> $GITHUB_STEP_SUMMARY
+            echo "$APPLY_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full apply output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat apply_output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
