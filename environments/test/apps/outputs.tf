@@ -101,6 +101,16 @@ output "eb_p2papi_cname" {
   } : null
 }
 
+output "eb_load_balancer_arn" {
+  description = "ARN of the Elastic Beanstalk Application Load Balancer"
+  value       = local.enable_eb ? module.eb-api[0].load_balancer_arn : null
+}
+
+output "eb_load_balancer_dns" {
+  description = "DNS name of the Elastic Beanstalk Application Load Balancer"
+  value       = local.enable_eb ? module.eb-api[0].load_balancer_dns : null
+}
+
 # ===================================================================
 # Redis Security Group ID
 # ===================================================================

@@ -11,18 +11,18 @@ locals {
   enable_eb_waf = true
 
   enable_redis         = true
-  enable_bastion       = false
+  enable_bastion       = true
   enable_bastion_dns   = true
   enable_dbt           = false
-  enable_wordpress     = true
-  enable_test_instance = true
-  enable_metabase      = true
+  enable_wordpress     = false
+  enable_test_instance = false
+  enable_metabase      = false
 
   # --- Frontend/Admin S3 toggles --- # flip to true/false to skip creating the stacks
   enable_s3_admin     = true
   enable_s3_admin_waf = false
 
   enable_s3_frontend         = true
-  serve_frontend_maintenance = false
+  serve_frontend_maintenance = true
 
 }

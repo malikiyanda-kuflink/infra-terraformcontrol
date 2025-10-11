@@ -7,22 +7,7 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 data "aws_partition" "current" {}
 
-# ===================================================================
-# DISCOVER ELASTIC BEANSTALK ALB BY TAG
-# Looks up the Application Load Balancer created by EB by filtering
-# on the 'elasticbeanstalk:environment-name' tag using the
-# Resource Groups Tagging API. The resulting ARN is used by WAF.
-# ===================================================================
-# Find the ALB by the EB environment-name tag
-data "aws_resourcegroupstaggingapi_resources" "eb_alb" {
-  count                 = local.enable_eb ? 1 : 0
-  resource_type_filters = ["elasticloadbalancing:loadbalancer"]
 
-  tag_filter {
-    key    = "elasticbeanstalk:environment-name"
-    values = [local.web_env_name] # e.g. "Kuflink-Test-Web"
-  }
-}
 # ===================================================================
 # LOCALS
 # This section centralizes toggles, names, environment controls,
@@ -178,10 +163,10 @@ locals {
   # --------------------------------------
   # WAF config (env-scoped) - compute layer
   # --------------------------------------
-  eb_alb_arn = local.enable_eb ? try(
-    data.aws_resourcegroupstaggingapi_resources.eb_alb[0].resource_tag_mapping_list[0].resource_arn,
-    "arn:aws:elasticloadbalancing:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:loadbalancer/app/dummy/dummy"
-  ) : "arn:aws:elasticloadbalancing:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:loadbalancer/app/dummy/dummy"
+  # Get ALB ARN directly from EB module output
+  eb_alb_arn = local.enable_eb ? try(module.eb-api[0].load_balancer_arn, null) : null
+  # Check if ALB exists
+  eb_alb_exists = local.eb_alb_arn != null && local.eb_alb_arn != ""
 
   admin_rule_action = "COUNT" # or "COUNT"/ "BLOCK" / "ALLOW" / "CAPTCHA" / "CHALLENGE"
   trusted_ip_cidrs  = data.terraform_remote_state.foundation.outputs.kuflink_office_ip_cidrs

@@ -151,6 +151,21 @@ output "pipeline_notification_rule_arn" {
   description = "CodeStar Notifications rule ARN"
 }
 
+output "load_balancer_arn" {
+  description = "ARN of the Application Load Balancer created by Elastic Beanstalk"
+  value       = data.aws_lb.eb_alb.arn
+}
+
+output "load_balancer_dns" {
+  description = "DNS name of the Application Load Balancer"
+  value       = data.aws_lb.eb_alb.dns_name
+}
+
+output "load_balancer_zone_id" {
+  description = "Hosted zone ID of the Application Load Balancer"
+  value       = data.aws_lb.eb_alb.zone_id
+}
+
 # =========================
 # Compact summary objects
 # =========================
