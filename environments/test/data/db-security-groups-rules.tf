@@ -37,6 +37,17 @@ resource "aws_vpc_security_group_ingress_rule" "rds_private_mysql" {
   cidr_ipv4         = each.value
 }
 
+
+# Office CIDR → 3306
+resource "aws_vpc_security_group_ingress_rule" "rds_office_cidr" {
+  for_each          = toset(data.terraform_remote_state.foundation.outputs.kuflink_office_cidr)
+  security_group_id = aws_security_group.rds_sg.id
+  description       = "Allow Office CIDR"
+  ip_protocol       = "tcp"
+  from_port         = 3306
+  to_port           = 3306
+  cidr_ipv4         = each.value
+}
 #============================================================
 # Redshift (Deprecated VPC) SG
 #============================================================
@@ -73,6 +84,7 @@ resource "aws_vpc_security_group_ingress_rule" "redshift_private_cidrs" {
   to_port           = 5439
   cidr_ipv4         = each.value
 }
+
 
 # Fivetran IPs → 5439
 resource "aws_vpc_security_group_ingress_rule" "redshift_fivetran" {

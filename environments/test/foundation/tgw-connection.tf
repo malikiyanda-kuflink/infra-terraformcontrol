@@ -144,9 +144,15 @@ data "aws_ssm_parameter" "staging_vpc_cidr" {
   name = "/kuflink/network/staging_vpc_cidr"
 }
 
+data "aws_ssm_parameter" "staging_private_rt_id" {
+  name = "/kuflink/network/staging_private_rt_id"
+}
+
+
 locals {
   onprem_cidrs     = jsondecode(data.aws_ssm_parameter.onprem_cidrs.value)
   staging_vpc_cidr = data.aws_ssm_parameter.staging_vpc_cidr.value
+  staging_private_rt_id = data.aws_ssm_parameter.staging_private_rt_id.value
 }
 
 ###################################################################
@@ -164,7 +170,11 @@ resource "aws_route" "test_to_staging" {
   transit_gateway_id     = data.aws_ec2_transit_gateway.existing_tgw.id
 }
 
-# Remove the variables entirely from tests
+resource "aws_route" "staging_to_test" {
+  route_table_id         = local.staging_private_rt_id #FROM SSM
+  destination_cidr_block = module.vpc.vpc_cidr_block 
+  transit_gateway_id     = data.aws_ec2_transit_gateway.existing_tgw.id
+}
 
 ###############################################################
 # Outputs

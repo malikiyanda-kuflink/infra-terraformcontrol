@@ -264,6 +264,12 @@ output "fivetran_gcp_ips" {
 }
 
 
+output "kuflink_office_cidr" {
+  value       = [for ip in local.kuflink_office_cidr : ip.cidr]
+  description = "Office CIDRs as list(string)."
+  sensitive   = true
+}
+
 # ---------------------------------------------------------------#
 # Metabase Paramerters
 

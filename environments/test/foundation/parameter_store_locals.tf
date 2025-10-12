@@ -1,11 +1,19 @@
 data "aws_ssm_parameter" "fivetran_gcp_ip" { name = "fivetran_gcp_ip" }
 data "aws_ssm_parameter" "office_ips" { name = "kuflink_office_ips" }
+data "aws_ssm_parameter" "office_cidr" { name = "kuflink_office_cidr" }
 data "aws_ssm_parameter" "dbt_cloud_ips" { name = "dbt_cloud_ips" }
 
 
 locals {
   kuflink_office_ips = jsondecode(data.aws_ssm_parameter.office_ips.value)
   dbt_cloud_ips      = jsondecode(data.aws_ssm_parameter.dbt_cloud_ips.value)
+
+  kuflink_office_cidr = [
+    {
+      description = "kuflink office cidr"
+      cidr        = data.aws_ssm_parameter.office_cidr.value
+    }
+  ]
 
   fivetran_gcp = [
     {
