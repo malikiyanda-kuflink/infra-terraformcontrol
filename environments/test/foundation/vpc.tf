@@ -9,6 +9,6 @@ module "vpc" {
   enable_dns_support   = local.vpc.enable_dns_support
 
   tags = {
-    Project = "Kuflink" # this will merge in addition to default_tag
+    Project = "Kuflink" # merge in addition to default_tags
   }
 }
