@@ -111,6 +111,19 @@ output "eb_load_balancer_dns" {
   value       = local.enable_eb ? module.eb-api[0].load_balancer_dns : null
 }
 
+output "eb_primary_target_group_arn" {
+  description = "TG ARN of the Elastic Beanstalk Application Load Balancer"
+  value       = local.enable_eb ? module.eb-api[0].eb_primary_target_group_arn : null
+}
+
+output "eb_primary_target_group_dimension" {
+  description = "TG dimension of the Elastic Beanstalk Application Load Balancer"
+  value       = local.enable_eb ? module.eb-api[0].eb_primary_target_group_dimension : null
+}
+
+
+
+
 # ===================================================================
 # Redis Security Group ID
 # ===================================================================

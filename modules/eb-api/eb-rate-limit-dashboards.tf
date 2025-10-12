@@ -8,28 +8,12 @@
 # - Elastic Beanstalk (EB) environment health - LEFT SIDE
 # - Request rates, errors, response times, and connection metrics
 # =============================================================================
-
-# Discover EB Target Group(s) by tag via Resource Groups Tagging API
-data "aws_resourcegroupstaggingapi_resources" "eb_tgs" {
-  resource_type_filters = ["elasticloadbalancing:targetgroup"]
-
-  tag_filter {
-    key    = "elasticbeanstalk:environment-name"
-    values = [var.web_env_name]
-  }
-}
-
 locals {
   dashboard_name = "${var.application_name}-API-Rate-Limiting-Monitoring-Dashboard"
 
   # From ARN → "app/<name>/<id>"
   alb_dimension = try(regex("app/.+$", var.web_alb_arn), "")
-
-# Use discovered target group from data source
-  target_group_dimension = length(data.aws_resourcegroupstaggingapi_resources.eb_tgs.resource_tag_mapping_list) > 0 ? try(
-    regex("targetgroup/.+$", data.aws_resourcegroupstaggingapi_resources.eb_tgs.resource_tag_mapping_list[0].resource_arn),
-    ""
-  ) : ""
+  target_group_dimension = local.primary_tg_dimension
 }
 
 resource "aws_cloudwatch_dashboard" "eb_monitoring" {
