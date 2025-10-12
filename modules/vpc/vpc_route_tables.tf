@@ -1,4 +1,4 @@
-# Route tables
+# --- Public route table (same as before) ---
 resource "aws_route_table" "public_rt" {
   vpc_id = aws_vpc.vpc.id
   route {
@@ -14,19 +14,13 @@ resource "aws_route_table_association" "public_assoc" {
   route_table_id = aws_route_table.public_rt.id
 }
 
+# --- Single private route table that points to the single NAT ---
 resource "aws_route_table" "private_rt" {
   vpc_id = aws_vpc.vpc.id
-  dynamic "route" {
-    for_each = var.enable_nat_gateway ? [1] : []
-    content {
-      cidr_block     = "0.0.0.0/0"
-      nat_gateway_id = aws_nat_gateway.nat_gw[0].id
-    }
-  }
 
-
-  lifecycle {
-    ignore_changes = [route]
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.nat_gw.id
   }
 
   tags = merge(var.tags, { Name = "${var.vpc_name}-private-rt" })

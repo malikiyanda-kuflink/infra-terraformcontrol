@@ -5,10 +5,8 @@ module "vpc" {
   public_subnet_cidrs  = local.vpc.public_cidrs
   private_subnet_cidrs = local.vpc.private_cidrs
   azs                  = local.vpc.azs
-  enable_nat_gateway   = local.vpc.enable_nat
-  single_nat_gateway   = local.vpc.single_nat
-  enable_dns_hostnames = true
-  enable_dns_support   = true
+  enable_dns_hostnames = local.vpc.enable_dns_hostnames 
+  enable_dns_support   = local.vpc.enable_dns_support
 
   tags = {
     Project = "Kuflink" # this will merge in addition to default_tag

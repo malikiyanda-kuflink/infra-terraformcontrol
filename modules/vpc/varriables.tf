@@ -43,22 +43,10 @@ variable "tags" {
 
 variable "enable_dns_hostnames" {
   type    = bool
-  default = true
 }
 
 variable "enable_dns_support" {
   type    = bool
-  default = true
 }
 
-variable "enable_nat_gateway" {
-  type        = bool
-  default     = true
-  description = "Create NAT gateway and default route for private subnets"
-}
 
-variable "single_nat_gateway" {
-  type        = bool
-  default     = true
-  description = "Keep to one NAT GW (in public subnet A)"
-}

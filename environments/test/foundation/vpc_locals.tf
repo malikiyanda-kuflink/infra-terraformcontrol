@@ -7,7 +7,7 @@ locals {
     public_cidrs  = ["172.40.1.0/24", "172.40.2.0/24", "172.40.3.0/24"]
     private_cidrs = ["172.40.11.0/24", "172.40.12.0/24", "172.40.13.0/24"]
 
-    enable_nat = true
-    single_nat = true
+    enable_dns_hostnames = true
+    enable_dns_support = true 
   }
 }

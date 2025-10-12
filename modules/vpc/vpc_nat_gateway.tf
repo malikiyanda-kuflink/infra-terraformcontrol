@@ -1,12 +1,12 @@
-# NAT (optional)
+# --- Single NAT in public subnet A ---
 resource "aws_eip" "nat_eip" {
-  count = var.enable_nat_gateway && var.single_nat_gateway ? 1 : 0
-  tags  = merge(var.tags, { Name = "${var.vpc_name}-nat-eip" })
+  domain = "vpc"
+  tags   = merge(var.tags, { Name = "${var.vpc_name}-nat-eip" })
 }
 
 resource "aws_nat_gateway" "nat_gw" {
-  count         = var.enable_nat_gateway && var.single_nat_gateway ? 1 : 0
-  allocation_id = aws_eip.nat_eip[0].id
+  allocation_id = aws_eip.nat_eip.id
   subnet_id     = aws_subnet.public["a"].id
   tags          = merge(var.tags, { Name = "${var.vpc_name}-nat-gw" })
+  depends_on    = [aws_internet_gateway.igw]
 }
