@@ -24,8 +24,8 @@ locals {
   environment       = "Test"
   name_prefix_upper = "Kuflink-Test"
 
-  aws_route53_zone       = data.terraform_remote_state.foundation.outputs.aws_route53_zone
-  staging_hosted_zone_id = data.terraform_remote_state.foundation.outputs.staging_hosted_zone_id
+  aws_route53_zone       = data.terraform_remote_state.foundation.outputs.route53_zone_name
+  hosted_zone_id         = data.terraform_remote_state.foundation.outputs.route53_hosted_zone_id
   cloudfront_zone_id     = data.terraform_remote_state.foundation.outputs.cloudfront_zone_id
   # -----------------------------------------------------------------
   # Admin (S3 + CLOUDFRONT) TOGGLES / NAMES
@@ -35,13 +35,13 @@ locals {
   # -----------------------------------------------------------------
   # admin_waf_arn     = data.terraform_remote_state.platform.outputs.s3_admin_waf.web_acl_arn
   admin_waf_arn     = local.enable_s3_admin && local.enable_s3_admin_waf ? module.s3_admin_waf[0].web_acl_arn : null
-  admin_bucket_name = data.terraform_remote_state.foundation.outputs.admin_bucket_name
+  admin_bucket_name = data.terraform_remote_state.foundation.outputs.s3_admin.bucket_name
 
-  admin_domains     = [data.terraform_remote_state.foundation.outputs.admin_domain]
-  admin_record_name = data.terraform_remote_state.foundation.outputs.admin_domain
+  admin_domains     = [data.terraform_remote_state.foundation.outputs.s3_admin.domain]
+  admin_record_name = data.terraform_remote_state.foundation.outputs.s3_admin.domain
 
   # Hosted zone: choose either ID or name.
-  admin_hosted_zone_id   = local.staging_hosted_zone_id
+  admin_hosted_zone_id   = local.hosted_zone_id
   admin_hosted_zone_name = null
 
   # CloudFront cert (must be in us-east-1)
@@ -57,13 +57,13 @@ locals {
   #   module.s3-admin.cloudfront_domain_name
   # ) : null
 
-  admin_codebuild_email_endpoint = data.terraform_remote_state.foundation.outputs.admin_email
+  admin_codebuild_email_endpoint = data.terraform_remote_state.foundation.outputs.global.build_notification_email
   admin_codebuild_image          = "aws/codebuild/standard:7.0" # has Node 20
-  admin_repo                     = data.terraform_remote_state.foundation.outputs.admin_repo
-  admin_api_url                  = data.terraform_remote_state.foundation.outputs.api_url
+  admin_repo                     = data.terraform_remote_state.foundation.outputs.s3_admin.repo
+  admin_api_url                  = data.terraform_remote_state.foundation.outputs.eb_api.API_URL
   admin_branch                   = "test"
   # admin_branch                 = "develop" # debug cors issue - cors.conf
-  admin_codestar_connection = data.terraform_remote_state.foundation.outputs.codestar_connection_arn
+  admin_codestar_connection = data.terraform_remote_state.foundation.outputs.staging_codestar_connection
 
   # -----------------------------------------------------------------
   # FRONTEND (S3 + CLOUDFRONT) TOGGLES / NAMES
@@ -71,15 +71,15 @@ locals {
   # selection, and the certificate ARN (must be us-east-1 for CF).
   # 'frontend_website_url' resolves to the record FQDN or CF domain.
   # -----------------------------------------------------------------
-  api_url                 = data.terraform_remote_state.foundation.outputs.api_url
-  frontend_bucket_name    = data.terraform_remote_state.foundation.outputs.frontend_bucket_name
-  maintenance_bucket_name = data.terraform_remote_state.foundation.outputs.maintenance_bucket_name
+  api_url                 = data.terraform_remote_state.foundation.outputs.eb_api.API_URL
+  frontend_bucket_name    = data.terraform_remote_state.foundation.outputs.s3_frontend.bucket_name
+  maintenance_bucket_name = data.terraform_remote_state.foundation.outputs.s3_frontend.maintenance_bucket_name
 
-  frontend_domains     = [data.terraform_remote_state.foundation.outputs.frontend_domain]
-  frontend_record_name = data.terraform_remote_state.foundation.outputs.frontend_domain
+  frontend_domains     = [data.terraform_remote_state.foundation.outputs.s3_frontend.domain]
+  frontend_record_name = data.terraform_remote_state.foundation.outputs.s3_frontend.domain
 
   # Hosted zone: choose either ID or name.
-  frontend_hosted_zone_id   = local.staging_hosted_zone_id
+  frontend_hosted_zone_id   = local.hosted_zone_id
   frontend_hosted_zone_name = null
 
   # CloudFront cert (must be in us-east-1)
@@ -95,12 +95,12 @@ locals {
   #   module.s3-frontend.cloudfront_domain_name
   # ) : null
 
-  frontend_codebuild_email_endpoint = data.terraform_remote_state.foundation.outputs.frontend_email
+  frontend_codebuild_email_endpoint = data.terraform_remote_state.foundation.outputs.global.build_notification_email
   frontend_codebuild_image          = "aws/codebuild/standard:7.0" # has Node 20
-  frontend_repo                     = data.terraform_remote_state.foundation.outputs.frontend_repo
+  frontend_repo                     = data.terraform_remote_state.foundation.outputs.s3_frontend.repo
   frontend_branch                   = "staging-test"
   # frontend_branch                 = "develop" # debug cors issue - cors.conf
-  frontend_codestar_connection = data.terraform_remote_state.foundation.outputs.codestar_connection_arn
+  frontend_codestar_connection = data.terraform_remote_state.foundation.outputs.staging_codestar_connection
 
 
   # --------------------------------------
@@ -110,15 +110,15 @@ locals {
   # --------------------------------------
   # Bastion locals
   # --------------------------------------
-  staging_dns_bastion_name = data.terraform_remote_state.foundation.outputs.bastion_dns_name
+  staging_dns_bastion_name = data.terraform_remote_state.foundation.outputs.ec2_bastion.dns_name
 
   # Toggle-controlled bastion EIP
   # bastion_eip_public_ip      = module.ec2-bastion.bastion_elastic_ip  
   bastion_eip_public_ip = local.enable_bastion ? module.ec2-bastion[0].bastion_elastic_ip : null
 
   staging_dns_bastion_target = local.db_endpoint
-  forward_port               = data.terraform_remote_state.foundation.outputs.bastion_forward_port
-  target_port                = data.terraform_remote_state.foundation.outputs.rds_target_port
+  forward_port               = data.terraform_remote_state.foundation.outputs.ec2_bastion.forward_port
+  target_port                = data.terraform_remote_state.foundation.outputs.ec2_bastion.target_port
 
   # --------------------------------------
   # ADMIN WAF CONFIGURATION (ENV-SCOPED) FOR EB ALB
@@ -128,7 +128,7 @@ locals {
   # WAF config (env-scoped) - compute layer
   # --------------------------------------
   admin_ip_action        = "BLOCK" # or "COUNT"/ "BLOCK" / "ALLOW" / "CAPTCHA" / "CHALLENGE"
-  admin_trusted_ip_cidrs = ["${data.terraform_remote_state.foundation.outputs.office_ip}"]
+  admin_trusted_ip_cidrs = [for ip in data.terraform_remote_state.foundation.outputs.kuflink_office_ips : ip.cidr]
 
   admin_waf_enable_groups = {
     common           = true
@@ -169,7 +169,7 @@ locals {
   eb_alb_exists = local.eb_alb_arn != null && local.eb_alb_arn != ""
 
   admin_rule_action = "COUNT" # or "COUNT"/ "BLOCK" / "ALLOW" / "CAPTCHA" / "CHALLENGE"
-  trusted_ip_cidrs  = data.terraform_remote_state.foundation.outputs.kuflink_office_ip_cidrs
+  trusted_ip_cidrs  = [for ip in data.terraform_remote_state.foundation.outputs.kuflink_office_ips : ip.cidr]
   admin_uri_regexes = [".*/admin/.*", ".*/wp-admin/.*"]
 
   waf_enable_groups = {
@@ -222,8 +222,8 @@ locals {
   tier                    = "Worker"
   application_description = "${local.environment} Kuflink Laravel 9 Application"
   solution_stack_name     = "64bit Amazon Linux 2023 v4.7.5 running PHP 8.4"
-  ec2_key_name            = data.terraform_remote_state.foundation.outputs.ec2_key_name
-  github_branch           = "staging-test"
+  ec2_key_name            = data.terraform_remote_state.foundation.outputs.global.ec2_key_name
+  github_branch           = "test"
   web_instance_type       = "t3.medium"
   worker_instance_type    = "t3.large"
 
@@ -241,11 +241,11 @@ locals {
   ssh_source_restriction = "tcp,22,22,${data.terraform_remote_state.foundation.outputs.office_ip}"
 
   # Notifications (SNS)
-  notification_endpoint = data.terraform_remote_state.foundation.outputs.notification_email
+  notification_endpoint = data.terraform_remote_state.foundation.outputs.global.build_notification_email
   notification_protocol = "email"
 
   # SQSD (Worker)
-  worker_queue_name       = data.terraform_remote_state.foundation.outputs.worker_queue_name
+  worker_queue_name       = data.terraform_remote_state.foundation.outputs.eb_api.WORKER_QUEUE_NAME
   sqsd_http_path          = "/worker/queue"
   sqsd_http_connections   = 100
   sqsd_visibility_timeout = 900
@@ -346,10 +346,10 @@ locals {
   source_version         = "1"
   source_output_artifact = "source_output"
 
-  codestar_connection_arn = data.terraform_remote_state.foundation.outputs.kuflink_codestar_connection
-  codepipeline_role_arn   = data.terraform_remote_state.foundation.outputs.eb_codepipeline_role_arn
-  full_repository_id      = data.terraform_remote_state.foundation.outputs.api_repo
-  branch_name             = "staging-test"
+  codestar_connection_arn = data.terraform_remote_state.foundation.outputs.staging_codestar_connection
+  codepipeline_role_arn   = data.terraform_remote_state.foundation.outputs.iam_resources.elastic_beanstalk.codepipeline_role_arn
+  full_repository_id      = data.terraform_remote_state.foundation.outputs.eb_api.API_REPO
+  branch_name             = "test"
 
   # -------------------------
   # DEPLOY STAGE (ELASTIC BEANSTALK)
@@ -375,12 +375,11 @@ locals {
   # eb_topic_name             = "ElasticBeanstalkNotifications-Deployments-Kuflink-dev-test-web-env"
   eb_topic_name            = "ElasticBeanstalkNotifications-Deployments-${local.web_env_name}" #DO NOT EDIT
   eb_notification_protocol = "email"
-  eb_notification_emails   = data.terraform_remote_state.foundation.outputs.pipeline_emails
-
+  eb_notification_emails   = [data.terraform_remote_state.foundation.outputs.global.build_notification_email]
   # --- Pipeline SNS topic + email subscribers ---
   create_pipeline_topic        = true
   pipeline_topic_name          = "codestar-${local.name_prefix}-backend-pipeline-notifications"
-  pipeline_notification_emails = data.terraform_remote_state.foundation.outputs.pipeline_emails
+  pipeline_notification_emails = [data.terraform_remote_state.foundation.outputs.global.build_notification_email]
 
   # --- CodeStar Notifications rule ---
   create_pipeline_notification_rule = true

@@ -32,7 +32,6 @@ module "eb-api" {
   pipeline_arn                         = local.pipeline_arn
   pipeline_notification_event_type_ids = local.pipeline_notification_event_type_ids
 
-
   # Core
   application_name        = local.name_prefix_upper
   application_description = local.application_description
@@ -48,20 +47,16 @@ module "eb-api" {
   web_env_name    = local.web_env_name
   worker_env_name = local.worker_env_name
   web_alb_arn     = local.eb_alb_arn
-  # target_group_arn = try(
-  #   data.aws_resourcegroupstaggingapi_resources.eb_alb[0].resource_tag_mapping_list[0].resource_arn,
-  #   ""
-  # )
 
   # Access / IAM / SG / SSH
   office_ip               = data.terraform_remote_state.foundation.outputs.office_ip
   ssh_source_restriction  = local.ssh_source_restriction
   eb_web_app_sg_id        = aws_security_group.eb_web_app_sg.id
-  eb_role_arn             = data.terraform_remote_state.foundation.outputs.eb_role_arn
-  eb_instance_profile_arn = data.terraform_remote_state.foundation.outputs.eb_instance_profile_arn
+  eb_role_arn             = data.terraform_remote_state.foundation.outputs.iam_resources.elastic_beanstalk.role_arn
+  eb_instance_profile_arn = data.terraform_remote_state.foundation.outputs.iam_resources.elastic_beanstalk.instance_profile_arn
 
   # SSL / LB / Listeners / Proxy
-  ssl_certificate_arn = data.terraform_remote_state.foundation.outputs.brickfin_ssl_acm
+  ssl_certificate_arn = data.terraform_remote_state.foundation.outputs.ssl_certificate_arn
   load_balancer_type  = local.load_balancer_type
   listener_enabled    = local.listener_enabled
   process_port        = local.process_port
@@ -80,9 +75,9 @@ module "eb-api" {
   log_publication_control = local.log_publication_control
 
   # networking
-  vpc_id             = data.terraform_remote_state.foundation.outputs.vpc_id
-  private_subnet_ids = data.terraform_remote_state.foundation.outputs.private_subnet_ids
-  public_subnet_ids  = data.terraform_remote_state.foundation.outputs.public_subnet_ids
+  vpc_id             = data.terraform_remote_state.foundation.outputs.vpc_resources.vpc.id
+  private_subnet_ids = data.terraform_remote_state.foundation.outputs.vpc_resources.subnets.private_ids
+  public_subnet_ids  = data.terraform_remote_state.foundation.outputs.vpc_resources.subnets.public_ids
 
   # Deploy / Scaling / Env type
   deployment_policy       = local.deployment_policy
@@ -116,9 +111,10 @@ module "eb-api" {
   health_config_document = local.health_config_document
 
   # Database – Test
-  db_connection          = data.terraform_remote_state.foundation.outputs.db_test_connection
-  db_connection_readonly = data.terraform_remote_state.foundation.outputs.db_test_connection_readonly
-  db_database            = data.terraform_remote_state.foundation.outputs.db_test_database
+  db_connection          = data.terraform_remote_state.foundation.outputs.db_rds.connection
+  db_connection_readonly = data.terraform_remote_state.foundation.outputs.db_rds.connection_readonly
+  db_database            = data.terraform_remote_state.foundation.outputs.db_rds.database
+  
   # Primary DB host: live alias → stable fallback → "none"
   db_host = trimsuffix(
     coalesce(
@@ -139,54 +135,47 @@ module "eb-api" {
     "."
   )
 
-  db_password = data.terraform_remote_state.foundation.outputs.db_test_password
-  db_port     = data.terraform_remote_state.foundation.outputs.db_test_port
-  db_username = data.terraform_remote_state.foundation.outputs.db_test_username
+  db_password = data.terraform_remote_state.foundation.outputs.db_rds.password
+  db_port     = data.terraform_remote_state.foundation.outputs.db_rds.port
+  db_username = data.terraform_remote_state.foundation.outputs.db_rds.username
 
   # Redis (EC2)
   redis_private_ip = module.ec2-redis[0].redis_private_ip
-  redis_client     = data.terraform_remote_state.foundation.outputs.redis_test_client
-  redis_password   = data.terraform_remote_state.foundation.outputs.redis_test_password
-  redis_port       = data.terraform_remote_state.foundation.outputs.redis_test_port
-
-  # Redis (ElastiCache)
-  # redis_endpoint                 = module.redis_elastic_cache.redis_endpoint
-  # redis_elastic_cache_php_client = data.terraform_remote_state.foundation.outputs.redis_elastic_cache_php_client
-  # redis_elastic_cache_password   = data.terraform_remote_state.foundation.outputs.redis_elastic_cache_password
-  # redis_elastic_cache_port       = data.terraform_remote_state.foundation.outputs.redis_elastic_cache_port
+  redis_client     = data.terraform_remote_state.foundation.outputs.ec2_redis.client
+  redis_password   = data.terraform_remote_state.foundation.outputs.ec2_redis.password
+  redis_port       = data.terraform_remote_state.foundation.outputs.ec2_redis.port
 
   # foundation app settings
-  app_env                     = data.terraform_remote_state.foundation.outputs.app_env
-  app_url                     = data.terraform_remote_state.foundation.outputs.app_url
-  aws_region                  = data.terraform_remote_state.foundation.outputs.aws_region
-  aws_sqs_prefix              = data.terraform_remote_state.foundation.outputs.aws_sqs_prefix
-  aws_sqs_driver              = data.terraform_remote_state.foundation.outputs.aws_sqs_driver
-  broadcast_driver            = data.terraform_remote_state.foundation.outputs.broadcast_driver
-  cache_driver                = data.terraform_remote_state.foundation.outputs.cache_driver
-  can_run_schedule            = data.terraform_remote_state.foundation.outputs.can_run_schedule
-  mandrill_secret             = data.terraform_remote_state.foundation.outputs.mandrill_secret
-  bank_of_england_api_url     = data.terraform_remote_state.foundation.outputs.bank_of_england_api_url
-  send_local_emails           = data.terraform_remote_state.foundation.outputs.send_local_emails
-  get_address_location_key    = data.terraform_remote_state.foundation.outputs.get_address_location_key
-  connected_stripe_account_id = data.terraform_remote_state.foundation.outputs.connected_stripe_account_id
-  personal_agreement_url      = data.terraform_remote_state.foundation.outputs.personal_agreement_url
-  corporate_agreement_url     = data.terraform_remote_state.foundation.outputs.corporate_agreement_url
-  bank_of_england_api_key     = data.terraform_remote_state.foundation.outputs.bank_of_england_api_key
+  app_env                     = data.terraform_remote_state.foundation.outputs.eb_api.APP_ENV
+  app_url                     = data.terraform_remote_state.foundation.outputs.eb_api.APP_URL
+  aws_region                  = data.terraform_remote_state.foundation.outputs.eb_api.AWS_REGION
+  aws_sqs_prefix              = data.terraform_remote_state.foundation.outputs.eb_api.AWS_SQS_PREFIX
+  aws_sqs_driver              = data.terraform_remote_state.foundation.outputs.eb_api.AWS_SQS_DRIVER
+  broadcast_driver            = data.terraform_remote_state.foundation.outputs.eb_api.BROADCAST_DRIVER
+  cache_driver                = data.terraform_remote_state.foundation.outputs.eb_api.CACHE_DRIVER
+  can_run_schedule            = data.terraform_remote_state.foundation.outputs.eb_api.CAN_RUN_SCHEDULE
+  mandrill_secret             = data.terraform_remote_state.foundation.outputs.eb_api.MANDRILL_SECRET
+  bank_of_england_api_url     = data.terraform_remote_state.foundation.outputs.eb_api.BANK_OF_ENGLAND_API_URL
+  send_local_emails           = data.terraform_remote_state.foundation.outputs.eb_api.SEND_LOCAL_EMAILS
+  get_address_location_key    = data.terraform_remote_state.foundation.outputs.eb_api.GET_ADDRESS_LOCATION_KEY
+  connected_stripe_account_id = data.terraform_remote_state.foundation.outputs.eb_api.CONNECTED_STRIPE_ACCOUNT_ID
+  personal_agreement_url      = data.terraform_remote_state.foundation.outputs.eb_api.PERSONAL_AGREEMENT_URL
+  corporate_agreement_url     = data.terraform_remote_state.foundation.outputs.eb_api.CORPORATE_AGREEMENT_URL
+  bank_of_england_api_key     = data.terraform_remote_state.foundation.outputs.eb_api.BANK_OF_ENGLAND_API_KEY
 
   # Mangopay
-  mangopay_client                                 = data.terraform_remote_state.foundation.outputs.mangopay_client
-  mangopay_passphrase                             = data.terraform_remote_state.foundation.outputs.mangopay_passphrase
-  mangopay_redirect_url                           = data.terraform_remote_state.foundation.outputs.mangopay_redirect_url
-  mangopay_url                                    = data.terraform_remote_state.foundation.outputs.mangopay_url
-  mangopay_max_funds_per_transaction_for_topup    = data.terraform_remote_state.foundation.outputs.mangopay_max_funds_per_transaction_for_topup
-  mangopay_topup_funds_limit_without_mangopay_aml = data.terraform_remote_state.foundation.outputs.mangopay_topup_funds_limit_without_mangopay_aml
+  mangopay_client                                 = data.terraform_remote_state.foundation.outputs.eb_api.MANGOPAY_CLIENT
+  mangopay_passphrase                             = data.terraform_remote_state.foundation.outputs.eb_api.MANGOPAY_PASSPHRASE
+  mangopay_redirect_url                           = data.terraform_remote_state.foundation.outputs.eb_api.MANGOPAY_REDIRECT_URL
+  mangopay_url                                    = data.terraform_remote_state.foundation.outputs.eb_api.MANGOPAY_URL
+  mangopay_max_funds_per_transaction_for_topup    = data.terraform_remote_state.foundation.outputs.eb_api.MANGOPAY_MAX_FUNDS_PER_TRANSACTION_FOR_TOPUP
+  mangopay_topup_funds_limit_without_mangopay_aml = data.terraform_remote_state.foundation.outputs.eb_api.MANGOPAY_TOPUP_FUNDS_LIMIT_WITHOUT_MANGOPAY_AML
 
   # Queues
-  aws_sqs_queue_name = local.worker_queue_name
-  queue_default      = data.terraform_remote_state.foundation.outputs.queue_default
-  queue_connection   = data.terraform_remote_state.foundation.outputs.queue_connection
-  aws_sqs_region     = data.terraform_remote_state.foundation.outputs.aws_sqs_region
-
+  aws_sqs_queue_name = data.terraform_remote_state.foundation.outputs.eb_api.WORKER_QUEUE_NAME
+  queue_default      = data.terraform_remote_state.foundation.outputs.eb_api.QUEUE_DEFAULT
+  queue_connection   = data.terraform_remote_state.foundation.outputs.eb_api.QUEUE_CONNECTION
+  aws_sqs_region     = data.terraform_remote_state.foundation.outputs.eb_api.AWS_SQS_REGION
 
   # -------------------------
   # Worker / SQSD (required)
@@ -200,66 +189,66 @@ module "eb-api" {
   # -------------------------
   # Worker flags / routes
   # -------------------------
-  worker_can_run_schedule       = data.terraform_remote_state.foundation.outputs.worker_can_run_schedule
-  register_worker_routes        = data.terraform_remote_state.foundation.outputs.register_worker_routes
-  worker_register_worker_routes = data.terraform_remote_state.foundation.outputs.worker_register_worker_routes
+  worker_can_run_schedule       = data.terraform_remote_state.foundation.outputs.eb_api.CAN_RUN_SCHEDULE
+  register_worker_routes        = data.terraform_remote_state.foundation.outputs.eb_api.REGISTER_WORKER_ROUTES
+  worker_register_worker_routes = data.terraform_remote_state.foundation.outputs.eb_api.REGISTER_WORKER_ROUTES
 
   # Sessions & logging
-  session_driver                = data.terraform_remote_state.foundation.outputs.session_driver
-  session_secure_cookie         = data.terraform_remote_state.foundation.outputs.session_secure_cookie
-  app_log_level                 = data.terraform_remote_state.foundation.outputs.app_log_level
-  app_debug                     = data.terraform_remote_state.foundation.outputs.app_debug
-  composer_home                 = data.terraform_remote_state.foundation.outputs.composer_home
-  telescope_enabled             = data.terraform_remote_state.foundation.outputs.telescope_enabled
-  activity_logger_enabled       = data.terraform_remote_state.foundation.outputs.activity_logger_enabled
-  activity_logger_db_connection = data.terraform_remote_state.foundation.outputs.activity_logger_db_connection
-  log_channel                   = data.terraform_remote_state.foundation.outputs.log_channel
+  session_driver                = data.terraform_remote_state.foundation.outputs.eb_api.SESSION_DRIVER
+  session_secure_cookie         = data.terraform_remote_state.foundation.outputs.eb_api.SESSION_SECURE_COOKIE
+  app_log_level                 = data.terraform_remote_state.foundation.outputs.eb_api.APP_LOG_LEVEL
+  app_debug                     = data.terraform_remote_state.foundation.outputs.eb_api.APP_DEBUG
+  composer_home                 = data.terraform_remote_state.foundation.outputs.eb_api.COMPOSER_HOME
+  telescope_enabled             = data.terraform_remote_state.foundation.outputs.eb_api.TELESCOPE_ENABLED
+  activity_logger_enabled       = data.terraform_remote_state.foundation.outputs.eb_api.ACTIVITY_LOGGER_ENABLED
+  activity_logger_db_connection = data.terraform_remote_state.foundation.outputs.eb_api.ACTIVITY_LOGGER_DB_CONNECTION
+  log_channel                   = data.terraform_remote_state.foundation.outputs.eb_api.LOG_CHANNEL
 
   # Email
-  mail_driver     = data.terraform_remote_state.foundation.outputs.mail_driver
-  mail_host       = data.terraform_remote_state.foundation.outputs.mail_host
-  mail_port       = data.terraform_remote_state.foundation.outputs.mail_port
-  mail_username   = data.terraform_remote_state.foundation.outputs.mail_username
-  mail_password   = data.terraform_remote_state.foundation.outputs.mail_password
-  mail_encryption = data.terraform_remote_state.foundation.outputs.mail_encryption
-  mandrill_apikey = data.terraform_remote_state.foundation.outputs.mandrill_apikey
-  ses_key         = data.terraform_remote_state.foundation.outputs.ses_key
-  ses_secret      = data.terraform_remote_state.foundation.outputs.ses_secret
-  ses_region      = data.terraform_remote_state.foundation.outputs.ses_region
+  mail_driver     = data.terraform_remote_state.foundation.outputs.eb_api.MAIL_DRIVER
+  mail_host       = data.terraform_remote_state.foundation.outputs.eb_api.MAIL_HOST
+  mail_port       = data.terraform_remote_state.foundation.outputs.eb_api.MAIL_PORT
+  mail_username   = data.terraform_remote_state.foundation.outputs.eb_api.MAIL_USERNAME
+  mail_password   = data.terraform_remote_state.foundation.outputs.eb_api.MAIL_PASSWORD
+  mail_encryption = data.terraform_remote_state.foundation.outputs.eb_api.MAIL_ENCRYPTION
+  mandrill_apikey = data.terraform_remote_state.foundation.outputs.eb_api.MANDRILL_APIKEY
+  ses_key         = data.terraform_remote_state.foundation.outputs.eb_api.SES_KEY
+  ses_secret      = data.terraform_remote_state.foundation.outputs.eb_api.SES_SECRET
+  ses_region      = data.terraform_remote_state.foundation.outputs.eb_api.SES_REGION
 
   # Stripe
-  stripe_publishable_key = data.terraform_remote_state.foundation.outputs.stripe_publishable_key
-  stripe_secret_key      = data.terraform_remote_state.foundation.outputs.stripe_secret_key
+  stripe_publishable_key = data.terraform_remote_state.foundation.outputs.eb_api.STRIPE_PUBLISHABLE_KEY
+  stripe_secret_key      = data.terraform_remote_state.foundation.outputs.eb_api.STRIPE_SECRET_KEY
 
   # Twilio
-  twilio_account_sid = data.terraform_remote_state.foundation.outputs.twilio_account_sid
-  twilio_auth_token  = data.terraform_remote_state.foundation.outputs.twilio_auth_token
+  twilio_account_sid = data.terraform_remote_state.foundation.outputs.eb_api.TWILIO_ACCOUNT_SID
+  twilio_auth_token  = data.terraform_remote_state.foundation.outputs.eb_api.TWILIO_AUTH_TOKEN
 
   # Intercom & Hubspot
-  intercom_integration = data.terraform_remote_state.foundation.outputs.intercom_integration
-  hubspot_access_token = data.terraform_remote_state.foundation.outputs.hubspot_access_token
+  intercom_integration = data.terraform_remote_state.foundation.outputs.eb_api.INTERCOM_INTEGRATION
+  hubspot_access_token = data.terraform_remote_state.foundation.outputs.eb_api.HUBSPOT_ACCESS_TOKEN
 
   # DocuSign
-  docusign_account_id    = data.terraform_remote_state.foundation.outputs.docusign_account_id
-  docusign_client_id     = data.terraform_remote_state.foundation.outputs.docusign_client_id
-  docusign_client_secret = data.terraform_remote_state.foundation.outputs.docusign_client_secret
-  docusign_api_url       = data.terraform_remote_state.foundation.outputs.docusign_api_url
-  docusign_base_url      = data.terraform_remote_state.foundation.outputs.docusign_base_url
+  docusign_account_id    = data.terraform_remote_state.foundation.outputs.eb_api.DOCUSIGN_ACCOUNT_ID
+  docusign_client_id     = data.terraform_remote_state.foundation.outputs.eb_api.DOCUSIGN_CLIENT_ID
+  docusign_client_secret = data.terraform_remote_state.foundation.outputs.eb_api.DOCUSIGN_CLIENT_SECRET
+  docusign_api_url       = data.terraform_remote_state.foundation.outputs.eb_api.DOCUSIGN_API_URL
+  docusign_base_url      = data.terraform_remote_state.foundation.outputs.eb_api.DOCUSIGN_BASE_URL
 
   # Onfido
-  onfido_web_api_key        = data.terraform_remote_state.foundation.outputs.onfido_web_api_key
-  onfido_mob_api_key        = data.terraform_remote_state.foundation.outputs.onfido_mob_api_key
-  onfido_mob_application_id = data.terraform_remote_state.foundation.outputs.onfido_mob_application_id
+  onfido_web_api_key        = data.terraform_remote_state.foundation.outputs.eb_api.ONFIDO_WEB_API_KEY
+  onfido_mob_api_key        = data.terraform_remote_state.foundation.outputs.eb_api.ONFIDO_MOB_API_KEY
+  onfido_mob_application_id = data.terraform_remote_state.foundation.outputs.eb_api.ONFIDO_MOB_APPLICATION_ID
 
   # Module/stack tags
   tags = local.tags
 
   # foundation – General
-  app_key                     = data.terraform_remote_state.foundation.outputs.app_key
-  aws_access_key_id           = data.terraform_remote_state.foundation.outputs.aws_access_key_id
-  aws_secret_access_key       = data.terraform_remote_state.foundation.outputs.aws_secret_access_key
-  aws_default_region          = data.terraform_remote_state.foundation.outputs.aws_default_region
-  kuflink_codestar_connection = data.terraform_remote_state.foundation.outputs.kuflink_codestar_connection
+  app_key                     = data.terraform_remote_state.foundation.outputs.eb_api.APP_KEY
+  aws_access_key_id           = data.terraform_remote_state.foundation.outputs.eb_api.AWS_ACCESS_KEY_ID
+  aws_secret_access_key       = data.terraform_remote_state.foundation.outputs.eb_api.AWS_SECRET_ACCESS_KEY
+  aws_default_region          = data.terraform_remote_state.foundation.outputs.eb_api.AWS_DEFAULT_REGION
+  kuflink_codestar_connection = data.terraform_remote_state.foundation.outputs.staging_codestar_connection
 
   # -------------------------
   # CodePipeline (in-module)
@@ -303,5 +292,4 @@ module "eb-api" {
   eb_application_name        = local.name_prefix_upper
   eb_web_environment_name    = local.web_env_name
   eb_worker_environment_name = local.worker_env_name
-
 }

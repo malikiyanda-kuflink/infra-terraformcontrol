@@ -36,8 +36,8 @@ module "s3-frontend" {
   aws_cli_region                   = local.aws_cli_region
 
   # --- CI/CD pipeline inputs ---
-  frontend_codebuild_role_arn    = data.terraform_remote_state.foundation.outputs.s3_frontend_codebuild_role_arn
-  frontend_codepipeline_role_arn = data.terraform_remote_state.foundation.outputs.s3_frontend_codepipeline_role_arn
+  frontend_codebuild_role_arn    = data.terraform_remote_state.foundation.outputs.iam_resources.s3_frontend.codebuild_role_arn
+  frontend_codepipeline_role_arn = data.terraform_remote_state.foundation.outputs.iam_resources.s3_frontend.codepipeline_role_arn
   frontend_codestar_connection   = local.frontend_codestar_connection
   frontend_repo                  = local.frontend_repo
   frontend_branch                = local.frontend_branch

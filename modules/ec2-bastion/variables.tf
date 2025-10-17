@@ -1,6 +1,5 @@
 variable "public_subnet_id" { type = string }
 variable "vpc_id" { type = string }
-variable "ssh_key_parameter_name" { type = string }
 variable "bastion_instance_profile_name" { type = string }
 variable "bastion_name" { type = string }
 variable "instance_type" { type = string }

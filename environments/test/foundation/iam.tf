@@ -54,13 +54,6 @@ module "iam" {
   redshift_role_name                 = "${local.name_prefix}-redshift-role"
   rds_enhanced_monitoring_role_name  = "${local.name_prefix}-rds-enhanced-monitoring-role"
 
-  # # Optional inputs (module will skip roles if null)
-  # dms_assessment_results_arn        = local.dms_results_arn
-  # dms_secure_assessment_results_arn = local.dms_secure_arn
-  # dms_assessment_role_name          = "${local.name_prefix}-dms-assessment-role"
-  # dms_secure_assessment_results_arn = local.dms_secure_arn
-  # dms_assessment_results_arn        = local.dms_results_arn
-
   tags = {
     Project = "Kuflink"
   }

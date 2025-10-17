@@ -100,7 +100,7 @@ output "eb_instance_profile_arn" {
   value       = var.enable_eb_role ? aws_iam_instance_profile.eb_instance_profile[0].arn : null
 }
 
-output "eb_codepipline_role_arn" {
+output "eb_codepipeline_role_arn" {
   description = "ARN of the Elastic Beanstalk codepipeline role (if enabled)"
   value       = var.enable_eb_codepipeline_role ? aws_iam_role.eb_codepipeline_role[0].arn : null
 }

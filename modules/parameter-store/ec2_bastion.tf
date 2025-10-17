@@ -1,1 +1,0 @@
-data "aws_ssm_parameter" "brickfin_ssl_acm" { name = "/backend/staging-test/brickfin_ssl_acm" }

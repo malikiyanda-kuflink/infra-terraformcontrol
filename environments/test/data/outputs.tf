@@ -224,11 +224,11 @@ output "db_ro_dns_instance_endpoint" {
 }
 
 # ===================================================================
-# Networking (kept simple)
+# Networking 
 # ===================================================================
 
 output "vpc_private_route_table_id" {
   description = "ID of the private Route Table used by database subnets (from the networking layer)."
-  value       = data.terraform_remote_state.foundation.outputs.private_rt_id
+  value       = data.terraform_remote_state.foundation.outputs.vpc_resources.route_tables.private_rt_id
 }
 

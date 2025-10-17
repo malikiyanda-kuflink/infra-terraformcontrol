@@ -42,8 +42,8 @@ module "s3-admin" {
   aws_cli_region                   = local.aws_cli_region
 
   # --- CI/CD pipeline inputs ---
-  admin_codebuild_role_arn    = data.terraform_remote_state.foundation.outputs.s3_admin_codebuild_role_arn
-  admin_codepipeline_role_arn = data.terraform_remote_state.foundation.outputs.s3_admin_codepipeline_role_arn
+  admin_codebuild_role_arn    = data.terraform_remote_state.foundation.outputs.iam_resources.s3_admin.codebuild_role_arn
+  admin_codepipeline_role_arn = data.terraform_remote_state.foundation.outputs.iam_resources.s3_admin.codepipeline_role_arn
   admin_codestar_connection   = local.admin_codestar_connection
   admin_repo                  = local.admin_repo
   admin_branch                = local.admin_branch

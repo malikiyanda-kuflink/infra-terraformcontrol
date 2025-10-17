@@ -3,7 +3,7 @@
 #============================================================
 resource "aws_security_group" "dbt_sg" {
   name_prefix = "${local.name_prefix}-dbt-access"
-  vpc_id      = data.terraform_remote_state.foundation.outputs.vpc_id
+  vpc_id      = data.terraform_remote_state.foundation.outputs.vpc_resources.vpc.id
   tags        = { Name = "Kuflink-Test-DBT-EC2-SG" }
 }
 
@@ -23,7 +23,7 @@ resource "aws_security_group" "dms_deprecated_vpc_sg" {
 resource "aws_security_group" "dms_vpc_sg" {
   name        = "${local.name_prefix}-dms-sg-access"
   description = "DMS SG for Test VPC"
-  vpc_id      = data.terraform_remote_state.foundation.outputs.vpc_id
+  vpc_id      = data.terraform_remote_state.foundation.outputs.vpc_resources.vpc.id
   tags        = { Name = "Kuflink-Test-DMS-Deprecated-SG" }
 }
 #============================================================
@@ -41,7 +41,7 @@ resource "aws_security_group" "rds_deprecated_sg" {
 resource "aws_security_group" "rds_sg" {
   name        = "${local.name_prefix}-rds-access"
   description = "Allow SQL access to RDS"
-  vpc_id      = data.terraform_remote_state.foundation.outputs.vpc_id
+  vpc_id      = data.terraform_remote_state.foundation.outputs.vpc_resources.vpc.id
   tags        = { Name = "Kuflink-Test-RDS-SG" }
 }
 
@@ -51,7 +51,7 @@ resource "aws_security_group" "rds_sg" {
 # resource "aws_security_group" "redis_sg" {
 #   name        = "${local.name_prefix}-redis-sg-access"
 #   description = "Allow Redis traffic"
-#   vpc_id      = data.terraform_remote_state.foundation.outputs.vpc_id
+#   vpc_id      = data.terraform_remote_state.foundation.outputs.vpc_resources.vpc.id
 #   tags = {
 #     Name         = "Kuflink-Test-Redis-SG"
 #     Descriptpion = "Redis Security Group for laravel-php-api"
@@ -74,6 +74,6 @@ resource "aws_security_group" "deprecated_redshift_access" {
 resource "aws_security_group" "redshift_access" {
   name        = "${local.name_prefix}-redshift-access"
   description = "Hardened SG for Redshift - trusted IPs only"
-  vpc_id      = data.terraform_remote_state.foundation.outputs.vpc_id
+  vpc_id      = data.terraform_remote_state.foundation.outputs.vpc_resources.vpc.id
   tags        = { Name = "Kuflink-Test-RedShift-SG" }
 }

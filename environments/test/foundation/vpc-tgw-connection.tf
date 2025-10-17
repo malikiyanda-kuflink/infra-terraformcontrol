@@ -176,13 +176,13 @@ resource "aws_route" "staging_to_test" {
   transit_gateway_id     = data.aws_ec2_transit_gateway.existing_tgw.id
 }
 
-###############################################################
-# Outputs
-###############################################################
-output "test_vpc_attachment_id" {
-  value = aws_ec2_transit_gateway_vpc_attachment.test.id
-}
+# ###############################################################
+# # Outputs
+# ###############################################################
+# output "test_vpc_attachment_id" {
+#   value = aws_ec2_transit_gateway_vpc_attachment.test.id
+# }
 
-output "connected_tgw_id" {
-  value = data.aws_ec2_transit_gateway.existing_tgw.id
-}
+# output "connected_tgw_id" {
+#   value = data.aws_ec2_transit_gateway.existing_tgw.id
+# }

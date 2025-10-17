@@ -29,8 +29,6 @@ locals {
   # Set this to a non-empty value to perform a restore
   db_snapshot_identifier       = "kuflink-mysql-latest"
   redshift_snapshot_identifier = "kuflink-redshift-latest"
-  # dms_access_for_endpoint_arn  = data.terraform_remote_state.foundation.outputs.staging_dms_endpoint_access_arn 
-
   mysql_port    = 3306
   redshift_port = 5439
 

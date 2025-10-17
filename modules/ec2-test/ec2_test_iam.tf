@@ -1,10 +1,3 @@
-data "aws_caller_identity" "current" {}
-
-locals {
-  ssh_key_ssm_arn = "arn:aws:ssm:eu-west-2:${data.aws_caller_identity.current.account_id}:parameter/${var.ssh_key_parameter_name}"
-}
-
-
 resource "aws_iam_instance_profile" "ec2_test_instance_profile" {
   name = "ec2-test-instance-profile"
   role = aws_iam_role.ec2_test_role.name

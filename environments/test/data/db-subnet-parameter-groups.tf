@@ -7,7 +7,7 @@
 # Subnet Group
 resource "aws_db_subnet_group" "kuflink_db_subnet_group" {
   name       = "${local.name_prefix}-private-subnet-group"
-  subnet_ids = data.terraform_remote_state.foundation.outputs.private_subnet_ids
+  subnet_ids = data.terraform_remote_state.foundation.outputs.vpc_resources.subnets.private_ids
 
   tags = { Name = "${local.name_prefix}-private-subnet-group" }
 }
@@ -39,7 +39,7 @@ resource "aws_db_parameter_group" "kuflink_parameter_group" {
 resource "aws_redshift_subnet_group" "kuflink_redshift_subnet_group" {
   name        = "${local.name_prefix}-private-redshift-subnet-group"
   description = "Private subnet group for Redshift cluster"
-  subnet_ids  = data.terraform_remote_state.foundation.outputs.private_subnet_ids
+  subnet_ids  = data.terraform_remote_state.foundation.outputs.vpc_resources.subnets.private_ids
 
   tags = {
     Name = "${local.name_prefix}-redshift-subnet-group"
@@ -68,7 +68,7 @@ resource "aws_dms_replication_subnet_group" "dms_subnet_group" {
   count                                = local.enable_redshift ? 1 : 0
   replication_subnet_group_id          = "dms-${local.name_prefix}-subnet-group"
   replication_subnet_group_description = "Subnet group for private DMS replication"
-  subnet_ids                           = data.terraform_remote_state.foundation.outputs.private_subnet_ids
+  subnet_ids                           = data.terraform_remote_state.foundation.outputs.vpc_resources.subnets.private_ids
 
   tags = {
     Name = "${local.name_prefix} DMS Subnet Group"

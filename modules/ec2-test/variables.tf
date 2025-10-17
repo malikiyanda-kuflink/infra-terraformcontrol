@@ -1,8 +1,3 @@
-variable "ssh_key_parameter_name" {
-  description = "SSM Parameter name for SSH PEM key"
-  type        = string
-}
-
 variable "vpc_id" {
   description = "VPC ID for the security group"
   type        = string

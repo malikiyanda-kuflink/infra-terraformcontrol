@@ -19,8 +19,8 @@ resource "aws_vpc_security_group_ingress_rule" "bastion_office_pf" {
   security_group_id = aws_security_group.bastion_sg.id
   description       = "Office PF"
   ip_protocol       = "tcp"
-  from_port         = data.terraform_remote_state.foundation.outputs.bastion_forward_port
-  to_port           = data.terraform_remote_state.foundation.outputs.bastion_forward_port
+  from_port         = data.terraform_remote_state.foundation.outputs.ec2_bastion.forward_port
+  to_port           = data.terraform_remote_state.foundation.outputs.ec2_bastion.forward_port
   cidr_ipv4         = each.key
 }
 
@@ -32,7 +32,7 @@ resource "aws_vpc_security_group_ingress_rule" "bastion_ngw_22" {
   ip_protocol       = "tcp"
   from_port         = 22
   to_port           = 22
-  cidr_ipv4         = data.terraform_remote_state.foundation.outputs.ngw_ip
+  cidr_ipv4         = data.terraform_remote_state.foundation.outputs.prod_ngw_ip
 }
 
 resource "aws_vpc_security_group_ingress_rule" "bastion_ngw" {
@@ -40,9 +40,9 @@ resource "aws_vpc_security_group_ingress_rule" "bastion_ngw" {
   security_group_id = aws_security_group.bastion_sg.id
   description       = "Prod NGW PF"
   ip_protocol       = "tcp"
-  from_port         = data.terraform_remote_state.foundation.outputs.bastion_forward_port
-  to_port           = data.terraform_remote_state.foundation.outputs.bastion_forward_port
-  cidr_ipv4         = data.terraform_remote_state.foundation.outputs.ngw_ip
+  from_port         = data.terraform_remote_state.foundation.outputs.ec2_bastion.forward_port
+  to_port           = data.terraform_remote_state.foundation.outputs.ec2_bastion.forward_port
+  cidr_ipv4         = data.terraform_remote_state.foundation.outputs.prod_ngw_ip
 }
 
 # ---------------------------------------
@@ -119,7 +119,7 @@ resource "aws_vpc_security_group_ingress_rule" "redis_office_ssh" {
 
 # Private subnets → Redis (6379)
 resource "aws_vpc_security_group_ingress_rule" "redis_private_cidrs" {
-  for_each          = toset(data.terraform_remote_state.foundation.outputs.private_subnet_cidrs)
+  for_each          = toset(data.terraform_remote_state.foundation.outputs.vpc_resources.subnets.private_cidrs)
   security_group_id = aws_security_group.redis_sg.id
   description       = "Allow Private Subnet CIDR"
   ip_protocol       = "tcp"

@@ -28,7 +28,7 @@ resource "aws_vpc_security_group_ingress_rule" "rds_office_mysql" {
 
 # Private subnets → MySQL (3306)
 resource "aws_vpc_security_group_ingress_rule" "rds_private_mysql" {
-  for_each          = toset(data.terraform_remote_state.foundation.outputs.private_subnet_cidrs)
+  for_each          = toset(data.terraform_remote_state.foundation.outputs.vpc_resources.subnets.private_cidrs)
   security_group_id = aws_security_group.rds_sg.id
   description       = "Allow Private Subnet CIDR"
   ip_protocol       = "tcp"
@@ -76,7 +76,7 @@ resource "aws_vpc_security_group_ingress_rule" "redshift_office" {
 
 # Private subnets → 5439
 resource "aws_vpc_security_group_ingress_rule" "redshift_private_cidrs" {
-  for_each          = toset(data.terraform_remote_state.foundation.outputs.private_subnet_cidrs)
+  for_each          = toset(data.terraform_remote_state.foundation.outputs.vpc_resources.subnets.private_cidrs)
   security_group_id = aws_security_group.redshift_access.id
   description       = "Allow Private Subnet CIDR"
   ip_protocol       = "tcp"

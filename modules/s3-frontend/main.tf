@@ -1,5 +1,5 @@
 resource "aws_codestarconnections_connection" "frontend_github_connection" {
-  name          = "kuflink-${var.environment}-connection"
+  name          = "kuflink-${var.environment}-github-connection"
   provider_type = "GitHub"
 }
 

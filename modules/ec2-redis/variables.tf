@@ -1,6 +1,5 @@
 variable "private_subnet_id" { type = string }
 variable "vpc_id" { type = string }
-variable "ssh_key_parameter_name" { type = string }
 variable "redis_instance_profile_name" { type = string }
 variable "redis_name" { type = string }
 variable "instance_type" { type = string }
