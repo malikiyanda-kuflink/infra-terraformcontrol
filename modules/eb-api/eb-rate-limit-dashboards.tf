@@ -8,12 +8,28 @@
 # - Elastic Beanstalk (EB) environment health - LEFT SIDE
 # - Request rates, errors, response times, and connection metrics
 # =============================================================================
+
+# Get the Load Balancer by Elastic Beanstalk tags
+data "aws_lb" "web_alb" {
+  tags = {
+    "elasticbeanstalk:environment-name" = var.web_env_name
+  }
+}
 locals {
   dashboard_name = "${var.application_name}-API-Rate-Limiting-Monitoring-Dashboard"
 
-  # From ARN → "app/<name>/<id>"
-  alb_dimension          = try(regex("app/.+$", var.web_alb_arn), "")
-  target_group_dimension = local.primary_tg_dimension
+  # Extract the load balancer dimension in the format CloudWatch expects
+  # From: arn:aws:elasticloadbalancing:region:account:loadbalancer/app/name/id
+  # To: app/name/id (required format for CloudWatch metrics)
+  alb_dimension = try(
+    regex("app/.+$", data.aws_lb.web_alb.arn),
+    ""
+  )
+
+  # NEW: first TG ARN returned by the tag query
+  target_group_arn       = try(element(data.aws_resourcegroupstaggingapi_resources.eb_tgs.resource_tag_mapping_list[*].resource_arn, 0), "")
+  # Convert ARN -> "targetgroup/<name>/<id>" for CloudWatch
+  target_group_dimension = try(regex("targetgroup/.+$", local.target_group_arn), "")
 }
 
 resource "aws_cloudwatch_dashboard" "eb_monitoring" {
@@ -44,26 +60,18 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       # =========================================================================
       # NEW TOP NUMBERS (height >= 3) — now filtered by TargetGroup + LoadBalancer
       # =========================================================================
-      # Widget 1: Healthy Targets - FIXED
       {
-        type   = "metric"
-        x      = 0
-        y      = 2
-        width  = 12
+        type = "metric"
+        x    = 0
+        y    = 2
+        width = 12
         height = 3
         properties = {
-          metrics = local.target_group_dimension != "" && local.alb_dimension != "" ? [
+          metrics = [
             ["AWS/ApplicationELB", "HealthyHostCount",
-              "TargetGroup", local.target_group_dimension,
-              "LoadBalancer", local.alb_dimension,
-              { stat = "Average", label = "Healthy Targets" }
-            ]
-            ] : [
-            # MUST have same structure - 7 elements
-            ["AWS/ApplicationELB", "HealthyHostCount",
-              "TargetGroup", "targetgroup/placeholder/0000000000000000",
-              "LoadBalancer", "app/placeholder/0000000000000000",
-              { stat = "Average", label = "Healthy Targets (Initializing)" }
+                "TargetGroup",  local.target_group_dimension,
+                "LoadBalancer", local.alb_dimension,
+              { stat  = "Average", label = "Healthy Targets" }
             ]
           ]
           view                 = "singleValue"
@@ -72,27 +80,18 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
           setPeriodToTimeRange = true
         }
       },
-
-      # Widget 2: Unhealthy Targets - FIXED
       {
-        type   = "metric"
-        x      = 12
-        y      = 2
-        width  = 12
+        type = "metric"
+        x    = 12
+        y    = 2
+        width = 12
         height = 3
         properties = {
-          metrics = local.target_group_dimension != "" && local.alb_dimension != "" ? [
+          metrics = [
             ["AWS/ApplicationELB", "UnHealthyHostCount",
-              "TargetGroup", local.target_group_dimension,
-              "LoadBalancer", local.alb_dimension,
-              { stat = "Average", label = "Unhealthy Targets" }
-            ]
-            ] : [
-            # MUST have same structure - 7 elements
-            ["AWS/ApplicationELB", "UnHealthyHostCount",
-              "TargetGroup", "targetgroup/placeholder/0000000000000000",
-              "LoadBalancer", "app/placeholder/0000000000000000",
-              { stat = "Average", label = "Unhealthy Targets (Initializing)" }
+                "TargetGroup",  local.target_group_dimension,
+                "LoadBalancer", local.alb_dimension,
+              { stat  = "Average", label = "Unhealthy Targets" }
             ]
           ]
           view                 = "singleValue"
@@ -118,15 +117,15 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
 
       # Widget 1 (LEFT): Elastic Beanstalk Environment Health Score
       {
-        type   = "metric"
-        x      = 0
-        y      = 9
-        width  = 12
+        type = "metric"
+        x    = 0
+        y    = 9
+        width = 12
         height = 6
         properties = {
           metrics = [
             ["AWS/ElasticBeanstalk", "EnvironmentHealth", "EnvironmentName", var.web_env_name, {
-              stat  = "Average",
+              stat = "Average",
               label = "Environment Health Score"
             }]
           ]
@@ -137,9 +136,9 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
           period  = 300
           yAxis = {
             left = {
-              min       = 0
-              max       = 4
-              label     = "Health Score"
+              min = 0
+              max = 4
+              label = "Health Score"
               showUnits = false
             }
           }
@@ -157,34 +156,34 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
 
       # Widget 2 (RIGHT): ALB Total Request Volume
       {
-        type   = "metric"
-        x      = 0
-        y      = 6
-        width  = 24
-        height = 3
-        properties = {
-          metrics = [
-            ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", local.alb_dimension, {
-              stat  = "Sum",
-              label = "Total Requests in Selected Period"
-            }]
-          ]
-          view                 = "singleValue"
-          region               = var.aws_region
-          title                = "Total Requests (Selected Time Range)"
-          setPeriodToTimeRange = true
-        }
-      },
+  type = "metric"
+  x    = 0
+  y    = 6
+  width = 24
+  height = 3
+  properties = {
+    metrics = [
+      ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", local.alb_dimension, {
+        stat = "Sum",
+        label = "Total Requests in Selected Period"
+      }]
+    ]
+    view    = "singleValue"
+    region  = var.aws_region
+    title   = "Total Requests (Selected Time Range)"
+    setPeriodToTimeRange = true
+  }
+},
       {
-        type   = "metric"
-        x      = 12
-        y      = 9
-        width  = 12
+        type = "metric"
+        x    = 12
+        y    = 9
+        width = 12
         height = 6
         properties = {
           metrics = [
             ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", local.alb_dimension, {
-              stat  = "Sum",
+              stat = "Sum",
               label = "Total Requests (5 min)"
             }]
           ]
@@ -195,7 +194,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
           period  = 300
           yAxis = {
             left = {
-              label     = "Request Count"
+              label = "Request Count"
               showUnits = false
             }
           }
@@ -245,31 +244,25 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       # Widget 3A: Request Rate Statistics (Max/Avg/Min) - 3 number widgets
 
       # Max Request Rate (CRITICAL for WAF rate limit planning)
-      {
-        type   = "metric"
-        x      = 0
-        y      = 18
-        width  = 4
-        height = 3
-        properties = {
-          metrics = [
-            [{
-              expression = "m1/PERIOD(m1)*60",
-              label      = "Peak Rate",
-              id         = "e1"
-            }],
-            ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", local.alb_dimension, {
-              stat    = "Maximum",
-              id      = "m1",
-              visible = false
-            }]
-          ]
-          view   = "singleValue"
-          region = var.aws_region
-          title  = "Peak req/min"
-          period = 60
-        }
-      },
+{
+  type = "metric"
+  x    = 0
+  y    = 18
+  width = 4
+  height = 3
+  properties = {
+    metrics = [
+      ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", local.alb_dimension, {
+        stat = "Maximum",
+        label = "Peak Rate"
+      }]
+    ]
+    view    = "singleValue"
+    region  = var.aws_region
+    title   = "Peak requests (1 min window)"
+    period  = 60
+  }
+},
 
       # Max explanation
       {
@@ -285,28 +278,28 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
 
       # Average Request Rate
       {
-        type   = "metric"
-        x      = 4
-        y      = 18
-        width  = 4
+        type = "metric"
+        x    = 4
+        y    = 18
+        width = 4
         height = 3
         properties = {
           metrics = [
             [{
               expression = "m1/PERIOD(m1)*60",
-              label      = "Avg Rate",
-              id         = "e1"
+              label = "Avg Rate",
+              id = "e1"
             }],
             ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", local.alb_dimension, {
-              stat    = "Average",
-              id      = "m1",
+              stat = "Average",
+              id = "m1",
               visible = false
             }]
           ]
-          view   = "singleValue"
-          region = var.aws_region
-          title  = "Avg req/min"
-          period = 60
+          view    = "singleValue"
+          region  = var.aws_region
+          title   = "Avg req/min"
+          period  = 60
         }
       },
 
@@ -324,28 +317,28 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
 
       # Min Request Rate
       {
-        type   = "metric"
-        x      = 8
-        y      = 18
-        width  = 4
+        type = "metric"
+        x    = 8
+        y    = 18
+        width = 4
         height = 3
         properties = {
           metrics = [
             [{
               expression = "m1/PERIOD(m1)*60",
-              label      = "Min Rate",
-              id         = "e1"
+              label = "Min Rate",
+              id = "e1"
             }],
             ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", local.alb_dimension, {
-              stat    = "Minimum",
-              id      = "m1",
+              stat = "Minimum",
+              id = "m1",
               visible = false
             }]
           ]
-          view   = "singleValue"
-          region = var.aws_region
-          title  = "Min req/min"
-          period = 60
+          view    = "singleValue"
+          region  = var.aws_region
+          title   = "Min req/min"
+          period  = 60
         }
       },
 
@@ -363,22 +356,22 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
 
       # Widget 3B (LEFT): Requests Per Minute Graph
       {
-        type   = "metric"
-        x      = 0
-        y      = 21
-        width  = 12
+        type = "metric"
+        x    = 0
+        y    = 21
+        width = 12
         height = 7
         properties = {
           metrics = [
             [{
               expression = "m1/PERIOD(m1)*60",
-              label      = "Requests per Minute",
-              id         = "e1",
-              color      = "#1f77b4"
+              label = "Requests per Minute",
+              id = "e1",
+              color = "#1f77b4"
             }],
             ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", local.alb_dimension, {
-              stat    = "Sum",
-              id      = "m1",
+              stat = "Sum",
+              id = "m1",
               visible = false
             }]
           ]
@@ -389,7 +382,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
           period  = 60
           yAxis = {
             left = {
-              label     = "Requests/min"
+              label = "Requests/min"
               showUnits = false
             }
           }
@@ -400,28 +393,28 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
 
       # Average Response Time (top left)
       {
-        type   = "metric"
-        x      = 12
-        y      = 18
-        width  = 6
+        type = "metric"
+        x    = 12
+        y    = 18
+        width = 6
         height = 3
         properties = {
           metrics = [
             [{
               expression = "m1*1000",
-              label      = "Avg Response",
-              id         = "e1"
+              label = "Avg Response",
+              id = "e1"
             }],
             ["AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", local.alb_dimension, {
-              stat    = "Average",
-              id      = "m1",
+              stat = "Average",
+              id = "m1",
               visible = false
             }]
           ]
-          view   = "singleValue"
-          region = var.aws_region
-          title  = "Avg Response (ms)"
-          period = 300
+          view    = "singleValue"
+          region  = var.aws_region
+          title   = "Avg Response (ms)"
+          period  = 300
         }
       },
 
@@ -430,7 +423,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
         type   = "text"
         x      = 12
         y      = 21
-        width  = 6
+        width = 6
         height = 1
         properties = {
           markdown = "Mean time for all requests"
@@ -439,28 +432,28 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
 
       # p95 Response Time (top right)
       {
-        type   = "metric"
-        x      = 18
-        y      = 18
-        width  = 6
+        type = "metric"
+        x    = 18
+        y    = 18
+        width = 6
         height = 3
         properties = {
           metrics = [
             [{
               expression = "m1*1000",
-              label      = "p95 Response",
-              id         = "e1"
+              label = "p95 Response",
+              id = "e1"
             }],
             ["AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", local.alb_dimension, {
-              stat    = "p95",
-              id      = "m1",
+              stat = "p95",
+              id = "m1",
               visible = false
             }]
           ]
-          view   = "singleValue"
-          region = var.aws_region
-          title  = "p95 Response (ms)"
-          period = 300
+          view    = "singleValue"
+          region  = var.aws_region
+          title   = "p95 Response (ms)"
+          period  = 300
         }
       },
 
@@ -469,7 +462,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
         type   = "text"
         x      = 18
         y      = 21
-        width  = 6
+        width = 6
         height = 1
         properties = {
           markdown = "95% of requests faster than this"
@@ -478,28 +471,28 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
 
       # p99 Response Time (bottom left)
       {
-        type   = "metric"
-        x      = 12
-        y      = 22
-        width  = 6
+        type = "metric"
+        x    = 12
+        y    = 22
+        width = 6
         height = 3
         properties = {
           metrics = [
             [{
               expression = "m1*1000",
-              label      = "p99 Response",
-              id         = "e1"
+              label = "p99 Response",
+              id = "e1"
             }],
             ["AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", local.alb_dimension, {
-              stat    = "p99",
-              id      = "m1",
+              stat = "p99",
+              id = "m1",
               visible = false
             }]
           ]
-          view   = "singleValue"
-          region = var.aws_region
-          title  = "p99 Response (ms)"
-          period = 300
+          view    = "singleValue"
+          region  = var.aws_region
+          title   = "p99 Response (ms)"
+          period  = 300
         }
       },
 
@@ -508,7 +501,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
         type   = "text"
         x      = 12
         y      = 25
-        width  = 6
+        width = 6
         height = 1
         properties = {
           markdown = "99% of requests faster (slowest 1%)"
@@ -517,28 +510,28 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
 
       # Max Response Time (bottom right)
       {
-        type   = "metric"
-        x      = 18
-        y      = 22
-        width  = 6
+        type = "metric"
+        x    = 18
+        y    = 22
+        width = 6
         height = 3
         properties = {
           metrics = [
             [{
               expression = "m1*1000",
-              label      = "Max Response",
-              id         = "e1"
+              label = "Max Response",
+              id = "e1"
             }],
             ["AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", local.alb_dimension, {
-              stat    = "Maximum",
-              id      = "m1",
+              stat = "Maximum",
+              id = "m1",
               visible = false
             }]
           ]
-          view   = "singleValue"
-          region = var.aws_region
-          title  = "Max Response (ms)"
-          period = 300
+          view    = "singleValue"
+          region  = var.aws_region
+          title   = "Max Response (ms)"
+          period  = 300
         }
       },
 
@@ -578,57 +571,57 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
 
       # Widget 5 (LEFT): ALB & Target Error Counts – singleValue, inherits dashboard time range
       {
-        type   = "metric"
-        x      = 0
-        y      = 30
-        width  = 12
+        type = "metric"
+        x    = 0
+        y    = 30
+        width = 12
         height = 3
         properties = {
           metrics = [
             ["AWS/ApplicationELB", "HTTPCode_Target_4XX_Count", "LoadBalancer", local.alb_dimension, {
-              stat  = "Sum",
+              stat = "Sum",
               label = "Target 4XX (Client Errors)",
               color = "#FF9900"
             }],
             ["AWS/ApplicationELB", "HTTPCode_Target_5XX_Count", "LoadBalancer", local.alb_dimension, {
-              stat  = "Sum",
+              stat = "Sum",
               label = "Target 5XX (Server Errors)",
               color = "#D13212"
             }],
             ["AWS/ApplicationELB", "HTTPCode_ELB_4XX_Count", "LoadBalancer", local.alb_dimension, {
-              stat  = "Sum",
+              stat = "Sum",
               label = "ALB 4XX (LB Rejected)",
               color = "#1f77b4"
             }],
             ["AWS/ApplicationELB", "HTTPCode_ELB_5XX_Count", "LoadBalancer", local.alb_dimension, {
-              stat  = "Sum",
+              stat = "Sum",
               label = "ALB 5XX (LB Failures)",
               color = "#8B0000"
             }]
           ]
-          view                 = "singleValue"
-          region               = var.aws_region
-          title                = "5. Error Totals (Target vs ALB)"
-          setPeriodToTimeRange = true
+          view                  = "singleValue"
+          region                = var.aws_region
+          title                 = "5. Error Totals (Target vs ALB)"
+          setPeriodToTimeRange  = true
         }
       },
 
       # Widget 6 (RIGHT): ALB Connection Metrics
       {
-        type   = "metric"
-        x      = 12
-        y      = 30
-        width  = 12
+        type = "metric"
+        x    = 12
+        y    = 30
+        width = 12
         height = 6
         properties = {
           metrics = [
             ["AWS/ApplicationELB", "ActiveConnectionCount", "LoadBalancer", local.alb_dimension, {
-              stat  = "Sum",
+              stat = "Sum",
               label = "Active Connections",
               color = "#1f77b4"
             }],
             ["AWS/ApplicationELB", "NewConnectionCount", "LoadBalancer", local.alb_dimension, {
-              stat  = "Sum",
+              stat = "Sum",
               label = "New Connections",
               color = "#2ca02c"
             }]
@@ -640,7 +633,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
           period  = 300
           yAxis = {
             left = {
-              label     = "Connection Count"
+              label = "Connection Count"
               showUnits = false
             }
           }
@@ -703,15 +696,15 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
 
       # Widget 7: Processed Bytes
       {
-        type   = "metric"
-        x      = 0
-        y      = 39
-        width  = 12
+        type = "metric"
+        x    = 0
+        y    = 39
+        width = 12
         height = 6
         properties = {
           metrics = [
             ["AWS/ApplicationELB", "ProcessedBytes", "LoadBalancer", local.alb_dimension, {
-              stat  = "Sum",
+              stat = "Sum",
               label = "Total Bytes Processed",
               color = "#1f77b4"
             }]
@@ -723,7 +716,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
           period  = 300
           yAxis = {
             left = {
-              label     = "Bytes"
+              label = "Bytes"
               showUnits = false
             }
           }
@@ -732,30 +725,30 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
 
       # Widget 8 (RIGHT): HTTP Response Code Distribution (over time)
       {
-        type   = "metric"
-        x      = 12
-        y      = 39
-        width  = 12
+        type = "metric"
+        x    = 12
+        y    = 39
+        width = 12
         height = 6
         properties = {
           metrics = [
             ["AWS/ApplicationELB", "HTTPCode_Target_2XX_Count", "LoadBalancer", local.alb_dimension, {
-              stat  = "Sum",
+              stat = "Sum",
               label = "2XX Success",
               color = "#2ca02c"
             }],
             ["AWS/ApplicationELB", "HTTPCode_Target_3XX_Count", "LoadBalancer", local.alb_dimension, {
-              stat  = "Sum",
+              stat = "Sum",
               label = "3XX Redirects",
               color = "#1f77b4"
             }],
             ["AWS/ApplicationELB", "HTTPCode_Target_4XX_Count", "LoadBalancer", local.alb_dimension, {
-              stat  = "Sum",
+              stat = "Sum",
               label = "Target 4XX",
               color = "#ff9900"
             }],
             ["AWS/ApplicationELB", "HTTPCode_Target_5XX_Count", "LoadBalancer", local.alb_dimension, {
-              stat  = "Sum",
+              stat = "Sum",
               label = "Target 5XX",
               color = "#d13212"
             }]
@@ -767,7 +760,7 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
           period  = 300
           yAxis = {
             left = {
-              label     = "Request Count"
+              label = "Request Count"
               showUnits = false
             }
           }
@@ -844,6 +837,9 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
     ]
   })
 
+  depends_on = [
+    data.aws_lb.web_alb
+  ]
 }
 
 # =============================================================================

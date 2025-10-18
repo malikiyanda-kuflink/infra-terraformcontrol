@@ -149,6 +149,7 @@ resource "aws_cloudfront_distribution" "this" {
   viewer_certificate {
     acm_certificate_arn = var.cf_cert_arn # must be in us-east-1
     ssl_support_method  = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
   }
 
   tags = merge(
