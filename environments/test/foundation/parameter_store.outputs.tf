@@ -84,11 +84,6 @@ output "s3_frontend" {
   sensitive = true
 }
 
-output "db_dms" {
-  value       = module.secrets.db_dms
-  sensitive   = true
-} 
-
 output "db_redshift" {
   value  = module.secrets.db_redshift
   sensitive = true
@@ -112,11 +107,6 @@ output "eb_api" {
   value       = module.secrets.eb_api
   description = "Backend api environment variables"
   sensitive   = true
-}
-
-output "ec2_bastion" {
-  value = module.secrets.ec2_bastion
-  sensitive = true
 }
 
 output "ec2_metabase" {
