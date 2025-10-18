@@ -31,9 +31,9 @@ module "rds" {
   tags               = { Project = "Kuflink" }
 
   rds_sg_id   = aws_security_group.rds_sg.id
-  db_username            = data.terraform_remote_state.foundation.outputs.db_rds.username
-  db_password            = data.terraform_remote_state.foundation.outputs.db_rds.password
-  db_database            = data.terraform_remote_state.foundation.outputs.db_rds.database
+  db_username = data.terraform_remote_state.foundation.outputs.db_rds.username
+  db_password = data.terraform_remote_state.foundation.outputs.db_rds.password
+  db_database = data.terraform_remote_state.foundation.outputs.db_rds.database
 
 
   db_parameter_group_name = aws_db_parameter_group.kuflink_parameter_group.name
@@ -203,10 +203,10 @@ module "dms_mysql_to_redshift" {
   target_db_port = "5439"
 
   # ---------- TARGET (Redshift) ----------
-  target_endpoint_id = "${local.env}-redshift-target"
-  target_db_user     = data.terraform_remote_state.foundation.outputs.db_redshift.username
-  target_db_password = data.terraform_remote_state.foundation.outputs.db_redshift.password
-  target_db_name     = data.terraform_remote_state.foundation.outputs.db_redshift.database_name
+  target_endpoint_id               = "${local.env}-redshift-target"
+  target_db_user                   = data.terraform_remote_state.foundation.outputs.db_redshift.username
+  target_db_password               = data.terraform_remote_state.foundation.outputs.db_redshift.password
+  target_db_name                   = data.terraform_remote_state.foundation.outputs.db_redshift.database_name
   dms_access_for_endpoint_role_arn = data.terraform_remote_state.foundation.outputs.db_dms.endpoint_access_arn
   # target_db_host = trimsuffix(aws_route53_record.live_redshift[0].fqdn, ".")  #“cluster region is co and the current region is eu-west-2.”
 
@@ -214,7 +214,7 @@ module "dms_mysql_to_redshift" {
     ? replace(module.redshift_restore[0].redshift_endpoint_address, "/:[0-9]+$/", "")
   : replace(module.redshift[0].redshift_endpoint_address, "/:[0-9]+$/", "")) : ""
 
-  replication_task_id              = "${local.env}-mysql-to-redshift-full-cdc-sync"
-  full_load_replication_task_id    = "${local.env}-mysql-to-redshift-full-sync"
+  replication_task_id           = "${local.env}-mysql-to-redshift-full-cdc-sync"
+  full_load_replication_task_id = "${local.env}-mysql-to-redshift-full-sync"
 }
 

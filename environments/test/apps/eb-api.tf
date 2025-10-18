@@ -114,7 +114,7 @@ module "eb-api" {
   db_connection          = data.terraform_remote_state.foundation.outputs.db_rds.connection
   db_connection_readonly = data.terraform_remote_state.foundation.outputs.db_rds.connection_readonly
   db_database            = data.terraform_remote_state.foundation.outputs.db_rds.database
-  
+
   # Primary DB host: live alias → stable fallback → "none"
   db_host = trimsuffix(
     coalesce(

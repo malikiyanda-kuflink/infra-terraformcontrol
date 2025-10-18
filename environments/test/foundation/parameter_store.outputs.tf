@@ -64,43 +64,43 @@ output "cloudfront_cert_arn" {
 output "office_cidr" {
   value       = data.aws_ssm_parameter.office_cidr.value
   sensitive   = true
-  description = "On Prem CIDR" 
+  description = "On Prem CIDR"
 }
 
 
 
 output "global" {
-  value       = module.secrets.global
-  sensitive   = true
-} 
+  value     = module.secrets.global
+  sensitive = true
+}
 
 output "s3_admin" {
-  value = module.secrets.s3_admin
+  value     = module.secrets.s3_admin
   sensitive = true
 }
 
 output "s3_frontend" {
-  value = module.secrets.s3_frontend
+  value     = module.secrets.s3_frontend
   sensitive = true
 }
 
 output "db_redshift" {
-  value  = module.secrets.db_redshift
+  value     = module.secrets.db_redshift
   sensitive = true
 }
 output "db_rds" {
-  value       = module.secrets.db_rds
-  sensitive   = true
+  value     = module.secrets.db_rds
+  sensitive = true
 }
 
 output "ec2_redis" {
-  value       = module.secrets.ec2_redis
-  sensitive   = true
+  value     = module.secrets.ec2_redis
+  sensitive = true
 }
 
 output "elastic_cache_redis" {
-  value       = module.secrets.elastic_cache_redis
-  sensitive   = true
+  value     = module.secrets.elastic_cache_redis
+  sensitive = true
 }
 
 output "eb_api" {
@@ -110,7 +110,7 @@ output "eb_api" {
 }
 
 output "ec2_metabase" {
-  value = module.secrets.ec2_metabase
+  value     = module.secrets.ec2_metabase
   sensitive = true
 }
 

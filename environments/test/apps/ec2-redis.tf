@@ -14,6 +14,6 @@ module "ec2-redis" {
   associate_public_ip_address       = false
   redis_user_data_replace_on_change = false
   redis_user_data                   = file("${path.root}/user-data/redis_user_data.sh")
-  redis_name                        = "Kuflink-Test-Redis" 
+  redis_name                        = "Kuflink-Test-Redis"
 
 }

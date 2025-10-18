@@ -24,9 +24,9 @@ locals {
   environment       = "Test"
   name_prefix_upper = "Kuflink-Test"
 
-  aws_route53_zone       = data.terraform_remote_state.foundation.outputs.route53_zone_name
-  hosted_zone_id         = data.terraform_remote_state.foundation.outputs.route53_hosted_zone_id
-  cloudfront_zone_id     = data.terraform_remote_state.foundation.outputs.cloudfront_zone_id
+  aws_route53_zone   = data.terraform_remote_state.foundation.outputs.route53_zone_name
+  hosted_zone_id     = data.terraform_remote_state.foundation.outputs.route53_hosted_zone_id
+  cloudfront_zone_id = data.terraform_remote_state.foundation.outputs.cloudfront_zone_id
   # -----------------------------------------------------------------
   # Admin (S3 + CLOUDFRONT) TOGGLES / NAMES
   # Enable/disable the static admin, domain mappings, hosted zone

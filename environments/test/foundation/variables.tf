@@ -16,7 +16,7 @@ variable "module_versions" {
 variable "environment" {
   type        = string
   description = "Deployment environment (test | staging | production)"
-  default = "test"
+  default     = "test"
 }
 
 #Tigger 

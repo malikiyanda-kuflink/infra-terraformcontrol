@@ -5,7 +5,7 @@ module "ec2-dbt" {
   private_subnet_id         = data.terraform_remote_state.foundation.outputs.private_subnet_ids[2]
   dbt_sg_id                 = data.terraform_remote_state.data.outputs.dbt_sg_id
   dbt_instance_profile_name = data.terraform_remote_state.foundation.outputs.dbt_ec2_instance_profile_name
- 
+
 
   ssh_key_name  = data.terraform_remote_state.foundation.outputs.ec2_key_name
   instance_type = "t3.medium"

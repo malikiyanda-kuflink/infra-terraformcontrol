@@ -8,6 +8,6 @@ locals {
     private_cidrs = ["172.40.11.0/24", "172.40.12.0/24", "172.40.13.0/24"]
 
     enable_dns_hostnames = true
-    enable_dns_support = true 
+    enable_dns_support   = true
   }
 }

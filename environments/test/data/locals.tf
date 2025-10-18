@@ -29,8 +29,8 @@ locals {
   # Set this to a non-empty value to perform a restore
   db_snapshot_identifier       = "kuflink-mysql-latest"
   redshift_snapshot_identifier = "kuflink-redshift-latest"
-  mysql_port    = 3306
-  redshift_port = 5439
+  mysql_port                   = 3306
+  redshift_port                = 5439
 
   blue_mysql_host    = length(data.aws_db_instance.rds_legacy) > 0 ? data.aws_db_instance.rds_legacy[0].address : "no-${local.env}-rds-instance"
   blue_mysql_ro_host = length(data.aws_db_instance.rds_ro_legacy) > 0 ? data.aws_db_instance.rds_ro_legacy[0].address : "no-${local.env}-rds-replica-instance"

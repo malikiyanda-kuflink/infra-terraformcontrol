@@ -14,7 +14,7 @@ module "ec2-bastion" {
   vpc_id                        = data.terraform_remote_state.foundation.outputs.vpc_resources.vpc.id
   public_subnet_id              = data.terraform_remote_state.foundation.outputs.vpc_resources.subnets.public_ids[0]
   bastion_sg_id                 = aws_security_group.bastion_sg.id
-  bastion_instance_profile_name = data.terraform_remote_state.foundation.outputs.iam_resources.bastion.instance_profile_name  
+  bastion_instance_profile_name = data.terraform_remote_state.foundation.outputs.iam_resources.bastion.instance_profile_name
 
   ssh_key_name            = data.terraform_remote_state.foundation.outputs.global.ec2_key_name
   instance_type           = "t3.micro"
