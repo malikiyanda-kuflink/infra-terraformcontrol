@@ -82,7 +82,7 @@ data "terraform_remote_state" "staging" {
 #   vpc_id = data.aws_vpc.test.id
 
 #   tags = {
-#     Type = "Private"  # Adjust based on your route table tagging
+#     Type = "Private"  # Adjust based on your route table tag
 #   }
 # }
 

@@ -9,33 +9,55 @@
 # - Request rates, errors, response times, and connection metrics
 # =============================================================================
 
-# Get the Load Balancer by Elastic Beanstalk tags
+# Get the Load Balancer by Elastic Beanstalk tags - ONLY after web env exists
 data "aws_lb" "web_alb" {
+  count = length(aws_elastic_beanstalk_environment.web_env) > 0 ? 1 : 0
+  
   tags = {
     "elasticbeanstalk:environment-name" = var.web_env_name
   }
-  depends_on = [ aws_elastic_beanstalk_environment.web_env ]
+  
+  depends_on = [aws_elastic_beanstalk_environment.web_env]
 }
 
+# Query target groups by EB environment tag
+data "aws_resourcegroupstaggingapi_resources" "eb_tgs" {
+  count = length(aws_elastic_beanstalk_environment.web_env) > 0 ? 1 : 0
+  
+  resource_type_filters = ["elasticloadbalancing:targetgroup"]
+  
+  tag_filter {
+    key    = "elasticbeanstalk:environment-name"
+    values = [var.web_env_name]
+  }
+  
+  depends_on = [aws_elastic_beanstalk_environment.web_env]
+}
 
 locals {
   dashboard_name = "${var.application_name}-API-Rate-Limiting-Monitoring-Dashboard"
 
-  # Extract the load balancer dimension in the format CloudWatch expects
-  # From: arn:aws:elasticloadbalancing:region:account:loadbalancer/app/name/id
-  # To: app/name/id (required format for CloudWatch metrics)
-  alb_dimension = try(
-    regex("app/.+$", data.aws_lb.web_alb.arn),
+  # Extract the load balancer dimension - with safety checks
+  alb_dimension = length(data.aws_lb.web_alb) > 0 ? try(
+    regex("app/.+$", data.aws_lb.web_alb[0].arn),
     ""
-  )
+  ) : ""
 
-  # NEW: first TG ARN returned by the tag query
-  target_group_arn = try(element(data.aws_resourcegroupstaggingapi_resources.eb_tgs.resource_tag_mapping_list[*].resource_arn, 0), "")
-  # Convert ARN -> "targetgroup/<name>/<id>" for CloudWatch
-  target_group_dimension = try(regex("targetgroup/.+$", local.target_group_arn), "")
+  # Target group ARN and dimension - with safety checks
+  target_group_arn = length(data.aws_resourcegroupstaggingapi_resources.eb_tgs) > 0 ? try(
+    element(data.aws_resourcegroupstaggingapi_resources.eb_tgs[0].resource_tag_mapping_list[*].resource_arn, 0),
+    ""
+  ) : ""
+  
+  target_group_dimension = local.target_group_arn != "" ? try(
+    regex("targetgroup/.+$", local.target_group_arn),
+    ""
+  ) : ""
 }
 
+# Only create dashboard if ALB exists
 resource "aws_cloudwatch_dashboard" "eb_monitoring" {
+  count = length(data.aws_lb.web_alb) > 0 ? 1 : 0
   dashboard_name = local.dashboard_name
 
   dashboard_body = jsonencode({
