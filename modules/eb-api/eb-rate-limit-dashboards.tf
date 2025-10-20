@@ -19,20 +19,6 @@ data "aws_lb" "web_alb" {
   depends_on = [aws_elastic_beanstalk_environment.web_env]
 }
 
-# REMOVED DUPLICATE - Use the one from eb-target-group.tf instead
-
-locals {
-  dashboard_name = "${var.application_name}-API-Rate-Limiting-Monitoring-Dashboard"
-
-  # Extract the load balancer dimension - with safety checks
-  alb_dimension = length(data.aws_lb.web_alb) > 0 ? try(
-    regex("app/.+$", data.aws_lb.web_alb[0].arn),
-    ""
-  ) : ""
-
-  # Use the primary target group dimension from eb-target-group.tf
-  target_group_dimension = try(local.primary_tg_dimension, "")
-}
 
 # Only create dashboard if ALB exists
 resource "aws_cloudwatch_dashboard" "eb_monitoring" {
@@ -850,15 +836,14 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
 # =============================================================================
 # OUTPUTS
 # =============================================================================
-
 output "cloudwatch_dashboard_url" {
   description = "Direct URL to access the CloudWatch monitoring dashboard"
-  value       = "https://console.aws.amazon.com/cloudwatch/home?region=${var.aws_region}#dashboards:name=${local.dashboard_name}"
+  value       = length(aws_cloudwatch_dashboard.eb_monitoring) > 0 ? "https://console.aws.amazon.com/cloudwatch/home?region=${var.aws_region}#dashboards:name=${local.dashboard_name}" : ""
 }
 
 output "cloudwatch_dashboard_name" {
   description = "Name of the CloudWatch dashboard for reference"
-  value       = aws_cloudwatch_dashboard.eb_monitoring.dashboard_name
+  value       = length(aws_cloudwatch_dashboard.eb_monitoring) > 0 ? aws_cloudwatch_dashboard.eb_monitoring[0].dashboard_name : ""
 }
 
 output "alb_dimension" {

@@ -152,18 +152,18 @@ output "pipeline_notification_rule_arn" {
 }
 
 output "load_balancer_arn" {
-  description = "ARN of the Application Load Balancer created by Elastic Beanstalk"
-  value       = data.aws_lb.eb_alb.arn
+  description = "ARN of the Elastic Beanstalk load balancer"
+  value       = length(data.aws_lb.eb_alb) > 0 ? data.aws_lb.eb_alb[0].arn : ""
 }
 
 output "load_balancer_dns" {
-  description = "DNS name of the Application Load Balancer"
-  value       = data.aws_lb.eb_alb.dns_name
+  description = "DNS name of the Elastic Beanstalk load balancer"
+  value       = length(data.aws_lb.eb_alb) > 0 ? data.aws_lb.eb_alb[0].dns_name : ""
 }
 
 output "load_balancer_zone_id" {
-  description = "Hosted zone ID of the Application Load Balancer"
-  value       = data.aws_lb.eb_alb.zone_id
+  description = "Zone ID of the Elastic Beanstalk load balancer"
+  value       = length(data.aws_lb.eb_alb) > 0 ? data.aws_lb.eb_alb[0].zone_id : ""
 }
 
 # =========================
