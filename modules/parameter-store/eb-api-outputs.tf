@@ -74,8 +74,6 @@ output "eb_api" {
     # Mail / SES / Mandrill
     MAIL_DRIVER       = data.aws_ssm_parameter.mail_driver.value
     MAIL_PORT         = data.aws_ssm_parameter.mail_port.value
-    MAIL_USERNAME     = data.aws_ssm_parameter.mail_username.value
-    MAIL_PASSWORD     = data.aws_ssm_parameter.mail_password.value
     MAIL_HOST         = data.aws_ssm_parameter.mail_host.value
     MAIL_ENCRYPTION   = data.aws_ssm_parameter.mail_encryption.value
     MANDRILL_APIKEY   = data.aws_ssm_parameter.mandrill_apikey.value
@@ -97,6 +95,7 @@ output "eb_api" {
     ONFIDO_MOB_API_KEY        = data.aws_ssm_parameter.onfido_mob_api_key.value
     ONFIDO_MOB_APPLICATION_ID = data.aws_ssm_parameter.onfido_mob_application_id.value
     ONFIDO_WEB_API_KEY        = data.aws_ssm_parameter.onfido_web_api_key.value
+    ONFIDO_REGULAR_AML        = data.aws_ssm_parameter.onfido_regular_aml.value
 
     # Agreements
     PERSONAL_AGREEMENT_URL = data.aws_ssm_parameter.personal_agreement_url.value

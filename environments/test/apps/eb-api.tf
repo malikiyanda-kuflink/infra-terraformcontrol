@@ -208,8 +208,6 @@ module "eb-api" {
   mail_driver     = data.terraform_remote_state.foundation.outputs.eb_api.MAIL_DRIVER
   mail_host       = data.terraform_remote_state.foundation.outputs.eb_api.MAIL_HOST
   mail_port       = data.terraform_remote_state.foundation.outputs.eb_api.MAIL_PORT
-  mail_username   = data.terraform_remote_state.foundation.outputs.eb_api.MAIL_USERNAME
-  mail_password   = data.terraform_remote_state.foundation.outputs.eb_api.MAIL_PASSWORD
   mail_encryption = data.terraform_remote_state.foundation.outputs.eb_api.MAIL_ENCRYPTION
   mandrill_apikey = data.terraform_remote_state.foundation.outputs.eb_api.MANDRILL_APIKEY
   ses_key         = data.terraform_remote_state.foundation.outputs.eb_api.SES_KEY

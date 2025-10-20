@@ -115,8 +115,6 @@ data "aws_ssm_parameter" "log_channel" { name = "/backend/${var.environment}/LOG
 # -------------------------------------------------------------------
 data "aws_ssm_parameter" "mail_driver" { name = "/backend/${var.environment}/MAIL_DRIVER" }
 data "aws_ssm_parameter" "mail_port" { name = "/backend/${var.environment}/MAIL_PORT" }
-data "aws_ssm_parameter" "mail_username" { name = "/backend/${var.environment}/MAIL_USERNAME" }
-data "aws_ssm_parameter" "mail_password" { name = "/backend/${var.environment}/MAIL_PASSWORD" }
 data "aws_ssm_parameter" "mail_host" { name = "/backend/${var.environment}/MAIL_HOST" }
 data "aws_ssm_parameter" "mail_encryption" { name = "/backend/${var.environment}/MAIL_ENCRYPTION" }
 data "aws_ssm_parameter" "mandrill_apikey" { name = "/backend/${var.environment}/MANDRILL_APIKEY" }
@@ -142,6 +140,7 @@ data "aws_ssm_parameter" "mangopay_url" { name = "/backend/${var.environment}/MA
 data "aws_ssm_parameter" "onfido_mob_api_key" { name = "/backend/${var.environment}/ONFIDO_MOB_API_KEY" }
 data "aws_ssm_parameter" "onfido_mob_application_id" { name = "/backend/${var.environment}/ONFIDO_MOB_APPLICATION_ID" }
 data "aws_ssm_parameter" "onfido_web_api_key" { name = "/backend/${var.environment}/ONFIDO_WEB_API_KEY" }
+data "aws_ssm_parameter" "onfido_regular_aml" { name = "/backend/${var.environment}/ONFIDO_REGULAR_AML" }
 
 # -------------------------------------------------------------------
 # AGREEMENTS
