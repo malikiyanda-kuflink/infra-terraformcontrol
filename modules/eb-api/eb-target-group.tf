@@ -1,5 +1,6 @@
 # --- Discover EB Target Groups for this environment ---
 data "aws_resourcegroupstaggingapi_resources" "eb_tgs" {
+  count = length(aws_elastic_beanstalk_environment.web_env) > 0 ? 1 : 0
   resource_type_filters = ["elasticloadbalancing:targetgroup"]
 
   tag_filter {

@@ -8,7 +8,6 @@
 # - Elastic Beanstalk (EB) environment health - LEFT SIDE
 # - Request rates, errors, response times, and connection metrics
 # =============================================================================
-
 # Get the Load Balancer by Elastic Beanstalk tags - ONLY after web env exists
 data "aws_lb" "web_alb" {
   count = length(aws_elastic_beanstalk_environment.web_env) > 0 ? 1 : 0
@@ -20,19 +19,7 @@ data "aws_lb" "web_alb" {
   depends_on = [aws_elastic_beanstalk_environment.web_env]
 }
 
-# Query target groups by EB environment tag
-data "aws_resourcegroupstaggingapi_resources" "eb_tgs" {
-  count = length(aws_elastic_beanstalk_environment.web_env) > 0 ? 1 : 0
-  
-  resource_type_filters = ["elasticloadbalancing:targetgroup"]
-  
-  tag_filter {
-    key    = "elasticbeanstalk:environment-name"
-    values = [var.web_env_name]
-  }
-  
-  depends_on = [aws_elastic_beanstalk_environment.web_env]
-}
+# REMOVED DUPLICATE - Use the one from eb-target-group.tf instead
 
 locals {
   dashboard_name = "${var.application_name}-API-Rate-Limiting-Monitoring-Dashboard"
@@ -43,21 +30,18 @@ locals {
     ""
   ) : ""
 
-  # Target group ARN and dimension - with safety checks
-  target_group_arn = length(data.aws_resourcegroupstaggingapi_resources.eb_tgs) > 0 ? try(
-    element(data.aws_resourcegroupstaggingapi_resources.eb_tgs[0].resource_tag_mapping_list[*].resource_arn, 0),
-    ""
-  ) : ""
-  
-  target_group_dimension = local.target_group_arn != "" ? try(
-    regex("targetgroup/.+$", local.target_group_arn),
-    ""
-  ) : ""
+  # Use the primary target group dimension from eb-target-group.tf
+  target_group_dimension = try(local.primary_tg_dimension, "")
 }
 
 # Only create dashboard if ALB exists
 resource "aws_cloudwatch_dashboard" "eb_monitoring" {
   count = length(data.aws_lb.web_alb) > 0 ? 1 : 0
+
+  depends_on = [
+    data.aws_lb.web_alb
+  ]
+
   dashboard_name = local.dashboard_name
 
   dashboard_body = jsonencode({
@@ -861,10 +845,6 @@ resource "aws_cloudwatch_dashboard" "eb_monitoring" {
       }
     ]
   })
-
-  depends_on = [
-    data.aws_lb.web_alb
-  ]
 }
 
 # =============================================================================
