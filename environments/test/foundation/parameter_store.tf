@@ -23,7 +23,7 @@ output "db_dms" {
   sensitive = true
 }
 
-# ===================================================================
+# ==================================================================
 # BASTION EC2 PARAMETERS
 # ===================================================================
 data "aws_ssm_parameter" "bastion_ami_id" { name = "/kuflink/${var.environment}/bastion_ami_id" }

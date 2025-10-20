@@ -9,7 +9,7 @@ module "iam" {
   enable_redis_role                    = true
   enable_backup_role                   = true
   enable_bastion_role                  = true
-  enable_ec2_test_instance_role        = true
+  enable_ec2_test_instance_role        = false
   enable_dms_role                      = true
   enable_dms_cw_logs_role              = true
   enable_dms_access_for_endpoint_role  = true
