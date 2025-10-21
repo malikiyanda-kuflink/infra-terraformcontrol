@@ -14,7 +14,7 @@ resource "aws_vpc_security_group_ingress_rule" "dbt_office_ssh" {
 # Bastion -> SSH DBT 
 resource "aws_vpc_security_group_ingress_rule" "dbt_bastion_rule" {
   count                        = local.enable_bastion != null ? 1 : 0
-  security_group_id            = aws_security_group.dbt_sg.id 
+  security_group_id            = aws_security_group.dbt_sg.id
   referenced_security_group_id = aws_security_group.bastion_sg.id
   description                  = "Bastion to DBT 22"
   ip_protocol                  = "tcp"
@@ -23,7 +23,7 @@ resource "aws_vpc_security_group_ingress_rule" "dbt_bastion_rule" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "dbt_alb_ingress" {
-  security_group_id            = aws_security_group.dbt_sg.id 
+  security_group_id            = aws_security_group.dbt_sg.id
   referenced_security_group_id = aws_security_group.dbt_alb_sg.id
   description                  = "DBT ALB to DBT SG 8080"
   ip_protocol                  = "tcp"

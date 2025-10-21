@@ -68,7 +68,7 @@ resource "aws_security_group" "dbt_alb_sg" {
   description = "Allow DBT traffic"
   vpc_id      = data.terraform_remote_state.foundation.outputs.vpc_resources.vpc.id
   tags = {
-    Name = "${local.dbt_config.dbt_name}-alb-sg"
+    Name         = "${local.dbt_config.dbt_name}-alb-sg"
     Descriptpion = "DBT Load balancer Security Group"
   }
 }
