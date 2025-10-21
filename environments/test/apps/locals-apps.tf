@@ -29,7 +29,7 @@ locals {
     #!/bin/bash
     export ENV_NAME="${local.dbt_config.environment}"
     export REGION="eu-west-2"
-    $(cat ${path.root}/user-data/dbt_user_data.sh)
+    ${file("${path.root}/user-data/dbt_user_data.sh")}
   EOF
 
 
