@@ -34,7 +34,7 @@ resource "aws_lb" "dbt_docs" {
   name               = "${var.dbt_name}-docs-alb"
   internal           = false # public-facing
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb.id]
+  security_groups    = [var.alb_sg_id]
   subnets            = var.public_subnet_ids # must be in at least 2 AZs
 
   enable_deletion_protection = false
@@ -87,50 +87,50 @@ resource "aws_lb_listener" "dbt_docs_http_redirect" {
   }
 }
 
-# Security Group for ALB
-resource "aws_security_group" "alb" {
-  name        = "${var.dbt_name}-alb-sg"
-  description = "Security group for dbt docs ALB"
-  vpc_id      = var.vpc_id
+# # Security Group for ALB
+# resource "aws_security_group" "alb" {
+#   name        = "${var.dbt_name}-alb-sg"
+#   description = "Security group for dbt docs ALB"
+#   vpc_id      = var.vpc_id
 
-  # Allow inbound HTTP from anywhere
-  ingress {
-    description = "HTTP from internet"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+#   # Allow inbound HTTP from anywhere
+#   ingress {
+#     description = "HTTP from internet"
+#     from_port   = 80
+#     to_port     = 80
+#     protocol    = "tcp"
+#     cidr_blocks = ["0.0.0.0/0"]
+#   }
 
-  # Allow inbound HTTPS from anywhere
-  ingress {
-    description = "HTTPS from internet"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+#   # Allow inbound HTTPS from anywhere
+#   ingress {
+#     description = "HTTPS from internet"
+#     from_port   = 443
+#     to_port     = 443
+#     protocol    = "tcp"
+#     cidr_blocks = ["0.0.0.0/0"]
+#   }
 
-  # Allow all outbound traffic
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+#   # Allow all outbound traffic
+#   egress {
+#     from_port   = 0
+#     to_port     = 0
+#     protocol    = "-1"
+#     cidr_blocks = ["0.0.0.0/0"]
+#   }
 
-  tags = {
-    Name = "${var.dbt_name}-alb-sg"
-  }
-}
+#   tags = {
+#     Name = "${var.dbt_name}-alb-sg"
+#   }
+# }
 
-# Update EC2 security group to allow traffic from ALB
-resource "aws_security_group_rule" "dbt_from_alb" {
-  type                     = "ingress"
-  from_port                = 8080
-  to_port                  = 8080
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.alb.id
-  security_group_id        = var.dbt_sg_id
-}
+# # Update EC2 security group to allow traffic from ALB
+# resource "aws_security_group_rule" "dbt_from_alb" {
+#   type                     = "ingress"
+#   from_port                = 8080
+#   to_port                  = 8080
+#   protocol                 = "tcp"
+#   source_security_group_id = aws_security_group.alb.id
+#   security_group_id        = var.dbt_sg_id
+# }
 

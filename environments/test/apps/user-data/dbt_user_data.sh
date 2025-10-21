@@ -1,16 +1,14 @@
 #!/bin/bash
 set -euo pipefail
 
-# ========= Terraform-templated configuration =========
-# These two lines are the only Terraform substitutions.
-# Everything else uses $${...} so Terraform won't interpolate it.
-REGION="${REGION:-${REGION}}"
-ENV_NAME="${ENV_NAME:-${ENV_NAME}}"
-# =====================================================
+# ========= Configuration (Terraform injects ENV_NAME and REGION before this script runs) =========
+REGION="${REGION:-eu-west-2}"
+ENV_NAME="${ENV_NAME:-staging}"
+# ================================================================================================
 
 USERNAME="${USERNAME:-ubuntu}"
-SSH_DIR="/home/$${USERNAME}/.ssh"
-AUTHORIZED_KEYS="$${SSH_DIR}/authorized_keys"
+SSH_DIR="/home/${USERNAME}/.ssh"
+AUTHORIZED_KEYS="${SSH_DIR}/authorized_keys"
 PRESERVE_EXISTING_AUTH_KEYS="${PRESERVE_EXISTING_AUTH_KEYS:-true}"
 
 PUBLIC_KEY_PARAMS=(
@@ -22,41 +20,41 @@ PUBLIC_KEY_PARAMS=(
 
 # ========= Environment selection (test/staging/production) =========
 # Accept common aliases, normalize to: test | staging | production
-ENV_NAME_INPUT="$${ENV_NAME:-staging}"
+ENV_NAME_INPUT="${ENV_NAME:-staging}"
 
-case "$${ENV_NAME_INPUT,,}" in
+case "${ENV_NAME_INPUT,,}" in
   prod|production) ENV_NAME="production" ;;
   stage|staging|stg) ENV_NAME="staging" ;;
   test|testing|tst) ENV_NAME="test" ;;
   *)
-    echo "[ERROR] ENV_NAME '$${ENV_NAME_INPUT}' is invalid. Use: test | staging | production"
+    echo "[ERROR] ENV_NAME '${ENV_NAME_INPUT}' is invalid. Use: test | staging | production"
     exit 1
     ;;
 esac
-echo "[INFO] Using ENV_NAME='$${ENV_NAME}'"
+echo "[INFO] Using ENV_NAME='${ENV_NAME}'"
 # ================================================================
 
 # Redshift secrets in SSM (environment-specific)
-SSM_RS_HOST="/backend/$${ENV_NAME}/REDSHIFT_HOST"
-SSM_RS_DB="/backend/$${ENV_NAME}/REDSHIFT_DATABASE"
-SSM_RS_USER="/backend/$${ENV_NAME}/REDSHIFT_USERNAME"
-SSM_RS_PASS="/backend/$${ENV_NAME}/REDSHIFT_PASSWORD"
-SSM_RS_PORT="/backend/$${ENV_NAME}/REDSHIFT_PORT"
+SSM_RS_HOST="/backend/${ENV_NAME}/REDSHIFT_HOST"
+SSM_RS_DB="/backend/${ENV_NAME}/REDSHIFT_DATABASE"
+SSM_RS_USER="/backend/${ENV_NAME}/REDSHIFT_USERNAME"
+SSM_RS_PASS="/backend/${ENV_NAME}/REDSHIFT_PASSWORD"
+SSM_RS_PORT="/backend/${ENV_NAME}/REDSHIFT_PORT"
 
 # GitHub configuration in SSM (environment-specific)
 GITHUB_PAT_PARAM="/github/pat/dbt_redshift_ro"
-GITHUB_REPO_URL_PARAM="/dbt/$${ENV_NAME}/REPO_URL"
-GITHUB_REPO_BRANCH_PARAM="/dbt/$${ENV_NAME}/REPO_BRANCH"
+GITHUB_REPO_URL_PARAM="/dbt/${ENV_NAME}/REPO_URL"
+GITHUB_REPO_BRANCH_PARAM="/dbt/${ENV_NAME}/REPO_BRANCH"
 
 DBT_BASE_DIR="/opt/dbt"
-DBT_PROJECT_DIR="$${DBT_BASE_DIR}/project"
-DBT_RUNTIME_DIR="$${DBT_BASE_DIR}/runtime"
-DBT_ENV_FILE="$${DBT_BASE_DIR}/.env"
-DBT_PROFILES_FILE="$${DBT_RUNTIME_DIR}/profiles.yml"
+DBT_PROJECT_DIR="${DBT_BASE_DIR}/project"
+DBT_RUNTIME_DIR="${DBT_BASE_DIR}/runtime"
+DBT_ENV_FILE="${DBT_BASE_DIR}/.env"
+DBT_PROFILES_FILE="${DBT_RUNTIME_DIR}/profiles.yml"
 
 # DBT runtime profile (must match repo dbt_project.yml -> profile:)
-DBT_PROFILE_NAME="$${DBT_PROFILE_NAME:-dbt-ec2}"
-DBT_TARGET_NAME="$${DBT_TARGET_NAME:-dev}"
+DBT_PROFILE_NAME="${DBT_PROFILE_NAME:-dbt-ec2}"
+DBT_TARGET_NAME="${DBT_TARGET_NAME:-dev}"
 
 log() { echo "[$(date +'%F %T')] $*"; }
 
@@ -66,30 +64,30 @@ configure_ssh_keys_from_ssm() {
   chown "$USERNAME:$USERNAME" "$SSH_DIR"
   chmod 700 "$SSH_DIR"
 
-  : > "$${AUTHORIZED_KEYS}.tmp"
+  : > "${AUTHORIZED_KEYS}.tmp"
 
   if [[ -f "$AUTHORIZED_KEYS" && "$PRESERVE_EXISTING_AUTH_KEYS" == "true" ]]; then
-    tr '\r' '\n' < "$AUTHORIZED_KEYS" | sed '/^[[:space:]]*$/d' >> "$${AUTHORIZED_KEYS}.tmp"
+    tr '\r' '\n' < "$AUTHORIZED_KEYS" | sed '/^[[:space:]]*$/d' >> "${AUTHORIZED_KEYS}.tmp"
   fi
 
-  for param in "$${PUBLIC_KEY_PARAMS[@]}"; do
+  for param in "${PUBLIC_KEY_PARAMS[@]}"; do
     val="$(aws ssm get-parameter --name "$param" --with-decryption --region "$REGION" --query 'Parameter.Value' --output text 2>/dev/null || true)"
     if [[ -n "$val" && "$val" != "None" ]] && echo "$val" | grep -Eq '^(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256) '; then
-      echo "$val" >> "$${AUTHORIZED_KEYS}.tmp"
+      echo "$val" >> "${AUTHORIZED_KEYS}.tmp"
       log "   ➕ Installed key from $param"
     else
       log "   ⚠️  Key missing/invalid: $param"
     fi
   done
 
-  if [[ -s "$${AUTHORIZED_KEYS}.tmp" ]]; then
-    sort -u "$${AUTHORIZED_KEYS}.tmp" > "$AUTHORIZED_KEYS"
-    rm -f "$${AUTHORIZED_KEYS}.tmp"
+  if [[ -s "${AUTHORIZED_KEYS}.tmp" ]]; then
+    sort -u "${AUTHORIZED_KEYS}.tmp" > "$AUTHORIZED_KEYS"
+    rm -f "${AUTHORIZED_KEYS}.tmp"
     chown "$USERNAME:$USERNAME" "$AUTHORIZED_KEYS"
     chmod 600 "$AUTHORIZED_KEYS"
     log "✅ Installed $(wc -l < "$AUTHORIZED_KEYS") SSH keys"
   else
-    rm -f "$${AUTHORIZED_KEYS}.tmp" || true
+    rm -f "${AUTHORIZED_KEYS}.tmp" || true
     log "⚠️  No SSH keys written"
   fi
 }
@@ -122,7 +120,7 @@ install_base_utils() {
 }
 
 fetch_redshift_secrets_to_envfile() {
-  log "🔐 Fetching Redshift credentials from SSM ($${ENV_NAME})..."
+  log "🔐 Fetching Redshift credentials from SSM (${ENV_NAME})..."
   RS_HOST=$(aws ssm get-parameter --with-decryption --region "$REGION" --name "$SSM_RS_HOST" --query 'Parameter.Value' --output text)
   RS_DB=$(aws ssm get-parameter --with-decryption --region "$REGION" --name "$SSM_RS_DB" --query 'Parameter.Value' --output text)
   RS_USER=$(aws ssm get-parameter --with-decryption --region "$REGION" --name "$SSM_RS_USER" --query 'Parameter.Value' --output text)
@@ -131,26 +129,26 @@ fetch_redshift_secrets_to_envfile() {
 
   mkdir -p "$DBT_BASE_DIR"
   cat > "$DBT_ENV_FILE" <<EOF
-DBT_RS_HOST=$${RS_HOST}
-DBT_RS_DB=$${RS_DB}
-DBT_RS_USER=$${RS_USER}
-DBT_RS_PASS=$${RS_PASS}
-DBT_RS_PORT=$${RS_PORT}
+DBT_RS_HOST=${RS_HOST}
+DBT_RS_DB=${RS_DB}
+DBT_RS_USER=${RS_USER}
+DBT_RS_PASS=${RS_PASS}
+DBT_RS_PORT=${RS_PORT}
 DBT_RS_SCHEMA=analytics
 EOF
   chown "$USERNAME:$USERNAME" "$DBT_ENV_FILE"
   chmod 600 "$DBT_ENV_FILE"
-  log "✅ Created .env file at $${DBT_ENV_FILE}"
+  log "✅ Created .env file at ${DBT_ENV_FILE}"
 }
 
 write_runtime_profiles_yaml() {
   log "📝 Writing DBT profiles.yml..."
   mkdir -p "$DBT_RUNTIME_DIR"
-  cat > "$DBT_PROFILES_FILE" <<'YAML'
-$${DBT_PROFILE_NAME}:
-  target: $${DBT_TARGET_NAME}
+  cat > "$DBT_PROFILES_FILE" <<YAML
+${DBT_PROFILE_NAME}:
+  target: ${DBT_TARGET_NAME}
   outputs:
-    $${DBT_TARGET_NAME}:
+    ${DBT_TARGET_NAME}:
       type: redshift
       host: "{{ env_var('DBT_RS_HOST') }}"
       port: "{{ env_var('DBT_RS_PORT') | as_number }}"
@@ -163,37 +161,34 @@ $${DBT_PROFILE_NAME}:
 YAML
   chown "$USERNAME:$USERNAME" "$DBT_PROFILES_FILE"
   chmod 640 "$DBT_PROFILES_FILE"
-  log "✅ Created profiles.yml at $${DBT_PROFILES_FILE}"
+  log "✅ Created profiles.yml at ${DBT_PROFILES_FILE}"
 }
 
 fetch_github_config() {
-  log "🔑 Fetching GitHub configuration from SSM ($${ENV_NAME})..."
+  log "🔑 Fetching GitHub configuration from SSM (${ENV_NAME})..."
 
-  # Fetch GitHub PAT
   GITHUB_PAT="$(aws ssm get-parameter --with-decryption --region "$REGION" --name "$GITHUB_PAT_PARAM" --query 'Parameter.Value' --output text || true)"
   if [[ -z "$GITHUB_PAT" || "$GITHUB_PAT" == "None" ]]; then
     log "❌ Missing GitHub PAT in SSM: $GITHUB_PAT_PARAM"
     exit 1
   fi
-  # Strip any carriage returns or newlines
-  GITHUB_PAT="$${GITHUB_PAT//$'\r'/}"
-  GITHUB_PAT="$${GITHUB_PAT//$'\n'/}"
 
-  # Fetch repository URL
+  GITHUB_PAT="${GITHUB_PAT//$'\r'/}"
+  GITHUB_PAT="${GITHUB_PAT//$'\n'/}"
+
   DBT_REPO_URL="$(aws ssm get-parameter --region "$REGION" --name "$GITHUB_REPO_URL_PARAM" --query 'Parameter.Value' --output text || true)"
   if [[ -z "$DBT_REPO_URL" || "$DBT_REPO_URL" == "None" ]]; then
     log "❌ Missing repository URL in SSM: $GITHUB_REPO_URL_PARAM"
     exit 1
   fi
 
-  # Fetch repository branch
   DBT_REPO_BRANCH="$(aws ssm get-parameter --region "$REGION" --name "$GITHUB_REPO_BRANCH_PARAM" --query 'Parameter.Value' --output text || true)"
   if [[ -z "$DBT_REPO_BRANCH" || "$DBT_REPO_BRANCH" == "None" ]]; then
     log "❌ Missing repository branch in SSM: $GITHUB_REPO_BRANCH_PARAM"
     exit 1
   fi
 
-  log "✅ Retrieved GitHub config - Repo: $${DBT_REPO_URL}, Branch: $${DBT_REPO_BRANCH}"
+  log "✅ Retrieved GitHub config - Repo: ${DBT_REPO_URL}, Branch: ${DBT_REPO_BRANCH}"
 }
 
 clone_dbt_repo() {
@@ -201,15 +196,12 @@ clone_dbt_repo() {
   mkdir -p "$DBT_PROJECT_DIR"
   chown -R "$USERNAME:$USERNAME" "$DBT_BASE_DIR"
 
-  # Extract repo path from URL (e.g., "kuflink/dbt_redshift.git")
-  REPO_PATH="$${DBT_REPO_URL#https://github.com/}"
+  REPO_PATH="${DBT_REPO_URL#https://github.com/}"
+  local REPO_URL_WITH_AUTH="https://x-access-token:${GITHUB_PAT}@github.com/${REPO_PATH}"
 
-  # Build authenticated repo URL
-  local REPO_URL_WITH_AUTH="https://x-access-token:$${GITHUB_PAT}@github.com/$${REPO_PATH}"
-
-  if [ ! -d "$${DBT_PROJECT_DIR}/.git" ]; then
+  if [ ! -d "${DBT_PROJECT_DIR}/.git" ]; then
     sudo -u "$USERNAME" git clone --branch "$DBT_REPO_BRANCH" "$REPO_URL_WITH_AUTH" "$DBT_PROJECT_DIR"
-    log "✅ Cloned $${DBT_REPO_URL} (branch: $${DBT_REPO_BRANCH})"
+    log "✅ Cloned ${DBT_REPO_URL} (branch: ${DBT_REPO_BRANCH})"
   else
     log "ℹ️  Repository already exists, updating..."
     cd "$DBT_PROJECT_DIR"
@@ -217,7 +209,7 @@ clone_dbt_repo() {
     sudo -u "$USERNAME" git fetch --all --prune
     sudo -u "$USERNAME" git checkout "$DBT_REPO_BRANCH"
     sudo -u "$USERNAME" git pull --ff-only
-    log "✅ Updated repository to $${DBT_REPO_BRANCH}"
+    log "✅ Updated repository to ${DBT_REPO_BRANCH}"
   fi
 }
 
@@ -226,9 +218,7 @@ ensure_paths_and_env_link() {
   mkdir -p "$DBT_RUNTIME_DIR"
   chown "$USERNAME:$USERNAME" "$DBT_RUNTIME_DIR"
 
-  # Symlink .env file into project directory
-  ln -sf "$DBT_ENV_FILE" "$${DBT_PROJECT_DIR}/.env"
-
+  ln -sf "$DBT_ENV_FILE" "${DBT_PROJECT_DIR}/.env"
   log "✅ Environment linked to project directory"
 }
 
@@ -236,10 +226,7 @@ start_dbt_smoke_test() {
   log "🧪 Running DBT connection test..."
   cd "$DBT_PROJECT_DIR"
 
-  # Pull Docker images
   docker compose pull || true
-
-  # Run dbt debug to test connection
   docker compose run --rm dbt debug || log "⚠️  DBT debug failed (non-critical)"
 }
 
@@ -253,28 +240,26 @@ After=docker.service
 
 [Service]
 Type=simple
-WorkingDirectory=$${DBT_PROJECT_DIR}
+WorkingDirectory=${DBT_PROJECT_DIR}
 ExecStart=/usr/bin/docker compose up -d docs
 ExecStop=/usr/bin/docker compose down
 Restart=on-failure
 RemainAfterExit=true
 Environment=DBT_PROFILES_DIR=/root/.dbt
-Environment=DBT_PROFILE=$${DBT_PROFILE_NAME}
-Environment=DBT_TARGET=$${DBT_TARGET_NAME}
+Environment=DBT_PROFILE=${DBT_PROFILE_NAME}
+Environment=DBT_TARGET=${DBT_TARGET_NAME}
 
 [Install]
 WantedBy=multi-user.target
 UNIT
 
-  # Reload systemd and enable service
   systemctl daemon-reload
   systemctl enable --now dbt-docs.service
-
   log "✅ dbt-docs.service created, enabled, and started"
 }
 
 main() {
-  log "🚀 Starting DBT EC2 setup for $${ENV_NAME} environment..."
+  log "🚀 Starting DBT EC2 setup for ${ENV_NAME} environment..."
 
   configure_ssh_keys_from_ssm
   install_base_utils
@@ -287,9 +272,9 @@ main() {
   install_docs_systemd_service
 
   log "🎉 DBT EC2 setup complete! Documentation server running on port 8080"
-  log "📊 Environment: $${ENV_NAME}"
-  log "📊 Repository: $${DBT_REPO_URL}"
-  log "📊 Branch: $${DBT_REPO_BRANCH}"
+  log "📊 Environment: ${ENV_NAME}"
+  log "📊 Repository: ${DBT_REPO_URL}"
+  log "📊 Branch: ${DBT_REPO_BRANCH}"
   log "🌐 Access docs via ALB once DNS is configured"
 }
 

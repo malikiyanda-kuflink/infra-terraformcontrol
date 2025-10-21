@@ -52,3 +52,23 @@ resource "aws_security_group" "redis_sg" {
     Descriptpion = "Redis Security Group for laravel-php-api"
   }
 }
+
+resource "aws_security_group" "dbt_sg" {
+  name        = "${local.name_prefix}-dbt-access"
+  description = "Allow DBT traffic"
+  vpc_id      = data.terraform_remote_state.foundation.outputs.vpc_resources.vpc.id
+  tags = {
+    Name         = "Kuflink-Test-DBT-SG"
+    Descriptpion = "DBT Security Group"
+  }
+}
+
+resource "aws_security_group" "dbt_alb_sg" {
+  name        = "${local.dbt_config.dbt_name}-ALB-SG"
+  description = "Allow DBT traffic"
+  vpc_id      = data.terraform_remote_state.foundation.outputs.vpc_resources.vpc.id
+  tags = {
+    Name = "${local.dbt_config.dbt_name}-alb-sg"
+    Descriptpion = "DBT Load balancer Security Group"
+  }
+}

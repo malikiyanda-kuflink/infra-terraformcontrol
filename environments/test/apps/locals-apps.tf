@@ -17,19 +17,20 @@ data "aws_partition" "current" {}
 locals {
   # DBT EC2 Configuration
   dbt_config = {
-    environment        = "test" # or "production"
-    ssh_key_name       = data.terraform_remote_state.foundation.outputs.global.ec2_key_name
-    instance_type      = "t3.micro"
-    dbt_name           = "Kuflink-Test-DBT"
-    dbt_docs_subdomain = "dbt-test.brickfin.co.uk"
+    environment          = "test"  # or "production"
+    ssh_key_name         = data.terraform_remote_state.foundation.outputs.global.ec2_key_name 
+    instance_type        = "t3.micro"
+    dbt_name             = "Kuflink-Test-DBT"
+    dbt_docs_subdomain   = "dbt-test.brickfin.co.uk"
   }
-
+  
   # Prepare user_data with ENV_NAME injected
-  # Render user-data with variables baked in
-  dbt_user_data = templatefile("${path.root}/user-data/dbt_user_data.sh.tmpl", {
-    ENV_NAME = local.dbt_config.environment
-    REGION   = local.current.region # optional, if you want to inject it too
-  })
+  dbt_user_data_with_env = <<-EOF
+    #!/bin/bash
+    export ENV_NAME="${local.dbt_config.environment}"
+    export REGION="eu-west-2"
+    $(cat ${path.root}/user-data/dbt_user_data.sh)
+  EOF
 
 
 
