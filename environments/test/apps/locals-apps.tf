@@ -15,6 +15,24 @@ data "aws_partition" "current" {}
 # referenced throughout the compute and delivery layers.
 # ===================================================================
 locals {
+  # DBT EC2 Configuration
+  dbt_config = {
+    environment          = "test"  # or "production"
+    ssh_key_name         = data.terraform_remote_state.foundation.outputs.global.ec2_key_name 
+    instance_type        = "t3.micro"
+    dbt_name             = "Kuflink-Test-DBT"
+    dbt_docs_subdomain   = "dbt-test.brickfin.co.uk"
+  }
+  
+  # Prepare user_data with ENV_NAME injected
+  # Render user-data with variables baked in
+  dbt_user_data = templatefile("${path.root}/user-data/dbt_user_data.sh.tmpl", {
+    ENV_NAME = local.dbt_config.environment
+    REGION   = local.current.region                       # optional, if you want to inject it too
+  })
+
+
+
   # =======================================
   # Comptue layer  
   # =======================================
@@ -394,4 +412,7 @@ locals {
 
   # --- Pipeline ARN (derived from name/account/region) ---
   pipeline_arn = "arn:${data.aws_partition.current.partition}:codepipeline:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:${local.pipeline_name}"
+
+
+
 }
