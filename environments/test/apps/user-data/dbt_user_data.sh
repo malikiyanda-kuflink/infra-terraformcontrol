@@ -53,7 +53,7 @@ DBT_ENV_FILE="${DBT_BASE_DIR}/.env"
 DBT_PROFILES_FILE="${DBT_RUNTIME_DIR}/profiles.yml"
 
 # DBT runtime profile (must match repo dbt_project.yml -> profile:)
-DBT_PROFILE_NAME="${DBT_PROFILE_NAME:-dbt-ec2}"
+DBT_PROFILE_NAME="${DBT_PROFILE_NAME:-carl}"
 DBT_TARGET_NAME="${DBT_TARGET_NAME:-dev}"
 
 log() { echo "[$(date +'%F %T')] $*"; }
@@ -97,9 +97,9 @@ install_base_utils() {
   apt-get update -y
   apt-get install -y awscli git ca-certificates curl gnupg lsb-release netcat
 
-  # Add Docker official GPG key
+  # Add Docker official GPG key (suppress overwrite prompt)
   install -m 0755 -d /etc/apt/keyrings
-  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg 2>/dev/null || true
   chmod a+r /etc/apt/keyrings/docker.gpg
 
   # Add Docker repository
@@ -205,6 +205,10 @@ clone_dbt_repo() {
   else
     log "ℹ️  Repository already exists, updating..."
     cd "$DBT_PROJECT_DIR"
+    
+    # Clean up any local changes (including old profiles.yml)
+    sudo -u "$USERNAME" git reset --hard
+    
     sudo -u "$USERNAME" git remote set-url origin "$REPO_URL_WITH_AUTH"
     sudo -u "$USERNAME" git fetch --all --prune
     sudo -u "$USERNAME" git checkout "$DBT_REPO_BRANCH"
@@ -226,8 +230,26 @@ start_dbt_smoke_test() {
   log "🧪 Running DBT connection test..."
   cd "$DBT_PROJECT_DIR"
 
-  docker compose pull || true
-  docker compose run --rm dbt debug || log "⚠️  DBT debug failed (non-critical)"
+  # Detect DBT service by trying each possibility
+  log "Testing DBT connection..."
+  local dbt_service=""
+  
+  for service in "dbt-core" "dbt_core" "dbt"; do
+    if docker compose config 2>&1 | grep -q "^\s*${service}:"; then
+      dbt_service="$service"
+      log "Found DBT service: ${dbt_service}"
+      break
+    fi
+  done
+  
+  if [[ -n "$dbt_service" ]]; then
+    # Rebuild to pick up new volume mounts
+    docker compose build "$dbt_service" >/dev/null 2>&1 || true
+    # Run debug
+    docker compose run --rm "$dbt_service" debug || log "⚠️  DBT debug failed (non-critical)"
+  else
+    log "⚠️  Could not detect DBT service, skipping connection test"
+  fi
 }
 
 install_docs_systemd_service() {
@@ -239,23 +261,32 @@ Wants=docker.service
 After=docker.service
 
 [Service]
-Type=simple
+Type=oneshot
 WorkingDirectory=${DBT_PROJECT_DIR}
 ExecStart=/usr/bin/docker compose up -d docs
 ExecStop=/usr/bin/docker compose down
+RemainAfterExit=yes
 Restart=on-failure
-RemainAfterExit=true
-Environment=DBT_PROFILES_DIR=/root/.dbt
-Environment=DBT_PROFILE=${DBT_PROFILE_NAME}
-Environment=DBT_TARGET=${DBT_TARGET_NAME}
 
 [Install]
 WantedBy=multi-user.target
 UNIT
 
   systemctl daemon-reload
-  systemctl enable --now dbt-docs.service
-  log "✅ dbt-docs.service created, enabled, and started"
+  systemctl enable dbt-docs.service
+  
+  # Start the service and wait a moment for it to initialize
+  systemctl start dbt-docs.service
+  sleep 5
+  
+  # Check if docs container is running
+  cd "$DBT_PROJECT_DIR"
+  if docker compose ps docs 2>/dev/null | grep -q "Up"; then
+    log "✅ dbt-docs.service created, enabled, and started successfully"
+  else
+    log "⚠️  dbt-docs.service created but docs container may not be running"
+    log "Check logs with: docker compose logs docs"
+  fi
 }
 
 main() {
@@ -276,6 +307,11 @@ main() {
   log "📊 Repository: ${DBT_REPO_URL}"
   log "📊 Branch: ${DBT_REPO_BRANCH}"
   log "🌐 Access docs via ALB once DNS is configured"
+  log ""
+  log "To check status:"
+  log "  - systemctl status dbt-docs.service"
+  log "  - docker compose ps"
+  log "  - docker compose logs docs"
 }
 
 main "$@"
