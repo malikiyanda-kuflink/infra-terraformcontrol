@@ -4,9 +4,12 @@ variable "dbt_instance_profile_name" { type = string }
 variable "dbt_name" { type = string }
 variable "instance_type" { type = string }
 variable "ssh_key_name" { type = string }
-variable "dbt_sg_id" { type = string }
 variable "dbt_user_data" { type = string }
 variable "canonical_id" { type = string }
+variable "alb_sg_id" { type = string }
+variable "dbt_sg_id" { type = string }
+
+
 
 variable "public_subnet_ids" {
   type        = list(string)

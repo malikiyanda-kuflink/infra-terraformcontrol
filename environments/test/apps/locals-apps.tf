@@ -25,11 +25,12 @@ locals {
   }
 
   # Prepare user_data with ENV_NAME injected
-  # Render user-data with variables baked in
-  dbt_user_data = templatefile("${path.root}/user-data/dbt_user_data.sh.tmpl", {
-    ENV_NAME = local.dbt_config.environment
-    REGION   = local.current.region # optional, if you want to inject it too
-  })
+  dbt_user_data_with_env = <<-EOF
+    #!/bin/bash
+    export ENV_NAME="${local.dbt_config.environment}"
+    export REGION="eu-west-2"
+    $(cat ${path.root}/user-data/dbt_user_data.sh)
+  EOF
 
 
 
