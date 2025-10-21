@@ -32,10 +32,10 @@ resource "aws_lb_target_group_attachment" "dbt_docs" {
 # Application Load Balancer
 resource "aws_lb" "dbt_docs" {
   name               = "${var.dbt_name}-docs-alb"
-  internal           = false  # public-facing
+  internal           = false # public-facing
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
-  subnets            = var.public_subnet_ids  # must be in at least 2 AZs
+  subnets            = var.public_subnet_ids # must be in at least 2 AZs
 
   enable_deletion_protection = false
 
@@ -102,7 +102,7 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-# Allow inbound HTTPS from anywhere
+  # Allow inbound HTTPS from anywhere
   ingress {
     description = "HTTPS from internet"
     from_port   = 443

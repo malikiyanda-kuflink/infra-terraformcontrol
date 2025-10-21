@@ -11,11 +11,11 @@
 # Get the Load Balancer by Elastic Beanstalk tags - ONLY after web env exists
 data "aws_lb" "web_alb" {
   count = length(aws_elastic_beanstalk_environment.web_env) > 0 ? 1 : 0
-  
+
   tags = {
     "elasticbeanstalk:environment-name" = var.web_env_name
   }
-  
+
   depends_on = [aws_elastic_beanstalk_environment.web_env]
 }
 

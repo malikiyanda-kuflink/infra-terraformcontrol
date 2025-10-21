@@ -3,25 +3,25 @@
 # --- Discover EB Target Groups for this environment ---
 data "aws_resourcegroupstaggingapi_resources" "eb_tgs" {
   count = length(aws_elastic_beanstalk_environment.web_env) > 0 ? 1 : 0
-  
+
   resource_type_filters = ["elasticloadbalancing:targetgroup"]
 
   tag_filter {
     key    = "elasticbeanstalk:environment-name"
     values = [var.web_env_name]
   }
-  
+
   depends_on = [aws_elastic_beanstalk_environment.web_env]
 }
 
 # Discover the ALB
 data "aws_lb" "eb_alb" {
   count = length(aws_elastic_beanstalk_environment.web_env) > 0 ? 1 : 0
-  
+
   tags = {
     "elasticbeanstalk:environment-name" = var.web_env_name
   }
-  
+
   depends_on = [aws_elastic_beanstalk_environment.web_env]
 }
 
@@ -33,7 +33,7 @@ locals {
 
   # Primary target group
   primary_tg_arn = try(local.eb_tg_arns_raw[0], null)
-  
+
   # Extract dimension from ARN
   primary_tg_dimension = local.primary_tg_arn != null ? try(
     regex("targetgroup/.+$", local.primary_tg_arn),
