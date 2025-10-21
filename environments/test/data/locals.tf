@@ -21,7 +21,7 @@ locals {
   restored_primary_rds_instance_identifier = "kuflink-test"
   new_primary_rds_instance_identifier      = "kuflink-test-mysql"
 
-  enable_redshift                         = false
+  enable_redshift                         = true  
   restore_redshift_from_snapshot          = true
   restored_redshift_cluster_identifier    = "kuflink-test"
   new_primary_redshift_cluster_identifier = "kuflink-test-redshift"
