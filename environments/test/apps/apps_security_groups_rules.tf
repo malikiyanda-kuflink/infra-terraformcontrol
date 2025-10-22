@@ -36,22 +36,38 @@ resource "aws_vpc_security_group_ingress_rule" "dbt_alb_ingress" {
 #============================================================
 # 0.0.0.0/0 -> ALB HTTP (80)
 resource "aws_vpc_security_group_ingress_rule" "dbt_alb_http" {
+  # security_group_id = aws_security_group.dbt_alb_sg.id
+  # description       = "HTTP 80"
+  # ip_protocol       = "tcp"
+  # from_port         = 80
+  # to_port           = 80
+  # cidr_ipv4         = "0.0.0.0/0"
+
+  for_each          = { for ip in data.terraform_remote_state.foundation.outputs.kuflink_office_ips : ip.cidr => ip }
   security_group_id = aws_security_group.dbt_alb_sg.id
-  description       = "HTTP 80"
+  description       = each.value.description
   ip_protocol       = "tcp"
   from_port         = 80
   to_port           = 80
-  cidr_ipv4         = "0.0.0.0/0"
+  cidr_ipv4         = each.key
 }
 
 # 0.0.0.0/0 -> ALB HTTPS (443)
 resource "aws_vpc_security_group_ingress_rule" "dbt_alb_https" {
+  # security_group_id = aws_security_group.dbt_alb_sg.id
+  # description       = "HTTPS 443"
+  # ip_protocol       = "tcp"
+  # from_port         = 443
+  # to_port           = 443
+  # cidr_ipv4         = "0.0.0.0/0"
+
+  for_each          = { for ip in data.terraform_remote_state.foundation.outputs.kuflink_office_ips : ip.cidr => ip }
   security_group_id = aws_security_group.dbt_alb_sg.id
-  description       = "HTTPS 443"
+  description       = each.value.description
   ip_protocol       = "tcp"
   from_port         = 443
   to_port           = 443
-  cidr_ipv4         = "0.0.0.0/0"
+  cidr_ipv4         = each.key
 }
 
 # ----------------------------
