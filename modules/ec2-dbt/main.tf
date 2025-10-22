@@ -20,7 +20,10 @@ resource "aws_instance" "dbt_host" {
   # static file, no interpolation
   user_data = var.dbt_user_data
 
-  tags = { Name = var.dbt_name }
+  tags = merge(
+    { Name = var.dbt_name },
+    var.instance_tags
+  )
 
 }
 

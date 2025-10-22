@@ -4,6 +4,7 @@ variable "tags" {
   default = {}
 }
 
+variable "codedeploy_service_role_name" { type = string }
 variable "dbt_role_name" { type = string }
 variable "backup_role_name" { type = string }
 variable "redis_role_name" { type = string }
@@ -36,6 +37,8 @@ variable "dms_access_for_endpoint_role_name" {
   default = "dms-access-for-endpoint"
 }
 
+
+variable "enable_codedeploy_service_role" { type = string }
 variable "enable_dbt_role" { type = bool }
 variable "enable_backup_role" { type = bool }
 variable "enable_redis_role" { type = bool }

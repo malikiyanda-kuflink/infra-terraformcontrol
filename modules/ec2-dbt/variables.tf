@@ -8,6 +8,7 @@ variable "dbt_user_data" { type = string }
 variable "canonical_id" { type = string }
 variable "alb_sg_id" { type = string }
 variable "dbt_sg_id" { type = string }
+variable "instance_tags" {}
 
 
 
@@ -27,4 +28,30 @@ variable "dbt_docs_subdomain" {
 
 
 # variable "dbt_elastic_ip_name" { type = string }
+
+# ============================================================================
+# Variables for CodeDeploy Configuration
+# ============================================================================
+
+
+
+variable "code_deploy_project_name" {
+  description = "Name of your project (used for resource naming)"
+  type        = string
+}
+
+variable "name_prefix" { type = string }
+variable "environment" { type = string }
+
+variable "codedeploy_service_role_arn" {
+  description = "CodeDeploy Service Role ARN"
+  type        = string
+}
+
+variable "notification_email" {
+  description = "Email address for CodeDeploy notifications (leave empty to disable)"
+  type        = string
+  default     = "" # Set to your email: "you@example.com"
+}
+
 

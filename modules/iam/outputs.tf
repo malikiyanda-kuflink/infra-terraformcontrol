@@ -6,6 +6,13 @@
 # =====================================================================
 
 # ----------------------------
+# DBT Role
+# ----------------------------
+output "codedeploy_service_role_arn" {
+  description = "ARN of the CodeBuild Service IAM Role (if enabled)"
+  value       = var.enable_codedeploy_service_role ? aws_iam_role.codedeploy_service_role[0].arn : null
+}
+# ----------------------------
 # RDS Monitoring Role IAM Role
 # ----------------------------
 output "rds_enhanced_monitoring_role_arn" {

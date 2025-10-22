@@ -8,7 +8,5 @@ variable "bastion_sg_id" { type = string }
 variable "bastion_ami_id" { type = string }
 variable "bastion_elastic_ip_name" { type = string }
 variable "bastion_user_data" { type = string }
-variable "instance_tags" {
-
-}
+variable "instance_tags" {}
 

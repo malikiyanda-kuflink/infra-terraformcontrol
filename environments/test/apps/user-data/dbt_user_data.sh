@@ -19,7 +19,6 @@ PUBLIC_KEY_PARAMS=(
 )
 
 # ========= Environment selection (test/staging/production) =========
-# Accept common aliases, normalize to: test | staging | production
 ENV_NAME_INPUT="${ENV_NAME:-staging}"
 
 case "${ENV_NAME_INPUT,,}" in
@@ -32,7 +31,6 @@ case "${ENV_NAME_INPUT,,}" in
     ;;
 esac
 echo "[INFO] Using ENV_NAME='${ENV_NAME}'"
-# ================================================================
 
 # Redshift secrets in SSM (environment-specific)
 SSM_RS_HOST="/backend/${ENV_NAME}/REDSHIFT_HOST"
@@ -41,18 +39,12 @@ SSM_RS_USER="/backend/${ENV_NAME}/REDSHIFT_USERNAME"
 SSM_RS_PASS="/backend/${ENV_NAME}/REDSHIFT_PASSWORD"
 SSM_RS_PORT="/backend/${ENV_NAME}/REDSHIFT_PORT"
 
-# GitHub configuration in SSM (environment-specific)
-GITHUB_PAT_PARAM="/github/pat/dbt_redshift_ro"
-GITHUB_REPO_URL_PARAM="/dbt/${ENV_NAME}/REPO_URL"
-GITHUB_REPO_BRANCH_PARAM="/dbt/${ENV_NAME}/REPO_BRANCH"
-
 DBT_BASE_DIR="/opt/dbt"
 DBT_PROJECT_DIR="${DBT_BASE_DIR}/project"
 DBT_RUNTIME_DIR="${DBT_BASE_DIR}/runtime"
 DBT_ENV_FILE="${DBT_BASE_DIR}/.env"
 DBT_PROFILES_FILE="${DBT_RUNTIME_DIR}/profiles.yml"
 
-# DBT runtime profile (must match repo dbt_project.yml -> profile:)
 DBT_PROFILE_NAME="${DBT_PROFILE_NAME:-carl}"
 DBT_TARGET_NAME="${DBT_TARGET_NAME:-dev}"
 
@@ -97,26 +89,51 @@ install_base_utils() {
   apt-get update -y
   apt-get install -y awscli git ca-certificates curl gnupg lsb-release netcat
 
-  # Add Docker official GPG key (suppress overwrite prompt)
   install -m 0755 -d /etc/apt/keyrings
   curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg 2>/dev/null || true
   chmod a+r /etc/apt/keyrings/docker.gpg
 
-  # Add Docker repository
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
     > /etc/apt/sources.list.d/docker.list
 
-  # Install Docker
   apt-get update -y
   apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
-  # Enable Docker service
   systemctl enable --now docker
-
-  # Add ubuntu user to docker group
   usermod -aG docker "$USERNAME" || true
 
   log "✅ Installed AWS CLI, Git, Docker, and Docker Compose"
+}
+
+install_codedeploy_agent() {
+  log "🚀 Installing AWS CodeDeploy Agent..."
+  
+  apt-get install -y ruby-full wget
+  
+  cd /tmp
+  wget "https://aws-codedeploy-${REGION}.s3.${REGION}.amazonaws.com/latest/install"
+  chmod +x ./install
+  
+  ./install auto
+  
+  if systemctl is-active --quiet codedeploy-agent; then
+    log "✅ CodeDeploy agent installed and running"
+  else
+    log "⚠️  CodeDeploy agent installed but not running, attempting to start..."
+    systemctl start codedeploy-agent
+    systemctl enable codedeploy-agent
+    sleep 2
+    if systemctl is-active --quiet codedeploy-agent; then
+      log "✅ CodeDeploy agent started successfully"
+    else
+      log "❌ Failed to start CodeDeploy agent"
+      systemctl status codedeploy-agent --no-pager
+    fi
+  fi
+  
+  rm -f /tmp/install
+  
+  log "✅ CodeDeploy agent setup complete"
 }
 
 fetch_redshift_secrets_to_envfile() {
@@ -164,92 +181,11 @@ YAML
   log "✅ Created profiles.yml at ${DBT_PROFILES_FILE}"
 }
 
-fetch_github_config() {
-  log "🔑 Fetching GitHub configuration from SSM (${ENV_NAME})..."
-
-  GITHUB_PAT="$(aws ssm get-parameter --with-decryption --region "$REGION" --name "$GITHUB_PAT_PARAM" --query 'Parameter.Value' --output text || true)"
-  if [[ -z "$GITHUB_PAT" || "$GITHUB_PAT" == "None" ]]; then
-    log "❌ Missing GitHub PAT in SSM: $GITHUB_PAT_PARAM"
-    exit 1
-  fi
-
-  GITHUB_PAT="${GITHUB_PAT//$'\r'/}"
-  GITHUB_PAT="${GITHUB_PAT//$'\n'/}"
-
-  DBT_REPO_URL="$(aws ssm get-parameter --region "$REGION" --name "$GITHUB_REPO_URL_PARAM" --query 'Parameter.Value' --output text || true)"
-  if [[ -z "$DBT_REPO_URL" || "$DBT_REPO_URL" == "None" ]]; then
-    log "❌ Missing repository URL in SSM: $GITHUB_REPO_URL_PARAM"
-    exit 1
-  fi
-
-  DBT_REPO_BRANCH="$(aws ssm get-parameter --region "$REGION" --name "$GITHUB_REPO_BRANCH_PARAM" --query 'Parameter.Value' --output text || true)"
-  if [[ -z "$DBT_REPO_BRANCH" || "$DBT_REPO_BRANCH" == "None" ]]; then
-    log "❌ Missing repository branch in SSM: $GITHUB_REPO_BRANCH_PARAM"
-    exit 1
-  fi
-
-  log "✅ Retrieved GitHub config - Repo: ${DBT_REPO_URL}, Branch: ${DBT_REPO_BRANCH}"
-}
-
-clone_dbt_repo() {
-  log "📂 Cloning DBT repository from GitHub..."
+prepare_deployment_directory() {
+  log "📁 Preparing deployment directory..."
   mkdir -p "$DBT_PROJECT_DIR"
   chown -R "$USERNAME:$USERNAME" "$DBT_BASE_DIR"
-
-  REPO_PATH="${DBT_REPO_URL#https://github.com/}"
-  local REPO_URL_WITH_AUTH="https://x-access-token:${GITHUB_PAT}@github.com/${REPO_PATH}"
-
-  if [ ! -d "${DBT_PROJECT_DIR}/.git" ]; then
-    sudo -u "$USERNAME" git clone --branch "$DBT_REPO_BRANCH" "$REPO_URL_WITH_AUTH" "$DBT_PROJECT_DIR"
-    log "✅ Cloned ${DBT_REPO_URL} (branch: ${DBT_REPO_BRANCH})"
-  else
-    log "ℹ️  Repository already exists, updating..."
-    cd "$DBT_PROJECT_DIR"
-    
-    # Clean up any local changes (including old profiles.yml)
-    sudo -u "$USERNAME" git reset --hard
-    
-    sudo -u "$USERNAME" git remote set-url origin "$REPO_URL_WITH_AUTH"
-    sudo -u "$USERNAME" git fetch --all --prune
-    sudo -u "$USERNAME" git checkout "$DBT_REPO_BRANCH"
-    sudo -u "$USERNAME" git pull --ff-only
-    log "✅ Updated repository to ${DBT_REPO_BRANCH}"
-  fi
-}
-
-ensure_paths_and_env_link() {
-  log "🔗 Creating symlinks and setting permissions..."
-  mkdir -p "$DBT_RUNTIME_DIR"
-  chown "$USERNAME:$USERNAME" "$DBT_RUNTIME_DIR"
-
-  ln -sf "$DBT_ENV_FILE" "${DBT_PROJECT_DIR}/.env"
-  log "✅ Environment linked to project directory"
-}
-
-start_dbt_smoke_test() {
-  log "🧪 Running DBT connection test..."
-  cd "$DBT_PROJECT_DIR"
-
-  # Detect DBT service by trying each possibility
-  log "Testing DBT connection..."
-  local dbt_service=""
-  
-  for service in "dbt-core" "dbt_core" "dbt"; do
-    if docker compose config 2>&1 | grep -q "^\s*${service}:"; then
-      dbt_service="$service"
-      log "Found DBT service: ${dbt_service}"
-      break
-    fi
-  done
-  
-  if [[ -n "$dbt_service" ]]; then
-    # Rebuild to pick up new volume mounts
-    docker compose build "$dbt_service" >/dev/null 2>&1 || true
-    # Run debug
-    docker compose run --rm "$dbt_service" debug || log "⚠️  DBT debug failed (non-critical)"
-  else
-    log "⚠️  Could not detect DBT service, skipping connection test"
-  fi
+  log "✅ Created ${DBT_PROJECT_DIR} (CodeDeploy will populate this)"
 }
 
 install_docs_systemd_service() {
@@ -275,42 +211,36 @@ UNIT
   systemctl daemon-reload
   systemctl enable dbt-docs.service
   
-  # Start the service and wait a moment for it to initialize
-  systemctl start dbt-docs.service
-  sleep 5
-  
-  # Check if docs container is running
-  cd "$DBT_PROJECT_DIR"
-  if docker compose ps docs 2>/dev/null | grep -q "Up"; then
-    log "✅ dbt-docs.service created, enabled, and started successfully"
-  else
-    log "⚠️  dbt-docs.service created but docs container may not be running"
-    log "Check logs with: docker compose logs docs"
-  fi
+  log "✅ dbt-docs.service created and enabled"
+  log "   (Service will start after CodeDeploy deployment)"
 }
 
 main() {
   log "🚀 Starting DBT EC2 setup for ${ENV_NAME} environment..."
+  log "   This instance will be deployed via AWS CodeDeploy"
 
   configure_ssh_keys_from_ssm
   install_base_utils
+  install_codedeploy_agent
   fetch_redshift_secrets_to_envfile
   write_runtime_profiles_yaml
-  fetch_github_config
-  clone_dbt_repo
-  ensure_paths_and_env_link
-  start_dbt_smoke_test
+  prepare_deployment_directory
   install_docs_systemd_service
 
-  log "🎉 DBT EC2 setup complete! Documentation server running on port 8080"
+  log "🎉 EC2 setup complete! Ready for CodeDeploy deployments"
   log "📊 Environment: ${ENV_NAME}"
-  log "📊 Repository: ${DBT_REPO_URL}"
-  log "📊 Branch: ${DBT_REPO_BRANCH}"
-  log "🌐 Access docs via ALB once DNS is configured"
+  log "📁 Deployment directory: ${DBT_PROJECT_DIR}"
+  log "🚀 CodeDeploy agent: Active"
   log ""
-  log "To check status:"
+  log "Next steps:"
+  log "  1. CodeDeploy will deploy the DBT project to ${DBT_PROJECT_DIR}"
+  log "  2. The deployment will start the dbt-docs.service"
+  log "  3. Docs will be available on port 8080"
+  log ""
+  log "To check status after deployment:"
+  log "  - systemctl status codedeploy-agent"
   log "  - systemctl status dbt-docs.service"
-  log "  - docker compose ps"
+  log "  - docker compose ps (from ${DBT_PROJECT_DIR})"
   log "  - docker compose logs docs"
 }
 

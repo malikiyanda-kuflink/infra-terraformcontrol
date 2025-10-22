@@ -25,3 +25,27 @@ output "dbt_docs_subdomain" {
   value       = var.dbt_docs_subdomain
   description = "Subdomain for accessing dbt docs"
 }
+
+# Outputs
+# ----------------------------------------------------------------------------
+# These values will be used in GitHub Actions and documentation
+# ----------------------------------------------------------------------------
+output "codedeploy_app_name" {
+  description = "Name of the CodeDeploy application"
+  value       = aws_codedeploy_app.app.name
+}
+
+output "codedeploy_deployment_group_name" {
+  description = "Name of the CodeDeploy deployment group"
+  value       = aws_codedeploy_deployment_group.deployment_group.deployment_group_name
+}
+
+output "codedeploy_bucket_name" {
+  description = "S3 bucket name for CodeDeploy artifacts"
+  value       = aws_s3_bucket.codedeploy_bucket.id
+}
+
+output "sns_topic_arn" {
+  description = "ARN of SNS topic for deployment notifications"
+  value       = aws_sns_topic.codedeploy_notifications.arn
+}

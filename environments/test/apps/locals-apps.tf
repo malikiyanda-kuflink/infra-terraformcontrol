@@ -17,11 +17,12 @@ data "aws_partition" "current" {}
 locals {
   # DBT EC2 Configuration
   dbt_config = {
-    environment        = "test" # or "production"
-    ssh_key_name       = data.terraform_remote_state.foundation.outputs.global.ec2_key_name
-    instance_type      = "t3.micro"
-    dbt_name           = "Kuflink-Test-DBT"
-    dbt_docs_subdomain = "dbt-test.brickfin.co.uk"
+    environment              = "test" # or "production"
+    ssh_key_name             = data.terraform_remote_state.foundation.outputs.global.ec2_key_name
+    instance_type            = "t3.micro"
+    dbt_name                 = "Kuflink-Test-DBT"
+    dbt_docs_subdomain       = "dbt-test.brickfin.co.uk"
+    code_deploy_project_name = "Kuflink-Test-DBT-Project"
   }
 
   # Prepare user_data with ENV_NAME injected

@@ -3,6 +3,11 @@
 output "iam_resources" {
   description = "All IAM roles and instance profiles grouped"
   value = {
+    # CodeDeploy Service Role
+    code_deploy = {
+      role_arn = module.iam.codedeploy_service_role_arn
+    }
+
     # DBT
     dbt = {
       role_arn              = module.iam.dbt_role_arn

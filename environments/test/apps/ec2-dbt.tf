@@ -1,6 +1,8 @@
 module "ec2-dbt" {
-  count  = local.enable_dbt ? 1 : 0
-  source = "../../../modules/ec2-dbt"
+  count       = local.enable_dbt ? 1 : 0
+  source      = "../../../modules/ec2-dbt"
+  name_prefix = local.name_prefix
+  environment = local.environment
 
   # Networking
   vpc_id            = data.terraform_remote_state.foundation.outputs.vpc_resources.vpc.id
@@ -22,4 +24,13 @@ module "ec2-dbt" {
   dbt_user_data = local.dbt_user_data_with_env
   canonical_id  = data.terraform_remote_state.foundation.outputs.global.canonical_id
   dbt_name      = local.dbt_config.dbt_name
+ 
+  #Code Deploy Configuration
+  code_deploy_project_name    = local.dbt_config.code_deploy_project_name
+  codedeploy_service_role_arn = data.terraform_remote_state.foundation.outputs.iam_resources.code_deploy.role_arn
+
+  instance_tags = {
+    DBT-Test-DeploymentTarget= local.dbt_config.code_deploy_project_name
+  }
+  
 }
