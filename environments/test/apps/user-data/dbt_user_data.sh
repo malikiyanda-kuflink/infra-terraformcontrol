@@ -241,6 +241,7 @@ main() {
   log "  - systemctl status codedeploy-agent"
   log "  - systemctl status dbt-docs.service"
   log "  - docker compose ps (from ${DBT_PROJECT_DIR})"
+  
   log "  - docker compose logs docs"
 }
 
