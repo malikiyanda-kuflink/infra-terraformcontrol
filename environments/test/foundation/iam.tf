@@ -22,7 +22,7 @@ module "iam" {
   enable_s3_admin_codebuild_role       = true
   enable_dbt_role                      = true
   enable_rds_enhanced_monitoring_role  = true
-  enable_codedeploy_service_role       = true 
+  enable_codedeploy_service_role       = true
 
   enable_metabase_role     = true
   enable_redshift_role     = true
@@ -54,7 +54,7 @@ module "iam" {
   redshift_endpoint_role_name        = "${local.name_prefix}-redshift-dms-role"
   redshift_role_name                 = "${local.name_prefix}-redshift-role"
   rds_enhanced_monitoring_role_name  = "${local.name_prefix}-rds-enhanced-monitoring-role"
-  codedeploy_service_role_name       = "${local.name_prefix}-codedeploy-service-role" 
+  codedeploy_service_role_name       = "${local.name_prefix}-codedeploy-service-role"
 
   tags = {
     Project = "Kuflink"
