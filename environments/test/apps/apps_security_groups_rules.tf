@@ -56,7 +56,7 @@ resource "aws_vpc_security_group_ingress_rule" "dbt_alb_https" {
 
 resource "aws_vpc_security_group_ingress_rule" "dbt_alb_icmp_echo_reply" {
   security_group_id = aws_security_group.dbt_alb_sg.id
-  description       = "ICMP Echo Reply"
+  description       = "ICMP Echo Reply For Monitoring"
   ip_protocol       = "icmp"
   from_port         = 8
   to_port           = 0
