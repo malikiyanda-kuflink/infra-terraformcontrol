@@ -151,7 +151,7 @@ resource "aws_cloudfront_distribution" "this" {
 
   tags = merge(
     {
-      Name        = "${var.name_prefix}-cloudfront"
+      Name        = "${var.name_prefix}-Frontend-CloudFront"
       Environment = var.environment
     },
     var.tags
