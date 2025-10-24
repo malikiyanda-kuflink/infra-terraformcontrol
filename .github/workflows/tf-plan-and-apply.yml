@@ -27,7 +27,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       environment:   ${{ steps.parse.outputs.environment }}
-      role_arn:      ${{ steps.parse.outputs.role_arn }}
       is_deploy:     ${{ steps.parse.outputs.is_deploy }}
       layers_json:   ${{ steps.detect.outputs.layers_json }}
       state_bucket:  ${{ steps.derive.outputs.state_bucket }}
@@ -40,23 +39,17 @@ jobs:
           ref="${GITHUB_REF}"
           ENV_SLUG="test"
           IS_DEPLOY="false"
-          
-          # Default to test for PRs
-          ROLE="${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}"
 
           if [[ "$ref" =~ refs/tags/v.*-(test|staging|prod)$ ]]; then
             case "${BASH_REMATCH[1]}" in
               test)
                 ENV_SLUG="test"
-                ROLE="${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}"
                 ;;
               staging)
                 ENV_SLUG="staging"
-                ROLE="${{ secrets.STAGING_AWS_OIDC_ROLE_ARN }}"
                 ;;
               prod)
                 ENV_SLUG="production"
-                ROLE="${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}"
                 ;;
             esac
             IS_DEPLOY="true"
@@ -64,14 +57,9 @@ jobs:
 
           echo "environment=$ENV_SLUG" >> $GITHUB_OUTPUT
           echo "is_deploy=$IS_DEPLOY"  >> $GITHUB_OUTPUT
-          echo "role_arn=$ROLE"        >> $GITHUB_OUTPUT
           
           echo "🎯 Environment: $ENV_SLUG"
-          echo "🔐 Using OIDC Role: ${ROLE#*::}" # Print role without account ID for security
           echo "🚀 Is Deploy: $IS_DEPLOY"
-
-          echo "DEBUG: Full ROLE value: $ROLE"
-          echo "DEBUG: Secret value: ${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}"
 
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
@@ -183,7 +171,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ENVIRONMENT:  ${{ needs.detect-environment.outputs.environment }}
-      ROLE_ARN:     ${{ needs.detect-environment.outputs.role_arn }}
       IS_DEPLOY:    ${{ needs.detect-environment.outputs.is_deploy }}
       LAYER:        foundation
       AWS_REGION:   ${{ vars.AWS_REGION }}
@@ -191,14 +178,32 @@ jobs:
       TF_LOCK_TABLE:   ${{ needs.detect-environment.outputs.lock_table }}
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Determine AWS Role
+        id: aws_role
+        run: |
+          case "${{ env.ENVIRONMENT }}" in
+            test)
+              echo "role_arn=${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+            staging)
+              echo "role_arn=${{ secrets.STAGING_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+            production)
+              echo "role_arn=${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+          esac
+          
       - name: Configure AWS (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.ROLE_ARN }}
+          role-to-assume: ${{ steps.aws_role.outputs.role_arn }}
           aws-region: ${{ vars.AWS_REGION }}
+          
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with: { terraform_wrapper: false }
+        
       - name: Terraform Init (CLI backend)
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
@@ -209,12 +214,14 @@ jobs:
             -backend-config="region=${AWS_REGION}" \
             -backend-config="dynamodb_table=${TF_LOCK_TABLE}" \
             -backend-config="encrypt=true"
+            
       - name: Terraform Fmt & Validate
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         run: |
           terraform fmt -check
           terraform validate
+          
       - name: Terraform Plan
         id: plan
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
@@ -227,6 +234,7 @@ jobs:
           if [ "$code" -eq 2 ]; then echo "has_changes=true" >> $GITHUB_OUTPUT; exit 0
           elif [ "$code" -eq 0 ]; then echo "has_changes=false" >> $GITHUB_OUTPUT; exit 0
           else exit "$code"; fi
+          
       - name: Upload Plan
         if: always()
         uses: actions/upload-artifact@v4
@@ -234,11 +242,13 @@ jobs:
           name: tfplan-${{ env.ENVIRONMENT }}-${{ env.LAYER }}
           path: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}/tfplan.bin
           if-no-files-found: ignore
+          
       - name: Terraform Apply
         if: env.IS_DEPLOY == 'true' && steps.plan.outputs.has_changes == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         run: terraform apply -auto-approve tfplan.bin 2>&1 | tee apply_output.txt
+        
       - name: Generate Summary
         if: always()
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
@@ -262,7 +272,6 @@ jobs:
           fi
           
           if [ -f apply_output.txt ]; then
-            # Strip ANSI color codes from apply output
             sed 's/\x1b\[[0-9;]*m//g' apply_output.txt > apply_output_clean.txt
             APPLY_SUMMARY=$(grep -E "Apply complete!" apply_output_clean.txt | tail -1 || echo "Apply completed")
             echo "### ✅ Apply" >> $GITHUB_STEP_SUMMARY
@@ -285,7 +294,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ENVIRONMENT:  ${{ needs.detect-environment.outputs.environment }}
-      ROLE_ARN:     ${{ needs.detect-environment.outputs.role_arn }}
       IS_DEPLOY:    ${{ needs.detect-environment.outputs.is_deploy }}
       LAYER:        platform
       AWS_REGION:   ${{ vars.AWS_REGION }}
@@ -293,14 +301,32 @@ jobs:
       TF_LOCK_TABLE:   ${{ needs.detect-environment.outputs.lock_table }}
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Determine AWS Role
+        id: aws_role
+        run: |
+          case "${{ env.ENVIRONMENT }}" in
+            test)
+              echo "role_arn=${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+            staging)
+              echo "role_arn=${{ secrets.STAGING_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+            production)
+              echo "role_arn=${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+          esac
+          
       - name: Configure AWS (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.ROLE_ARN }}
+          role-to-assume: ${{ steps.aws_role.outputs.role_arn }}
           aws-region: ${{ vars.AWS_REGION }}
+          
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with: { terraform_wrapper: false }
+        
       - name: Terraform Init (CLI backend)
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
@@ -311,12 +337,14 @@ jobs:
             -backend-config="region=${AWS_REGION}" \
             -backend-config="dynamodb_table=${TF_LOCK_TABLE}" \
             -backend-config="encrypt=true"
+            
       - name: Terraform Fmt & Validate
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         run: |
           terraform fmt -check
           terraform validate
+          
       - name: Terraform Plan
         id: plan
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
@@ -329,6 +357,7 @@ jobs:
           if [ "$code" -eq 2 ]; then echo "has_changes=true" >> $GITHUB_OUTPUT; exit 0
           elif [ "$code" -eq 0 ]; then echo "has_changes=false" >> $GITHUB_OUTPUT; exit 0
           else exit "$code"; fi
+          
       - name: Upload Plan
         if: always()
         uses: actions/upload-artifact@v4
@@ -336,11 +365,13 @@ jobs:
           name: tfplan-${{ env.ENVIRONMENT }}-${{ env.LAYER }}
           path: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}/tfplan.bin
           if-no-files-found: ignore
+          
       - name: Terraform Apply
         if: env.IS_DEPLOY == 'true' && steps.plan.outputs.has_changes == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         run: terraform apply -auto-approve tfplan.bin 2>&1 | tee apply_output.txt
+        
       - name: Generate Summary
         if: always()
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
@@ -386,7 +417,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ENVIRONMENT:  ${{ needs.detect-environment.outputs.environment }}
-      ROLE_ARN:     ${{ needs.detect-environment.outputs.role_arn }}
       IS_DEPLOY:    ${{ needs.detect-environment.outputs.is_deploy }}
       LAYER:        data
       AWS_REGION:   ${{ vars.AWS_REGION }}
@@ -394,14 +424,32 @@ jobs:
       TF_LOCK_TABLE:   ${{ needs.detect-environment.outputs.lock_table }}
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Determine AWS Role
+        id: aws_role
+        run: |
+          case "${{ env.ENVIRONMENT }}" in
+            test)
+              echo "role_arn=${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+            staging)
+              echo "role_arn=${{ secrets.STAGING_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+            production)
+              echo "role_arn=${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+          esac
+          
       - name: Configure AWS (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.ROLE_ARN }}
+          role-to-assume: ${{ steps.aws_role.outputs.role_arn }}
           aws-region: ${{ vars.AWS_REGION }}
+          
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with: { terraform_wrapper: false }
+        
       - name: Terraform Init (CLI backend)
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
@@ -412,12 +460,14 @@ jobs:
             -backend-config="region=${AWS_REGION}" \
             -backend-config="dynamodb_table=${TF_LOCK_TABLE}" \
             -backend-config="encrypt=true"
+            
       - name: Terraform Fmt & Validate
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         run: |
           terraform fmt -check
           terraform validate
+          
       - name: Terraform Plan
         id: plan
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
@@ -430,6 +480,7 @@ jobs:
           if [ "$code" -eq 2 ]; then echo "has_changes=true" >> $GITHUB_OUTPUT; exit 0
           elif [ "$code" -eq 0 ]; then echo "has_changes=false" >> $GITHUB_OUTPUT; exit 0
           else exit "$code"; fi
+          
       - name: Upload Plan
         if: always()
         uses: actions/upload-artifact@v4
@@ -437,11 +488,13 @@ jobs:
           name: tfplan-${{ env.ENVIRONMENT }}-${{ env.LAYER }}
           path: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}/tfplan.bin
           if-no-files-found: ignore
+          
       - name: Terraform Apply
         if: env.IS_DEPLOY == 'true' && steps.plan.outputs.has_changes == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         run: terraform apply -auto-approve tfplan.bin 2>&1 | tee apply_output.txt
+        
       - name: Generate Summary
         if: always()
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
@@ -487,7 +540,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ENVIRONMENT:  ${{ needs.detect-environment.outputs.environment }}
-      ROLE_ARN:     ${{ needs.detect-environment.outputs.role_arn }}
       IS_DEPLOY:    ${{ needs.detect-environment.outputs.is_deploy }}
       LAYER:        apps
       AWS_REGION:   ${{ vars.AWS_REGION }}
@@ -495,14 +547,32 @@ jobs:
       TF_LOCK_TABLE:   ${{ needs.detect-environment.outputs.lock_table }}
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Determine AWS Role
+        id: aws_role
+        run: |
+          case "${{ env.ENVIRONMENT }}" in
+            test)
+              echo "role_arn=${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+            staging)
+              echo "role_arn=${{ secrets.STAGING_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+            production)
+              echo "role_arn=${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+          esac
+          
       - name: Configure AWS (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.ROLE_ARN }}
+          role-to-assume: ${{ steps.aws_role.outputs.role_arn }}
           aws-region: ${{ vars.AWS_REGION }}
+          
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with: { terraform_wrapper: false }
+        
       - name: Terraform Init (CLI backend)
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
@@ -513,12 +583,14 @@ jobs:
             -backend-config="region=${AWS_REGION}" \
             -backend-config="dynamodb_table=${TF_LOCK_TABLE}" \
             -backend-config="encrypt=true"
+            
       - name: Terraform Fmt & Validate
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         run: |
           terraform fmt -check
           terraform validate
+          
       - name: Terraform Plan
         id: plan
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
@@ -531,6 +603,7 @@ jobs:
           if [ "$code" -eq 2 ]; then echo "has_changes=true" >> $GITHUB_OUTPUT; exit 0
           elif [ "$code" -eq 0 ]; then echo "has_changes=false" >> $GITHUB_OUTPUT; exit 0
           else exit "$code"; fi
+          
       - name: Upload Plan
         if: always()
         uses: actions/upload-artifact@v4
@@ -538,11 +611,13 @@ jobs:
           name: tfplan-${{ env.ENVIRONMENT }}-${{ env.LAYER }}
           path: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}/tfplan.bin
           if-no-files-found: ignore
+          
       - name: Terraform Apply
         if: env.IS_DEPLOY == 'true' && steps.plan.outputs.has_changes == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         run: terraform apply -auto-approve tfplan.bin 2>&1 | tee apply_output.txt
+        
       - name: Generate Summary
         if: always()
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
