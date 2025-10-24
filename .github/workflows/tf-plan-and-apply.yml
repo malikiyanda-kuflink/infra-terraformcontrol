@@ -40,13 +40,24 @@ jobs:
           ref="${GITHUB_REF}"
           ENV_SLUG="test"
           IS_DEPLOY="false"
-          ROLE="arn:aws:iam::137167813802:role/kuflink-test-github-oidc-terraform"
+          
+          # Default to test for PRs
+          ROLE="${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}"
 
           if [[ "$ref" =~ refs/tags/v.*-(test|staging|prod)$ ]]; then
             case "${BASH_REMATCH[1]}" in
-              test)    ENV_SLUG="test";       ROLE="arn:aws:iam::137167813802:role/kuflink-test-github-oidc-terraform" ;;
-              staging) ENV_SLUG="staging";    ROLE="arn:aws:iam::222222222222:role/kuflink-staging-github-oidc-terraform" ;;
-              prod)    ENV_SLUG="production"; ROLE="arn:aws:iam::333333333333:role/kuflink-prod-github-oidc-terraform" ;;
+              test)
+                ENV_SLUG="test"
+                ROLE="${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}"
+                ;;
+              staging)
+                ENV_SLUG="staging"
+                ROLE="${{ secrets.STAGING_AWS_OIDC_ROLE_ARN }}"
+                ;;
+              prod)
+                ENV_SLUG="production"
+                ROLE="${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}"
+                ;;
             esac
             IS_DEPLOY="true"
           fi
@@ -54,6 +65,10 @@ jobs:
           echo "environment=$ENV_SLUG" >> $GITHUB_OUTPUT
           echo "is_deploy=$IS_DEPLOY"  >> $GITHUB_OUTPUT
           echo "role_arn=$ROLE"        >> $GITHUB_OUTPUT
+          
+          echo "🎯 Environment: $ENV_SLUG"
+          echo "🔐 Using OIDC Role: ${ROLE#*::}" # Print role without account ID for security
+          echo "🚀 Is Deploy: $IS_DEPLOY"
 
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
@@ -346,7 +361,6 @@ jobs:
           fi
           
           if [ -f apply_output.txt ]; then
-            # Strip ANSI color codes from apply output
             sed 's/\x1b\[[0-9;]*m//g' apply_output.txt > apply_output_clean.txt
             APPLY_SUMMARY=$(grep -E "Apply complete!" apply_output_clean.txt | tail -1 || echo "Apply completed")
             echo "### ✅ Apply" >> $GITHUB_STEP_SUMMARY
@@ -448,7 +462,6 @@ jobs:
           fi
           
           if [ -f apply_output.txt ]; then
-            # Strip ANSI color codes from apply output
             sed 's/\x1b\[[0-9;]*m//g' apply_output.txt > apply_output_clean.txt
             APPLY_SUMMARY=$(grep -E "Apply complete!" apply_output_clean.txt | tail -1 || echo "Apply completed")
             echo "### ✅ Apply" >> $GITHUB_STEP_SUMMARY
@@ -550,7 +563,6 @@ jobs:
           fi
           
           if [ -f apply_output.txt ]; then
-            # Strip ANSI color codes from apply output
             sed 's/\x1b\[[0-9;]*m//g' apply_output.txt > apply_output_clean.txt
             APPLY_SUMMARY=$(grep -E "Apply complete!" apply_output_clean.txt | tail -1 || echo "Apply completed")
             echo "### ✅ Apply" >> $GITHUB_STEP_SUMMARY
