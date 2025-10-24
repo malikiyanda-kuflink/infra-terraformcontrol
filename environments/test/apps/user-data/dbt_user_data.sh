@@ -107,15 +107,12 @@ install_base_utils() {
 
 install_codedeploy_agent() {
   log "🚀 Installing AWS CodeDeploy Agent..."
-  
   apt-get install -y ruby-full wget
-  
   cd /tmp
   wget "https://aws-codedeploy-${REGION}.s3.${REGION}.amazonaws.com/latest/install"
   chmod +x ./install
-  
   ./install auto
-  
+
   if systemctl is-active --quiet codedeploy-agent; then
     log "✅ CodeDeploy agent installed and running"
   else
@@ -130,9 +127,8 @@ install_codedeploy_agent() {
       systemctl status codedeploy-agent --no-pager
     fi
   fi
-  
+
   rm -f /tmp/install
-  
   log "✅ CodeDeploy agent setup complete"
 }
 
@@ -210,11 +206,134 @@ UNIT
 
   systemctl daemon-reload
   systemctl enable dbt-docs.service
-  
+
   log "✅ dbt-docs.service created and enabled"
   log "   (Service will start after CodeDeploy deployment)"
 }
 
+# =====================================================================
+# 📊 Install CloudWatch + collectd + SSM Monitoring Stack
+# =====================================================================
+install_monitoring_stack() {
+  log "📦 Installing monitoring stack (CloudWatch Agent, collectd, SSM)..."
+
+  apt-get update -y
+  apt-get install -y wget jq collectd awscli
+
+  # Install CloudWatch Agent
+  log "⬇️  Installing CloudWatch Agent..."
+  wget -q https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+  dpkg -i amazon-cloudwatch-agent.deb
+  rm -f amazon-cloudwatch-agent.deb || true
+
+  # Install and enable SSM Agent
+  log "⬇️  Installing SSM Agent..."
+  snap install amazon-ssm-agent --classic
+  systemctl enable --now snap.amazon-ssm-agent.amazon-ssm-agent
+
+  # Get instance metadata
+  TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+  INSTANCE_ID=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/instance-id)
+  INSTANCE_NAME=$(aws ec2 describe-tags --region "$REGION" \
+    --filters "Name=resource-id,Values=$INSTANCE_ID" "Name=key,Values=Name" \
+    --query "Tags[0].Value" --output text)
+  if [[ "$INSTANCE_NAME" == "None" || -z "$INSTANCE_NAME" ]]; then
+    INSTANCE_NAME="$INSTANCE_ID"
+  fi
+
+  DISK_DEVICE=$(lsblk -nr -o NAME,TYPE | awk '$2=="disk"{print "/dev/"$1}' | head -n 1)
+
+  log "📝 Writing CloudWatch Agent config for ${INSTANCE_NAME}..."
+  cat > /opt/aws/amazon-cloudwatch-agent/bin/config.json <<EOF
+{
+  "agent": {
+    "run_as_user": "root",
+    "debug": true,
+    "force_flush_interval": 1
+  },
+  "metrics": {
+    "namespace": "Kuflink/EC2HostMetrics",
+    "append_dimensions": {
+      "InstanceId": "\${aws:InstanceId}"
+    },
+    "metrics_collected": {
+      "collectd": {},
+      "cpu": {
+        "measurement": ["cpu_usage_idle", "cpu_usage_user", "cpu_usage_system"],
+        "metrics_collection_interval": 10
+      },
+      "mem": {
+        "measurement": ["mem_used_percent"],
+        "metrics_collection_interval": 10
+      },
+      "disk": {
+        "measurement": ["disk_used", "disk_total", "disk_free"],
+        "resources": ["/", "/boot"],
+        "metrics_collection_interval": 10,
+        "ignore_file_system_types": ["tmpfs", "devtmpfs", "overlay"]
+      },
+      "diskio": {
+        "measurement": ["reads", "writes"],
+        "resources": ["${DISK_DEVICE}"],
+        "metrics_collection_interval": 10
+      },
+      "swap": {
+        "measurement": ["swap_used_percent"],
+        "metrics_collection_interval": 10
+      },
+      "procstat": {
+        "pattern": "*",
+        "measurement": ["uptime"],
+        "metrics_collection_interval": 10
+      }
+    }
+  },
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/var/log/syslog",
+            "log_group_name": "/ec2/${INSTANCE_NAME}/syslog",
+            "log_stream_name": "{instance_id}-syslog"
+          },
+          {
+            "file_path": "/var/log/cloud-init-output.log",
+            "log_group_name": "/ec2/${INSTANCE_NAME}/cloud-init",
+            "log_stream_name": "{instance_id}-cloud-init-output"
+          }
+        ]
+      }
+    }
+  }
+}
+EOF
+
+  log "🔁 Starting CloudWatch Agent and collectd..."
+  systemctl restart collectd || true
+  /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+    -a fetch-config -m ec2 \
+    -c file:/opt/aws/amazon-cloudwatch-agent/bin/config.json -s
+
+  sleep 5
+
+  SSM_STATUS=$(systemctl is-active snap.amazon-ssm-agent.amazon-ssm-agent || true)
+  CW_STATUS=$(systemctl is-active amazon-cloudwatch-agent || true)
+  COLLECTD_STATUS=$(systemctl is-active collectd || true)
+
+  if [[ "$SSM_STATUS" == "active" && "$CW_STATUS" == "active" && "$COLLECTD_STATUS" == "active" ]]; then
+    log "✅ Monitoring stack healthy (SSM + CloudWatch Agent + collectd running)"
+  else
+    log "❌ Monitoring stack issue:"
+    log "   SSM      = $SSM_STATUS"
+    log "   CWAgent  = $CW_STATUS"
+    log "   collectd = $COLLECTD_STATUS"
+  fi
+}
+
+# =====================================================================
+# MAIN EXECUTION
+# =====================================================================
 main() {
   log "🚀 Starting DBT EC2 setup for ${ENV_NAME} environment..."
   log "   This instance will be deployed via AWS CodeDeploy"
@@ -226,6 +345,7 @@ main() {
   write_runtime_profiles_yaml
   prepare_deployment_directory
   install_docs_systemd_service
+  install_monitoring_stack   # 👈 CloudWatch monitoring setup
 
   log "🎉 EC2 setup complete! Ready for CodeDeploy deployments"
   log "📊 Environment: ${ENV_NAME}"
@@ -241,8 +361,9 @@ main() {
   log "  - systemctl status codedeploy-agent"
   log "  - systemctl status dbt-docs.service"
   log "  - docker compose ps (from ${DBT_PROJECT_DIR})"
-  
   log "  - docker compose logs docs"
+  log ""
+  log "✅ Monitoring (CloudWatch Agent + Logs + SSM) configured and running"
 }
 
 main "$@"
