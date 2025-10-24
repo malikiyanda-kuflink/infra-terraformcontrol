@@ -70,6 +70,9 @@ jobs:
           echo "🔐 Using OIDC Role: ${ROLE#*::}" # Print role without account ID for security
           echo "🚀 Is Deploy: $IS_DEPLOY"
 
+          echo "DEBUG: Full ROLE value: $ROLE"
+          echo "DEBUG: Secret value: ${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}"
+
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
 
