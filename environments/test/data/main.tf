@@ -173,7 +173,7 @@ module "dms_mysql_to_redshift" {
 
   name_prefix                    = local.name_prefix
   region                         = "eu-west-2"
-  dms_dashboard_name             = "Kuflink-${local.env}-Redshift-Sync-DMS-Dashboard"
+  dms_dashboard_name             = "Kuflink-${local.name_prefix_upper}-Redshift-Sync-DMS-Dashboard"
   replication_instance_id        = "dms-${local.env}-redshift-sync"
   instance_class                 = "dms.t3.small"
   allocated_storage              = 50
