@@ -15,6 +15,7 @@
 # ----------------------------------------------------------------------------
 resource "aws_s3_bucket" "codedeploy_bucket" {
   bucket = "${var.name_prefix}-codedeploy-artifacts"
+  force_destroy = true
 
   tags = {
     Name    = "${var.code_deploy_project_name}-codedeploy-bucket"
