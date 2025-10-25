@@ -76,6 +76,7 @@ module "ec2-dbt" {
   name_prefix = local.name_prefix
   environment = local.environment
 
+
   #Monitoring 
   cloudwatch_ops_notification_email = data.terraform_remote_state.foundation.outputs.global.build_notification_email
 
@@ -91,6 +92,7 @@ module "ec2-dbt" {
   acm_certificate_arn       = data.terraform_remote_state.foundation.outputs.ssl_certificate_arn
 
   # DNS
+  route53_zone_name  = local.aws_route53_zone
   dbt_docs_subdomain = local.dbt_config.dbt_docs_subdomain
 
   # Instance Configuration
