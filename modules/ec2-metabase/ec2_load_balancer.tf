@@ -1,6 +1,6 @@
 # Data source to get the ACM certificate
 data "aws_acm_certificate" "imported_cert_ec2" {
-  domain      = "brickfin.co.uk"
+  domain      = var.aws_route53_zone
   statuses    = ["ISSUED"]
   most_recent = true
 }

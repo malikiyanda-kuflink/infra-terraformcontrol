@@ -26,7 +26,7 @@ output "office_ip" {
 output "ssl_certificate_arn" {
   value       = data.aws_ssm_parameter.ssl_certificate_arn.value
   sensitive   = true
-  description = "Brickfin SSL ARN"
+  description = "Route 53 ACM SSL ARN"
 }
 
 

@@ -10,6 +10,7 @@ variable "alb_sg_id" { type = string }
 variable "dbt_sg_id" { type = string }
 variable "instance_tags" {}
 variable "cloudwatch_ops_notification_email" { type = string }
+variable "route53_zone_name" {type=string}
 
 
 
@@ -24,7 +25,7 @@ variable "acm_certificate_arn" {
 
 variable "dbt_docs_subdomain" {
   type        = string
-  description = "Subdomain for dbt docs (e.g., dbt-staging.brickfin.co.uk)"
+  description = "Subdomain for dbt docs"
 }
 
 

@@ -3,7 +3,7 @@ locals {
   name_prefix       = "kuflink-test"
   environment       = "Test"
   name_prefix_upper = "Kuflink-Test"
-  aws_route53_zone  = "brickfin.co.uk"
+  aws_route53_zone  = data.terraform_remote_state.foundation.outputs.route53_zone_name
 
   # ------------------------------------------
   # DNS Switch (true)/(false)

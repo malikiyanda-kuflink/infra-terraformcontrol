@@ -5,7 +5,7 @@ data "aws_route53_zone" "kuflink_zone" {
 }
 
 
-resource "aws_route53_record" "brickfin_root" {
+resource "aws_route53_record" "aws_route53_zone_root" {
   zone_id = data.aws_route53_zone.kuflink_zone.zone_id
   name    = "metabase"
   type    = "A"
@@ -17,7 +17,7 @@ resource "aws_route53_record" "brickfin_root" {
   }
 }
 
-resource "aws_route53_record" "brickfin_www" {
+resource "aws_route53_record" "aws_route53_zone_www" {
   zone_id = data.aws_route53_zone.kuflink_zone.zone_id
   name    = "www.metabase"
   type    = "A"

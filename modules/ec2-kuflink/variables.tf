@@ -1,6 +1,7 @@
 variable "aws_route53_zone" {
   type = string
 }
+
 variable "vpc_id" {
   description = "VPC ID for the security group"
   type        = string

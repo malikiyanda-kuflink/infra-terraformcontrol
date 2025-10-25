@@ -1,5 +1,5 @@
 # Route 53 Hosted Zone
-data "aws_route53_zone" "brickfin" {
+data "aws_route53_zone" "route_53_zone_name" {
   name         = local.aws_route53_zone
   private_zone = false
 }
@@ -7,7 +7,7 @@ data "aws_route53_zone" "brickfin" {
 resource "aws_route53_record" "p2papi_cname" {
   count = local.enable_eb ? 1 : 0
 
-  zone_id = data.aws_route53_zone.brickfin.zone_id
+  zone_id = data.aws_route53_zone.route_53_zone_name.zone_id
   name    = data.terraform_remote_state.foundation.outputs.eb_api.API_DOMAIN
   type    = "CNAME"
   ttl     = 300
