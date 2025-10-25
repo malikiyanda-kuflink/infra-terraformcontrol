@@ -31,6 +31,17 @@ resource "aws_vpc_security_group_ingress_rule" "dbt_alb_ingress" {
   to_port                      = 8080
 }
 
+# Site to Site VPN -> EB DBT EC2 SSH (22)
+resource "aws_vpc_security_group_ingress_rule" "office_ip_to_dbt_ec2_ssh" {
+  count             = local.enable_dbt ? 1 : 0
+  security_group_id = aws_security_group.dbt_sg.id
+  description       = "Site to Site VPN to DBT EC2 SSH"
+  ip_protocol       = "tcp"
+  from_port         = 22
+  to_port           = 22
+  cidr_ipv4         = data.terraform_remote_state.foundation.outputs.office_cidr
+}
+
 #============================================================
 # DBT ALB SG
 #============================================================
@@ -195,6 +206,16 @@ resource "aws_vpc_security_group_ingress_rule" "redis_private_cidrs" {
 # ---------------------------------
 # App/EC2 SGs inbound dependencies
 # ---------------------------------
+# Site to Site VPN -> EB Web App SSH (22)
+resource "aws_vpc_security_group_ingress_rule" "office_ip_to_eb_web_app_ssh" {
+  count             = local.enable_eb ? 1 : 0
+  security_group_id = aws_security_group.eb_web_app_sg.id
+  description       = "Site to Site VPN to WebAPI SSH"
+  ip_protocol       = "tcp"
+  from_port         = 22
+  to_port           = 22
+  cidr_ipv4         = data.terraform_remote_state.foundation.outputs.office_cidr
+}
 
 # Bastion -> EB Web App SSH (22)
 resource "aws_vpc_security_group_ingress_rule" "bastion_to_eb_web_app_ssh" {
