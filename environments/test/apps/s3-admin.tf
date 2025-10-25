@@ -6,6 +6,9 @@ module "s3-admin" {
   }
 
   admin_waf_arn = local.admin_waf_arn
+  # admin_waf_arn = " "  ## leave blank for production - need soultion for staging frontend lockdown
+
+
 
   # --- Feature toggles --- 
   serve_frontend_maintenance = local.serve_frontend_maintenance

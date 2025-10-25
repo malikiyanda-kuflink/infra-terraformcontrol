@@ -176,6 +176,7 @@ normalize_env_name() {
   esac
   log "[INFO] Using ENV_NAME='${ENV_NAME}'"
 }
+
 # define SSM param paths for Redshift after ENV_NAME is finalized
 set_redshift_param_paths() {
   SSM_RS_HOST="/backend/${ENV_NAME}/REDSHIFT_HOST"
@@ -283,16 +284,34 @@ install_monitoring_stack() {
     systemctl enable --now snap.amazon-ssm-agent.amazon-ssm-agent || true
   fi
 
-  # collectd
+  # collectd - ONLY enable uptime plugin to minimize metrics
   apt-get install -y collectd || true
 
-  # ensure collectd basics enabled (uptime etc.) so CloudWatch can scrape from it
   if [ -f /etc/collectd/collectd.conf ]; then
-    sed -i 's|^#LoadPlugin uptime|LoadPlugin uptime|' /etc/collectd/collectd.conf || true
-    sed -i 's|^#LoadPlugin network|LoadPlugin network|' /etc/collectd/collectd.conf || true
-    # nuke any old <Plugin network> blocks and append our own local block
-    sed -i '/<Plugin network>/,/<\/Plugin>/d' /etc/collectd/collectd.conf || true
-    cat <<'EOF' >> /etc/collectd/collectd.conf
+    log "📝 Configuring collectd for uptime only (cost optimization)..."
+    
+    # Backup original config
+    cp /etc/collectd/collectd.conf /etc/collectd/collectd.conf.bak || true
+    
+    # Create minimal config with only uptime and network plugins
+    cat > /etc/collectd/collectd.conf <<'COLLECTD_EOF'
+# Minimal collectd config - ONLY uptime metric for cost optimization
+Hostname "localhost"
+FQDNLookup false
+Interval 60
+Timeout 2
+ReadThreads 5
+
+# Load only essential plugins
+LoadPlugin logfile
+LoadPlugin network
+LoadPlugin uptime
+
+<Plugin logfile>
+  LogLevel "info"
+  File "/var/log/collectd.log"
+  Timestamp true
+</Plugin>
 
 <Plugin network>
   Server "127.0.0.1" "25826"
@@ -300,12 +319,14 @@ install_monitoring_stack() {
 
 <Plugin uptime>
 </Plugin>
-EOF
+COLLECTD_EOF
+
+    log "✅ collectd configured for uptime only"
   fi
 
   # Fetch CloudWatch config from SSM Parameter Store
   log "🔽 Fetching CloudWatch config from SSM Parameter Store..."
-  SSM_CW_CONFIG="/kuflink/dbt/${ENV_NAME}/cloudwatch-config"
+  SSM_CW_CONFIG="/kuflink/dbt/${ENV_NAME}/cloudwatch_config"
   
   mkdir -p "$(dirname "$CW_CONFIG_DST")"
   
@@ -326,14 +347,53 @@ EOF
 
   log "✅ CloudWatch config fetched from SSM and written to ${CW_CONFIG_DST}"
 
-  log "▶ Restarting collectd & starting CloudWatch Agent with config..."
+  # Verify log groups exist (they should be created by Terraform)
+  log "📋 Verifying CloudWatch Log Groups exist..."
+  
+  LOG_GROUPS_EXIST=true
+  for log_group in \
+    "/ec2/${SAFE_INSTANCE_NAME}/syslog" \
+    "/ec2/${SAFE_INSTANCE_NAME}/cloud-init" \
+    "/ec2/${SAFE_INSTANCE_NAME}/user-data"
+  do
+    if aws logs describe-log-groups \
+      --log-group-name-prefix "$log_group" \
+      --region "$REGION" \
+      --query "logGroups[?logGroupName=='${log_group}'].logGroupName" \
+      --output text 2>/dev/null | grep -q "^${log_group}$"; then
+      log "   ✅ Log group exists: $log_group"
+    else
+      log "   ⚠️  Log group missing: $log_group (should be created by Terraform)"
+      LOG_GROUPS_EXIST=false
+    fi
+  done
+  
+  if [[ "$LOG_GROUPS_EXIST" == "false" ]]; then
+    log "⚠️  Warning: Some log groups are missing. Logs may not appear in CloudWatch."
+    log "   Ensure Terraform creates these log groups before instance launch."
+  else
+    log "✅ All log groups verified"
+  fi
+
+  log "▶ Restarting collectd & starting CloudWatch Agent..."
   systemctl restart collectd || true
 
+  # Stop any existing CloudWatch Agent first
+  /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+    -a stop \
+    -m ec2 2>/dev/null || true
+
+  sleep 2
+
+  # Start CloudWatch Agent with config
   /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
     -a fetch-config \
     -m ec2 \
     -c file:"$CW_CONFIG_DST" \
     -s
+
+  # Wait a moment for services to stabilize
+  sleep 3
 
   CW_STATUS=$(systemctl is-active amazon-cloudwatch-agent || true)
   SSM_STATUS=$(systemctl is-active snap.amazon-ssm-agent.amazon-ssm-agent || true)
@@ -347,8 +407,25 @@ EOF
     log "   CloudWatch Agent: ${CW_STATUS}"
     log "   SSM Agent: ${SSM_STATUS}"
     log "   collectd: ${COLLECTD_STATUS}"
+    
+    if [[ "$CW_STATUS" != "active" ]]; then
+      log "   CloudWatch Agent errors (last 20 lines):"
+      tail -20 /opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log 2>/dev/null || log "      (no log file found)"
+    fi
+    
     echo "BAD" > /var/log/instance-health.log
   fi
+  
+  log ""
+  log "📊 Monitoring Configuration:"
+  log "   Namespace: ${CW_NAMESPACE}"
+  log "   Metrics: ~9 total (cost-optimized)"
+  log "   Log Groups:"
+  log "     - /ec2/${SAFE_INSTANCE_NAME}/syslog"
+  log "     - /ec2/${SAFE_INSTANCE_NAME}/cloud-init"
+  log "     - /ec2/${SAFE_INSTANCE_NAME}/user-data"
+  log ""
+  log "💡 Tip: Logs and metrics may take 1-3 minutes to appear in CloudWatch"
 }
 
 ########################################

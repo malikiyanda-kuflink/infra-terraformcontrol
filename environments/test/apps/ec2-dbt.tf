@@ -1,41 +1,91 @@
 # Create SSM parameter with CloudWatch config
 resource "aws_ssm_parameter" "dbt_cloudwatch_config" {
   count = local.enable_dbt ? 1 : 0
-  name  = "/kuflink/dbt/${local.environment}/cloudwatch-config"
+  name  = "/kuflink/dbt/${local.environment}/cloudwatch_config"
   type  = "String"
   value = jsonencode({
     agent = {
       run_as_user          = "root"
-      debug                = true
-      force_flush_interval = 1
+      debug                = false
+      force_flush_interval = 60
     }
     metrics = {
       namespace = "CWAgent-${local.dbt_config.dbt_name}-Limited"
       append_dimensions = {
         InstanceId = "$${aws:InstanceId}"
       }
+      aggregation_dimensions = [["InstanceId"]]
       metrics_collected = {
         collectd = {
+          service_address       = "udp://127.0.0.1:25826"
+          name_prefix           = "collectd_"
+          collectd_auth_file    = ""
           collectd_security_level = "none"
-          collectd_typesdb        = ["/usr/share/collectd/types.db"]
+          collectd_typesdb      = ["/usr/share/collectd/types.db"]
+          metrics_aggregation_interval = 60
         }
         cpu = {
-          measurement                 = ["cpu_usage_idle", "cpu_usage_user"]
+          measurement = [
+            {
+              name   = "cpu_usage_idle"
+              rename = "cpu_usage_idle"
+              unit   = "Percent"
+            },
+            {
+              name   = "cpu_usage_user"
+              rename = "cpu_usage_user"
+              unit   = "Percent"
+            }
+          ]
           totalcpu                    = true
-          metrics_collection_interval = 10
+          metrics_collection_interval = 60
         }
         mem = {
-          measurement                 = ["mem_used_percent"]
-          metrics_collection_interval = 10
+          measurement = [
+            {
+              name   = "mem_used_percent"
+              rename = "mem_used_percent"
+              unit   = "Percent"
+            }
+          ]
+          metrics_collection_interval = 60
         }
         disk = {
-          measurement                 = ["disk_used", "disk_free", "disk_total", "disk_used_percent"]
+          measurement = [
+            {
+              name   = "disk_used"
+              rename = "disk_used"
+              unit   = "Gigabytes"
+            },
+            {
+              name   = "disk_free"
+              rename = "disk_free"
+              unit   = "Gigabytes"
+            },
+            {
+              name   = "disk_total"
+              rename = "disk_total"
+              unit   = "Gigabytes"
+            },
+            {
+              name   = "disk_used_percent"
+              rename = "disk_used_percent"
+              unit   = "Percent"
+            }
+          ]
           resources                   = ["/"]
-          metrics_collection_interval = 10
+          ignore_file_system_types    = ["sysfs", "devtmpfs", "tmpfs"]
+          metrics_collection_interval = 60
         }
         swap = {
-          measurement                 = ["swap_used_percent"]
-          metrics_collection_interval = 10
+          measurement = [
+            {
+              name   = "swap_used_percent"
+              rename = "swap_used_percent"
+              unit   = "Percent"
+            }
+          ]
+          metrics_collection_interval = 60
         }
       }
     }
@@ -47,23 +97,25 @@ resource "aws_ssm_parameter" "dbt_cloudwatch_config" {
               file_path       = "/var/log/syslog"
               log_group_name  = "/ec2/${local.dbt_config.dbt_name}/syslog"
               log_stream_name = "{instance_id}-syslog"
+              timezone        = "UTC"
             },
             {
               file_path       = "/var/log/cloud-init-output.log"
               log_group_name  = "/ec2/${local.dbt_config.dbt_name}/cloud-init"
               log_stream_name = "{instance_id}-cloud-init-output"
+              timezone        = "UTC"
             },
             {
               file_path       = "/var/log/user-data.log"
               log_group_name  = "/ec2/${local.dbt_config.dbt_name}/user-data"
               log_stream_name = "{instance_id}-user-data"
+              timezone        = "UTC"
             }
           ]
         }
       }
     }
   })
-
   tags = {
     Environment = local.environment
     Name        = "${local.name_prefix}-dbt-cloudwatch-config"
