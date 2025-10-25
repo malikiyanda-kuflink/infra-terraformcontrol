@@ -51,7 +51,8 @@ resource "aws_iam_role_policy" "dbt_inline_policy" {
           "s3:GetObjectVersion",
           "s3:PutObject",
           "s3:GetBucketAcl",
-          "s3:GetBucketLocation"
+          "s3:GetBucketLocation",
+          "ec2:DescribeTags"
         ],
         Resource = "*"
       }

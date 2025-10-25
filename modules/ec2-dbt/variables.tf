@@ -9,6 +9,7 @@ variable "canonical_id" { type = string }
 variable "alb_sg_id" { type = string }
 variable "dbt_sg_id" { type = string }
 variable "instance_tags" {}
+variable "cloudwatch_ops_notification_email" { type = string }
 
 
 
