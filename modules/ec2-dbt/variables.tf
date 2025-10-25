@@ -10,7 +10,7 @@ variable "alb_sg_id" { type = string }
 variable "dbt_sg_id" { type = string }
 variable "instance_tags" {}
 variable "cloudwatch_ops_notification_email" { type = string }
-variable "route53_zone_name" {type=string}
+variable "route53_zone_name" { type = string }
 
 
 

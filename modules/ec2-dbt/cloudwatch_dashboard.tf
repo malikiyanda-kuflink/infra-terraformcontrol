@@ -283,21 +283,21 @@ resource "aws_cloudwatch_dashboard" "kuflink_dashboard" {
         "x" : 0, "y" : 0, "width" : 12, "height" : 3,
         "properties" : {
           "metrics" : [
-            ["${local.cwagent_namespace}", "collectd_uptime_value", "InstanceId", "${local.instance_id}", "type", "uptime", { "id": "m1", "region": "${local.aws_region}" }],
-            [{ "expression": "m1/60", "label": "Uptime (Minutes)", "id": "m2" }],
-            [{ "expression": "m1/3600", "label": "Uptime (Hours)", "id": "m3" }],
-            [{ "expression": "m1/86400", "label": "Uptime (Days)", "id": "m4" }]
+            ["${local.cwagent_namespace}", "collectd_uptime_value", "InstanceId", "${local.instance_id}", "type", "uptime", { "id" : "m1", "region" : "${local.aws_region}" }],
+            [{ "expression" : "m1/60", "label" : "Uptime (Minutes)", "id" : "m2" }],
+            [{ "expression" : "m1/3600", "label" : "Uptime (Hours)", "id" : "m3" }],
+            [{ "expression" : "m1/86400", "label" : "Uptime (Days)", "id" : "m4" }]
           ],
-          "view": "singleValue",
-          "region": "${local.aws_region}",
-          "period": 60,
-          "stat": "Average",
-          "title": "EC2 Instance Uptime",
-          "liveData": false,
-          "stacked": false,
-          "yAxis": {
-            "left": { "min": 0 },
-            "right": { "showUnits": true }
+          "view" : "singleValue",
+          "region" : "${local.aws_region}",
+          "period" : 60,
+          "stat" : "Average",
+          "title" : "EC2 Instance Uptime",
+          "liveData" : false,
+          "stacked" : false,
+          "yAxis" : {
+            "left" : { "min" : 0 },
+            "right" : { "showUnits" : true }
           }
         }
       },

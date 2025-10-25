@@ -14,7 +14,7 @@
 # will pull from this bucket to deploy to EC2 instances.
 # ----------------------------------------------------------------------------
 resource "aws_s3_bucket" "codedeploy_bucket" {
-  bucket = "${var.name_prefix}-codedeploy-artifacts"
+  bucket        = "${var.name_prefix}-codedeploy-artifacts"
   force_destroy = true
 
   tags = {

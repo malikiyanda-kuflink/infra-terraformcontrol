@@ -5,9 +5,9 @@ resource "aws_ssm_parameter" "dbt_cloudwatch_config" {
   type  = "String"
   value = jsonencode({
     agent = {
-      run_as_user              = "root"
-      debug                    = true
-      force_flush_interval     = 1
+      run_as_user          = "root"
+      debug                = true
+      force_flush_interval = 1
     }
     metrics = {
       namespace = "CWAgent-${local.dbt_config.dbt_name}-Limited"
@@ -17,24 +17,24 @@ resource "aws_ssm_parameter" "dbt_cloudwatch_config" {
       metrics_collected = {
         collectd = {
           collectd_security_level = "none"
-          collectd_typesdb       = ["/usr/share/collectd/types.db"]
+          collectd_typesdb        = ["/usr/share/collectd/types.db"]
         }
         cpu = {
-          measurement                = ["cpu_usage_idle", "cpu_usage_user"]
-          totalcpu                   = true
+          measurement                 = ["cpu_usage_idle", "cpu_usage_user"]
+          totalcpu                    = true
           metrics_collection_interval = 10
         }
         mem = {
-          measurement                = ["mem_used_percent"]
+          measurement                 = ["mem_used_percent"]
           metrics_collection_interval = 10
         }
         disk = {
-          measurement                = ["disk_used", "disk_free", "disk_total", "disk_used_percent"]
-          resources                  = ["/"]
+          measurement                 = ["disk_used", "disk_free", "disk_total", "disk_used_percent"]
+          resources                   = ["/"]
           metrics_collection_interval = 10
         }
         swap = {
-          measurement                = ["swap_used_percent"]
+          measurement                 = ["swap_used_percent"]
           metrics_collection_interval = 10
         }
       }
