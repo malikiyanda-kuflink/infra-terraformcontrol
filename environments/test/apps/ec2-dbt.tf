@@ -1,7 +1,7 @@
 # Create SSM parameter with CloudWatch config
 resource "aws_ssm_parameter" "dbt_cloudwatch_config" {
   count = local.enable_dbt ? 1 : 0
-  name  = "/kuflink/dbt/${local.environment}/cloudwatch_config"
+  name  = "/ec2/dbt/${local.dbt_config.environment}/cloudwatch_config"
   type  = "String"
   value = jsonencode({
     agent = {
@@ -126,7 +126,7 @@ module "ec2-dbt" {
   depends_on  = [aws_ssm_parameter.dbt_cloudwatch_config]
   source      = "../../../modules/ec2-dbt"
   name_prefix = local.name_prefix
-  environment = local.environment
+  environment = local.dbt_config.environment
 
 
   #Monitoring 
