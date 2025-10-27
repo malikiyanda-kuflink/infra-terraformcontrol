@@ -123,6 +123,7 @@ resource "aws_ssm_parameter" "dbt_cloudwatch_config" {
 
 module "ec2-dbt" {
   count       = local.enable_dbt ? 1 : 0
+  depends_on  = [aws_ssm_parameter.dbt_cloudwatch_config]
   source      = "../../../modules/ec2-dbt"
   name_prefix = local.name_prefix
   environment = local.environment
