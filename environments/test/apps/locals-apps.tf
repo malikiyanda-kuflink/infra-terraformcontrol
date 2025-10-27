@@ -21,17 +21,31 @@ locals {
     ssh_key_name             = data.terraform_remote_state.foundation.outputs.global.ec2_key_name
     instance_type            = "t3.micro"
     dbt_name                 = "Kuflink-Test-DBT"
-    dbt_docs_subdomain       = "dbt-test.${local.aws_route53_zone}"
+    dbt_docs_subdomain       = "dbt-test.brickfin.co.uk"
     code_deploy_project_name = "Kuflink-Test-DBT-Project"
   }
 
-  # Prepare user_data with ENV_NAME injected
+  # Read script and convert to Unix line endings
+  dbt_full_script_raw  = file("${path.root}/user-data/dbt_user_data.sh")
+  dbt_full_script_unix = replace(local.dbt_full_script_raw, "\r\n", "\n")
+
+  # Minimal user data that decompresses and executes
   dbt_user_data_with_env = <<-EOF
     #!/bin/bash
+    set -euo pipefail
+    
     export ENV_NAME="${local.dbt_config.environment}"
     export REGION="eu-west-2"
-    ${file("${path.root}/user-data/dbt_user_data.sh")}
+    
+    # Decompress and execute the script
+    base64 -d <<'SCRIPT_END' | gunzip > /tmp/dbt_setup.sh
+    ${base64gzip(local.dbt_full_script_unix)}
+    SCRIPT_END
+    
+    chmod +x /tmp/dbt_setup.sh
+    /tmp/dbt_setup.sh 2>&1 | tee /var/log/user-data.log
   EOF
+
 
 
 

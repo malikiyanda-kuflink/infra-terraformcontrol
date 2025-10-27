@@ -10,19 +10,12 @@ resource "aws_ssm_parameter" "dbt_cloudwatch_config" {
       force_flush_interval = 60
     }
     metrics = {
-      namespace = "CWAgent-${local.dbt_config.dbt_name}-Limited"
+      namespace = "__NAMESPACE__"
       append_dimensions = {
         InstanceId = "$${aws:InstanceId}"
       }
       aggregation_dimensions = [["InstanceId"]]
       metrics_collected = {
-        collectd = {
-          service_address              = "udp://127.0.0.1:25826"
-          name_prefix                  = "collectd_"
-          collectd_security_level      = "none"
-          collectd_typesdb             = ["/usr/share/collectd/types.db"]
-          metrics_aggregation_interval = 60
-        }
         cpu = {
           measurement = [
             {
@@ -94,19 +87,19 @@ resource "aws_ssm_parameter" "dbt_cloudwatch_config" {
           collect_list = [
             {
               file_path       = "/var/log/syslog"
-              log_group_name  = "/ec2/${local.dbt_config.dbt_name}/syslog"
+              log_group_name  = "/ec2/__INSTANCE_NAME__/syslog"
               log_stream_name = "{instance_id}-syslog"
               timezone        = "UTC"
             },
             {
               file_path       = "/var/log/cloud-init-output.log"
-              log_group_name  = "/ec2/${local.dbt_config.dbt_name}/cloud-init"
+              log_group_name  = "/ec2/__INSTANCE_NAME__/cloud-init"
               log_stream_name = "{instance_id}-cloud-init-output"
               timezone        = "UTC"
             },
             {
               file_path       = "/var/log/user-data.log"
-              log_group_name  = "/ec2/${local.dbt_config.dbt_name}/user-data"
+              log_group_name  = "/ec2/__INSTANCE_NAME__/user-data"
               log_stream_name = "{instance_id}-user-data"
               timezone        = "UTC"
             }
@@ -116,7 +109,7 @@ resource "aws_ssm_parameter" "dbt_cloudwatch_config" {
     }
   })
   tags = {
-    Environment = local.environment
+    Environment = local.dbt_config.environment
     Name        = "${local.name_prefix}-dbt-cloudwatch-config"
   }
 }

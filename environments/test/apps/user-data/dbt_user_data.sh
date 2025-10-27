@@ -1,10 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-# ========= Config (Terraform can inject REGION/ENV_NAME via templatefile) =========
+# ========= Config =========
 REGION="${REGION:-eu-west-2}"
 ENV_NAME="${ENV_NAME:-staging}"
-# ================================================================================
 
 LOG_FILE="/var/log/user-data.log"
 exec > >(tee -a "$LOG_FILE") 2>&1
@@ -30,34 +29,52 @@ DBT_PROFILES_FILE="${DBT_RUNTIME_DIR}/profiles.yml"
 DBT_PROFILE_NAME="${DBT_PROFILE_NAME:-carl}"
 DBT_TARGET_NAME="${DBT_TARGET_NAME:-dev}"
 
-# CloudWatch config destination
 CW_CONFIG_DST="/opt/aws/amazon-cloudwatch-agent/bin/config.json"
 
 log() { echo "[$(date +'%F %T')] $*"; }
 
 ########################################
-# Helpers: metadata, namespace, sanity
+# Metadata & Identity
 ########################################
 fetch_instance_identity() {
   log "🔎 Fetching instance metadata / tags..."
-  # IMDSv2 token
-  TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" \
+  
+  # Get IMDSv2 token
+  TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" \
     -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+  
+  # Get instance ID
+  if [[ -n "$TOKEN" ]]; then
+    INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
+      http://169.254.169.254/latest/meta-data/instance-id)
+  else
+    INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+  fi
 
-  INSTANCE_ID=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s \
-    http://169.254.169.254/latest/meta-data/instance-id)
+  if [[ -z "$INSTANCE_ID" ]]; then
+    INSTANCE_ID="unknown"
+    INSTANCE_NAME="UnknownInstance"
+  else
+    log "✅ Instance ID: ${INSTANCE_ID}"
+    
+    # Get Name tag from metadata service (no AWS CLI needed!)
+    if [[ -n "$TOKEN" ]]; then
+      INSTANCE_NAME=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
+        http://169.254.169.254/latest/meta-data/tags/instance/Name 2>/dev/null || echo "")
+    else
+      INSTANCE_NAME=$(curl -s \
+        http://169.254.169.254/latest/meta-data/tags/instance/Name 2>/dev/null || echo "")
+    fi
+    
+    if [[ -z "$INSTANCE_NAME" || "$INSTANCE_NAME" == "Not Found" ]]; then
+      INSTANCE_NAME="DBT-${INSTANCE_ID}"
+      log "⚠️  Using fallback name: ${INSTANCE_NAME}"
+    else
+      log "✅ Found Name tag: ${INSTANCE_NAME}"
+    fi
+  fi
 
-  # Get Name tag via EC2 API (needs instance profile perms: ec2:DescribeTags or ec2:DescribeInstances)
-  INSTANCE_NAME=$(aws ec2 describe-tags \
-    --region "$REGION" \
-    --filters "Name=resource-id,Values=${INSTANCE_ID}" "Name=key,Values=Name" \
-    --query "Tags[0].Value" \
-    --output text 2>/dev/null || echo "UnknownInstance")
-
-  # We'll use this to build CloudWatch namespace:
-  #   CWAgent-<Name>-Limited
-  # If the Name tag has spaces or weird chars, normalize a bit
-  SAFE_INSTANCE_NAME=$(echo "${INSTANCE_NAME}" | tr ' /:' '---')
+  SAFE_INSTANCE_NAME=$(echo "${INSTANCE_NAME}" | tr ' /:' '---' | tr -cd '[:alnum:]-')
   CW_NAMESPACE="CWAgent-${SAFE_INSTANCE_NAME}-Limited"
 
   export INSTANCE_ID INSTANCE_NAME SAFE_INSTANCE_NAME CW_NAMESPACE
@@ -67,7 +84,7 @@ fetch_instance_identity() {
 }
 
 ########################################
-# SSH access bootstrap
+# SSH Keys
 ########################################
 configure_ssh_keys_from_ssm() {
   log "🔑 Installing SSH keys from SSM..."
@@ -82,12 +99,24 @@ configure_ssh_keys_from_ssm() {
   fi
 
   for param in "${PUBLIC_KEY_PARAMS[@]}"; do
-    val="$(aws ssm get-parameter \
-      --name "$param" \
-      --with-decryption \
-      --region "$REGION" \
-      --query 'Parameter.Value' \
-      --output text 2>/dev/null || true)"
+    val=""
+    for attempt in {1..5}; do
+      val="$(aws ssm get-parameter \
+        --name "$param" \
+        --with-decryption \
+        --region "$REGION" \
+        --query 'Parameter.Value' \
+        --output text 2>/dev/null || true)"
+      
+      if [[ -n "$val" && "$val" != "None" ]]; then
+        break
+      fi
+      
+      if [[ $attempt -lt 5 ]]; then
+        log "   ⏳ Retrying $param (attempt $attempt/5)..."
+        sleep 2
+      fi
+    done
 
     if [[ -n "$val" && "$val" != "None" ]] && echo "$val" | grep -Eq '^(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256) '; then
       echo "$val" >> "${AUTHORIZED_KEYS}.tmp"
@@ -110,16 +139,14 @@ configure_ssh_keys_from_ssm() {
 }
 
 ########################################
-# Base utils, Docker, CodeDeploy agent
+# Base Utils, Docker, CodeDeploy
 ########################################
 install_base_utils() {
-  log "📦 Installing base utils (AWS CLI, git, Docker deps, netcat, etc.)..."
+  log "📦 Installing base utils (AWS CLI, git, Docker, etc.)..."
   apt-get update -y
   apt-get install -y \
-    awscli git ca-certificates curl gnupg lsb-release netcat \
-    unzip jq collectd
+    awscli git ca-certificates curl gnupg lsb-release netcat unzip jq
 
-  # Docker repo setup
   install -m 0755 -d /etc/apt/keyrings
   curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
     | gpg --dearmor -o /etc/apt/keyrings/docker.gpg 2>/dev/null || true
@@ -134,7 +161,7 @@ install_base_utils() {
   systemctl enable --now docker
   usermod -aG docker "$USERNAME" || true
 
-  log "✅ AWS CLI / git / docker / compose installed"
+  log "✅ AWS CLI / git / docker installed"
 }
 
 install_codedeploy_agent() {
@@ -153,16 +180,14 @@ install_codedeploy_agent() {
     log "✅ CodeDeploy agent running"
   else
     log "❌ CodeDeploy agent not active"
-    systemctl status codedeploy-agent --no-pager || true
   fi
 
   rm -f /tmp/install
 }
 
 ########################################
-# DBT secrets + runtime prep
+# DBT Secrets & Runtime
 ########################################
-# map env_name like "staging", "test", "production"
 normalize_env_name() {
   local input="${ENV_NAME:-staging}"
   case "${input,,}" in
@@ -177,7 +202,6 @@ normalize_env_name() {
   log "[INFO] Using ENV_NAME='${ENV_NAME}'"
 }
 
-# define SSM param paths for Redshift after ENV_NAME is finalized
 set_redshift_param_paths() {
   SSM_RS_HOST="/backend/${ENV_NAME}/REDSHIFT_HOST"
   SSM_RS_DB="/backend/${ENV_NAME}/REDSHIFT_DATABASE"
@@ -187,7 +211,7 @@ set_redshift_param_paths() {
 }
 
 fetch_redshift_secrets_to_envfile() {
-  log "🔐 Fetching Redshift credentials from SSM (${ENV_NAME})..."
+  log "🔐 Fetching Redshift credentials from SSM..."
   RS_HOST=$(aws ssm get-parameter --with-decryption --region "$REGION" --name "$SSM_RS_HOST" --query 'Parameter.Value' --output text)
   RS_DB=$(aws ssm get-parameter   --with-decryption --region "$REGION" --name "$SSM_RS_DB"   --query 'Parameter.Value' --output text)
   RS_USER=$(aws ssm get-parameter --with-decryption --region "$REGION" --name "$SSM_RS_USER" --query 'Parameter.Value' --output text)
@@ -235,7 +259,7 @@ prepare_deployment_directory() {
   log "📁 Preparing deployment directory..."
   mkdir -p "$DBT_PROJECT_DIR"
   chown -R "$USERNAME:$USERNAME" "$DBT_BASE_DIR"
-  log "✅ Created ${DBT_PROJECT_DIR} (CodeDeploy will populate this)"
+  log "✅ Created ${DBT_PROJECT_DIR}"
 }
 
 install_docs_systemd_service() {
@@ -260,18 +284,18 @@ UNIT
 
   systemctl daemon-reload
   systemctl enable dbt-docs.service
-  log "✅ dbt-docs.service created and enabled (will start after CodeDeploy deploys project)"
+  log "✅ dbt-docs.service created and enabled"
 }
 
 ########################################
-# Monitoring stack (CloudWatch / SSM / collectd)
+# Monitoring Stack
 ########################################
 install_monitoring_stack() {
-  log "📈 Installing monitoring stack (CloudWatch Agent, SSM Agent, collectd)..."
+  log "📈 Installing monitoring stack (CloudWatch Agent, SSM Agent)..."
 
   # CloudWatch Agent
   if ! command -v /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl >/dev/null 2>&1; then
-    log "⬇️ Installing CloudWatch Agent .deb"
+    log "⬇️ Installing CloudWatch Agent"
     wget -q https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb -O /tmp/amazon-cloudwatch-agent.deb
     dpkg -i /tmp/amazon-cloudwatch-agent.deb
   else
@@ -284,162 +308,121 @@ install_monitoring_stack() {
     systemctl enable --now snap.amazon-ssm-agent.amazon-ssm-agent || true
   fi
 
-  # collectd - ONLY enable uptime plugin to minimize metrics
-  apt-get install -y collectd || true
-
-  if [ -f /etc/collectd/collectd.conf ]; then
-    log "📝 Configuring collectd for uptime only (cost optimization)..."
-    
-    # Backup original config
-    cp /etc/collectd/collectd.conf /etc/collectd/collectd.conf.bak || true
-    
-    # Create minimal config with only uptime and network plugins
-    cat > /etc/collectd/collectd.conf <<'COLLECTD_EOF'
-# Minimal collectd config - ONLY uptime metric for cost optimization
-Hostname "localhost"
-FQDNLookup false
-Interval 60
-Timeout 2
-ReadThreads 5
-
-# Load only essential plugins
-LoadPlugin logfile
-LoadPlugin network
-LoadPlugin uptime
-
-<Plugin logfile>
-  LogLevel "info"
-  File "/var/log/collectd.log"
-  Timestamp true
-</Plugin>
-
-<Plugin network>
-  Server "127.0.0.1" "25826"
-</Plugin>
-
-<Plugin uptime>
-</Plugin>
-COLLECTD_EOF
-
-    log "✅ collectd configured for uptime only"
-  fi
-
-  # Fetch CloudWatch config from SSM Parameter Store
-  log "🔽 Fetching CloudWatch config from SSM Parameter Store..."
+  # Fetch CloudWatch config from SSM and replace placeholders
+  log "🔽 Fetching CloudWatch config from SSM..."
   SSM_CW_CONFIG="/ec2/dbt/${ENV_NAME}/cloudwatch_config"
   
   mkdir -p "$(dirname "$CW_CONFIG_DST")"
   
-  if ! aws ssm get-parameter \
+  aws ssm get-parameter \
     --name "$SSM_CW_CONFIG" \
     --region "$REGION" \
     --query 'Parameter.Value' \
-    --output text > "$CW_CONFIG_DST" 2>/dev/null; then
-    log "❌ ERROR: Failed to fetch CloudWatch config from SSM: ${SSM_CW_CONFIG}"
-    log "   Ensure the parameter exists and IAM permissions allow ssm:GetParameter"
-    exit 1
-  fi
+    --output text | \
+    sed "s/__NAMESPACE__/${CW_NAMESPACE}/g" | \
+    sed "s/__INSTANCE_NAME__/${SAFE_INSTANCE_NAME}/g" > "$CW_CONFIG_DST"
 
   if [[ ! -f "$CW_CONFIG_DST" || ! -s "$CW_CONFIG_DST" ]]; then
-    log "❌ ERROR: CloudWatch config file is empty or missing after SSM fetch"
+    log "❌ ERROR: CloudWatch config file is empty"
     exit 1
   fi
 
-  log "✅ CloudWatch config fetched from SSM and written to ${CW_CONFIG_DST}"
+  log "✅ CloudWatch config fetched and configured"
 
-  # Verify log groups exist (they should be created by Terraform)
-  log "📋 Verifying CloudWatch Log Groups exist..."
-  
-  LOG_GROUPS_EXIST=true
-  for log_group in \
-    "/ec2/${SAFE_INSTANCE_NAME}/syslog" \
-    "/ec2/${SAFE_INSTANCE_NAME}/cloud-init" \
-    "/ec2/${SAFE_INSTANCE_NAME}/user-data"
-  do
-    if aws logs describe-log-groups \
-      --log-group-name-prefix "$log_group" \
-      --region "$REGION" \
-      --query "logGroups[?logGroupName=='${log_group}'].logGroupName" \
-      --output text 2>/dev/null | grep -q "^${log_group}$"; then
-      log "   ✅ Log group exists: $log_group"
-    else
-      log "   ⚠️  Log group missing: $log_group (should be created by Terraform)"
-      LOG_GROUPS_EXIST=false
-    fi
-  done
-  
-  if [[ "$LOG_GROUPS_EXIST" == "false" ]]; then
-    log "⚠️  Warning: Some log groups are missing. Logs may not appear in CloudWatch."
-    log "   Ensure Terraform creates these log groups before instance launch."
-  else
-    log "✅ All log groups verified"
-  fi
-
-  log "▶ Restarting collectd & starting CloudWatch Agent..."
-  systemctl restart collectd || true
-
-  # Stop any existing CloudWatch Agent first
+  # Stop any existing CloudWatch Agent
   /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
-    -a stop \
-    -m ec2 2>/dev/null || true
+    -a stop -m ec2 2>/dev/null || true
 
   sleep 2
 
-  # Start CloudWatch Agent with config
+  # Start CloudWatch Agent
   /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
     -a fetch-config \
     -m ec2 \
     -c file:"$CW_CONFIG_DST" \
     -s
 
-  # Wait a moment for services to stabilize
   sleep 3
 
   CW_STATUS=$(systemctl is-active amazon-cloudwatch-agent || true)
   SSM_STATUS=$(systemctl is-active snap.amazon-ssm-agent.amazon-ssm-agent || true)
-  COLLECTD_STATUS=$(systemctl is-active collectd || true)
 
-  if [[ "$CW_STATUS" == "active" && "$SSM_STATUS" == "active" && "$COLLECTD_STATUS" == "active" ]]; then
+  if [[ "$CW_STATUS" == "active" && "$SSM_STATUS" == "active" ]]; then
     log "✅ Monitoring stack healthy"
-    echo "OK" > /var/log/instance-health.log
   else
     log "❌ Monitoring stack issue"
-    log "   CloudWatch Agent: ${CW_STATUS}"
-    log "   SSM Agent: ${SSM_STATUS}"
-    log "   collectd: ${COLLECTD_STATUS}"
-    
-    if [[ "$CW_STATUS" != "active" ]]; then
-      log "   CloudWatch Agent errors (last 20 lines):"
-      tail -20 /opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log 2>/dev/null || log "      (no log file found)"
-    fi
-    
-    echo "BAD" > /var/log/instance-health.log
+    log "   CloudWatch: ${CW_STATUS}, SSM: ${SSM_STATUS}"
   fi
   
-  log ""
-  log "📊 Monitoring Configuration:"
-  log "   Namespace: ${CW_NAMESPACE}"
-  log "   Metrics: ~9 total (cost-optimized)"
-  log "   Log Groups:"
-  log "     - /ec2/${SAFE_INSTANCE_NAME}/syslog"
-  log "     - /ec2/${SAFE_INSTANCE_NAME}/cloud-init"
-  log "     - /ec2/${SAFE_INSTANCE_NAME}/user-data"
-  log ""
-  log "💡 Tip: Logs and metrics may take 1-3 minutes to appear in CloudWatch"
+  log "📊 Monitoring: Namespace ${CW_NAMESPACE}, ~8 metrics"
 }
 
 ########################################
-# main()
+# Custom Uptime Metric
+########################################
+install_uptime_metric_script() {
+  log "⏱️ Installing custom uptime metric script..."
+  
+  # Create script with namespace variable substitution
+  cat > /usr/local/bin/send-uptime-metric.sh <<SCRIPT
+#!/bin/bash
+
+# Get IMDSv2 token
+TOKEN=\$(curl -s -X PUT "http://169.254.169.254/latest/api/token" \\
+  -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+
+# Get instance ID with token
+if [[ -n "\$TOKEN" ]]; then
+  INSTANCE_ID=\$(curl -s -H "X-aws-ec2-metadata-token: \$TOKEN" \\
+    http://169.254.169.254/latest/meta-data/instance-id)
+else
+  INSTANCE_ID=\$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+fi
+
+# Get uptime
+UPTIME_SECONDS=\$(awk '{print int(\$1)}' /proc/uptime)
+
+# Use the same namespace that CloudWatch Agent uses
+NAMESPACE="${CW_NAMESPACE}"
+
+# Send to CloudWatch
+aws cloudwatch put-metric-data \\
+  --namespace "\$NAMESPACE" \\
+  --metric-name uptime_seconds \\
+  --value "\$UPTIME_SECONDS" \\
+  --dimensions InstanceId="\$INSTANCE_ID" \\
+  --region ${REGION}
+
+echo "[\$(date)] Sent uptime: \$UPTIME_SECONDS seconds to namespace \$NAMESPACE for \$INSTANCE_ID"
+SCRIPT
+
+  chmod +x /usr/local/bin/send-uptime-metric.sh
+  
+  # Test it once to send initial metric
+  /usr/local/bin/send-uptime-metric.sh >> /var/log/uptime-metric.log 2>&1 || log "⚠️  Initial uptime metric send failed"
+  
+  # Add to cron (every 5 minutes)
+  echo "*/5 * * * * /usr/local/bin/send-uptime-metric.sh >> /var/log/uptime-metric.log 2>&1" | crontab -
+  
+  log "✅ Uptime metric script installed and scheduled"
+  log "   Namespace: ${CW_NAMESPACE}"
+}
+
+########################################
+# Main
 ########################################
 main() {
   log "🚀 Starting DBT EC2 setup bootstrap..."
 
-  fetch_instance_identity      # sets INSTANCE_NAME, CW_NAMESPACE, etc
+  fetch_instance_identity
   normalize_env_name
   set_redshift_param_paths
 
-  configure_ssh_keys_from_ssm
+  # Install base utils FIRST (includes AWS CLI)
   install_base_utils
+  
+  # NOW we can use AWS CLI for SSH keys and other AWS operations
+  configure_ssh_keys_from_ssm
   install_codedeploy_agent
 
   fetch_redshift_secrets_to_envfile
@@ -448,23 +431,12 @@ main() {
   install_docs_systemd_service
 
   install_monitoring_stack
+  install_uptime_metric_script
 
-  log "🎉 EC2 setup complete! Ready for CodeDeploy deployments"
+  log "🎉 EC2 setup complete!"
   log "📊 Environment: ${ENV_NAME}"
   log "📁 Deployment dir: ${DBT_PROJECT_DIR}"
-  log "🤖 CodeDeploy agent: $(systemctl is-active codedeploy-agent || true)"
   log "📈 CloudWatch namespace: ${CW_NAMESPACE}"
-  log ""
-  log "Next steps:"
-  log "  - CodeDeploy will deploy the DBT project into ${DBT_PROJECT_DIR}"
-  log "  - dbt-docs.service will run docker compose 'docs'"
-  log "  - Check monitoring in CloudWatch Metrics under ${CW_NAMESPACE}"
-  log ""
-  log "To check status later:"
-  log "  - systemctl status codedeploy-agent"
-  log "  - systemctl status dbt-docs.service"
-  log "  - docker compose ps   (cd ${DBT_PROJECT_DIR})"
-  log "  - systemctl status amazon-cloudwatch-agent collectd snap.amazon-ssm-agent.amazon-ssm-agent"
 }
 
 main "$@"

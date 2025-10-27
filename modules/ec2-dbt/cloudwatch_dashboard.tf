@@ -261,13 +261,15 @@ resource "aws_cloudwatch_dashboard" "kuflink_dashboard" {
         "x" : 12, "y" : 0, "width" : 12, "height" : 3,
         "properties" : {
           "metrics" : [
-            ["AWS/EC2", "StatusCheckFailed", "InstanceId", "${local.instance_id}"],
-            ["AWS/EC2", "StatusCheckFailed_Instance", "InstanceId", "${local.instance_id}"],
-            ["AWS/EC2", "StatusCheckFailed_System", "InstanceId", "${local.instance_id}"]
+            ["AWS/EC2", "StatusCheckFailed", "InstanceId", "${local.instance_id}", { "stat" : "Maximum", "label" : "Total Failures" }],
+            ["AWS/EC2", "StatusCheckFailed_Instance", "InstanceId", "${local.instance_id}", { "stat" : "Maximum", "label" : "Instance Check" }],
+            ["AWS/EC2", "StatusCheckFailed_System", "InstanceId", "${local.instance_id}", { "stat" : "Maximum", "label" : "System Check" }]
           ],
           "title" : "EC2 Status Checks (Instance & System)",
-          "region" : local.aws_region,
-          "view" : "singleValue"
+          "region" : "${local.aws_region}",
+          "view" : "singleValue",
+          "period" : 300,
+          "stat" : "Maximum"
         }
       },
 
@@ -283,7 +285,7 @@ resource "aws_cloudwatch_dashboard" "kuflink_dashboard" {
         "x" : 0, "y" : 0, "width" : 12, "height" : 3,
         "properties" : {
           "metrics" : [
-            ["${local.cwagent_namespace}", "collectd_uptime_value", "InstanceId", "${local.instance_id}", "type", "uptime", { "id" : "m1", "region" : "${local.aws_region}" }],
+            ["${local.cwagent_namespace}", "uptime_seconds", "InstanceId", "${local.instance_id}", { "id" : "m1", "region" : "${local.aws_region}" }],
             [{ "expression" : "m1/60", "label" : "Uptime (Minutes)", "id" : "m2" }],
             [{ "expression" : "m1/3600", "label" : "Uptime (Hours)", "id" : "m3" }],
             [{ "expression" : "m1/86400", "label" : "Uptime (Days)", "id" : "m4" }]
