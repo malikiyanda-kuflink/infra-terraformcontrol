@@ -97,7 +97,7 @@ module "rds_restore" {
   deletion_protection = false
   # instance_class      = "db.t3.small"  # performance insights done work for this
   instance_class = "db.t3.medium"
-  # instance_class      = "db.t3.xlarge"
+  # instance_class      = "db.t3.xlarge"  # testing 
   allocated_storage = 100
 
 
