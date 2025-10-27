@@ -19,5 +19,5 @@ locals {
   enable_s3_admin_waf        = false
   enable_s3_frontend         = false
   serve_frontend_maintenance = false
-  
+
 }
