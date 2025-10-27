@@ -25,6 +25,7 @@ output "ec2_dbt" {
   description = "DBT host details (null when disabled)."
   value = local.enable_dbt ? {
     instance_id  = module.ec2-dbt[0].dbt_instance_id
+    user_data_trace = "sudo tail -f /var/log/user-data.log"
     private_ip   = module.ec2-dbt[0].dbt_private_ip
     alb_dns_name = module.ec2-dbt[0].dbt_alb_dns_name
     docs_url     = "https://${module.ec2-dbt[0].dbt_docs_subdomain}"
