@@ -45,7 +45,7 @@ module "rds" {
   storage_type                        = "gp2"
   engine                              = "mysql"
   engine_version                      = "8.0.40"
-  instance_class                      = "db.t3.medium"
+  instance_class                      = "db.t3.micro"
   auto_minor_version_upgrade          = true
   storage_encrypted                   = true
   skip_final_snapshot                 = true
@@ -55,7 +55,7 @@ module "rds" {
   iam_database_authentication_enabled = false
 
   create_read_replica    = local.create_read_replica
-  replica_instance_class = "db.t3.small"
+  replica_instance_class = "db.t3.micro"
 
 }
 
