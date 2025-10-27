@@ -17,11 +17,11 @@ resource "aws_ssm_parameter" "dbt_cloudwatch_config" {
       aggregation_dimensions = [["InstanceId"]]
       metrics_collected = {
         collectd = {
-          service_address       = "udp://127.0.0.1:25826"
-          name_prefix           = "collectd_"
-          collectd_auth_file    = ""
-          collectd_security_level = "none"
-          collectd_typesdb      = ["/usr/share/collectd/types.db"]
+          service_address              = "udp://127.0.0.1:25826"
+          name_prefix                  = "collectd_"
+          collectd_auth_file           = ""
+          collectd_security_level      = "none"
+          collectd_typesdb             = ["/usr/share/collectd/types.db"]
           metrics_aggregation_interval = 60
         }
         cpu = {

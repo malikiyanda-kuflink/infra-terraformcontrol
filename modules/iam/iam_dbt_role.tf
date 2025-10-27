@@ -36,7 +36,7 @@ resource "aws_iam_role_policy_attachment" "ssm_dbt_instance_policy" {
 
 resource "aws_iam_role_policy_attachment" "dbt_cloudwatch_agent_policy" {
   count      = var.enable_dbt_role ? 1 : 0
-  role       = aws_iam_role.dbt_role[0].name  
+  role       = aws_iam_role.dbt_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
