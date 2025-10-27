@@ -1,7 +1,7 @@
 # Create SSM parameter with CloudWatch config
 resource "aws_ssm_parameter" "dbt_cloudwatch_config" {
   count = local.enable_dbt ? 1 : 0
-  name  = "/ec2/dbt/${local.env}/cloudwatch_config"
+  name  = "/kuflink/dbt/${local.environment}/cloudwatch_config"
   type  = "String"
   value = jsonencode({
     agent = {
@@ -19,7 +19,6 @@ resource "aws_ssm_parameter" "dbt_cloudwatch_config" {
         collectd = {
           service_address              = "udp://127.0.0.1:25826"
           name_prefix                  = "collectd_"
-          collectd_auth_file           = ""
           collectd_security_level      = "none"
           collectd_typesdb             = ["/usr/share/collectd/types.db"]
           metrics_aggregation_interval = 60
