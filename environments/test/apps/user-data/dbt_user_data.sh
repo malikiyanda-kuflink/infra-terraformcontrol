@@ -326,7 +326,7 @@ COLLECTD_EOF
 
   # Fetch CloudWatch config from SSM Parameter Store
   log "🔽 Fetching CloudWatch config from SSM Parameter Store..."
-  SSM_CW_CONFIG="/kuflink/dbt/${ENV_NAME}/cloudwatch_config"
+  SSM_CW_CONFIG="/ec2/dbt/${ENV_NAME}/cloudwatch_config"
   
   mkdir -p "$(dirname "$CW_CONFIG_DST")"
   
