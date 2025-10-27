@@ -81,7 +81,7 @@ variable "engine_version" {
 }
 
 variable "instance_class" {
-  description = "Instance class (e.g. db.t3.medium)"
+  description = "Instance class"
   type        = string
 }
 
