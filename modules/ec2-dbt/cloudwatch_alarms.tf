@@ -9,6 +9,34 @@ resource "aws_sns_topic_subscription" "email_notification" {
   protocol  = "email"
   endpoint  = var.cloudwatch_ops_notification_email
 }
+#################################################################
+#DBT SPECIFIC LOGS-
+# dbt.log is very chatty, long-lived, good for debugging.
+# run_results.json is more “job event / status”, and you might later create metric filters / alarms off failures.
+
+#################################################################
+
+resource "aws_cloudwatch_log_group" "dbt_runtime" {
+  name              = "/ec2/${var.dbt_name}/dbt-runtime"
+  retention_in_days = 7
+
+  tags = merge(
+    { Name = "${var.name_prefix}-dbt-runtime" },
+    var.instance_tags
+  )
+}
+
+resource "aws_cloudwatch_log_group" "dbt_run_results" {
+  name              = "/ec2/${var.dbt_name}/dbt-run-results"
+  retention_in_days = 7
+
+  tags = merge(
+    { Name = "${var.name_prefix}-dbt-run-results" },
+    var.instance_tags
+  )
+}
+
+#################################################################
 
 # 🚀 1️⃣ CPU Usage Alarm (AWS EC2)
 resource "aws_cloudwatch_metric_alarm" "high_cpu_usage" {

@@ -159,7 +159,7 @@ resource "aws_cloudwatch_dashboard" "ec2_dashboard" {
 
       {
         "type" : "metric",
-        "x" : 9, "y" : 14, "width" : 3, "height" : 3,
+        "x" : 9, "y" : 14, "width" : 3, "height" : 4,
         "properties" : {
           "metrics" : [
             [
@@ -339,22 +339,27 @@ resource "aws_cloudwatch_dashboard" "ec2_dashboard" {
             [
               "AWS/EC2", "CPUUtilization",
               "InstanceId", "${local.instance_id}",
-              { "stat" : "Average", "label" : "CPUUtilization" }
+              { "stat" : "Average", "label" : "CPU Avg" }
+            ],
+            [
+              "AWS/EC2", "CPUUtilization",
+              "InstanceId", "${local.instance_id}",
+              { "stat" : "p99", "label" : "CPU p99", "color" : "#ff7f0e" }
             ]
           ],
-          "title" : "CPU % Over Time - Sustained >80% = consider upgrade",
+          "title" : "CPU % Over Time (Avg & p99)",
           "region" : local.aws_region,
           "view" : "timeSeries",
           "period" : 300
         }
       },
 
-      # CPU Steal Time (underneath CPU over time)
+      # CPU Credit Usage (underneath CPU over time)
       {
         "type" : "text",
         "x" : 18, "y" : 20, "width" : 6, "height" : 1,
         "properties" : {
-          "markdown" : "**🔒 CPU Steal Time**"
+          "markdown" : "**💳 CPU Credit Usage**"
         }
       },
       {
@@ -362,26 +367,21 @@ resource "aws_cloudwatch_dashboard" "ec2_dashboard" {
         "x" : 18, "y" : 21, "width" : 6, "height" : 5,
         "properties" : {
           "metrics" : [
-            [
-              "${local.cwagent_namespace}", "cpu_usage_steal",
-              "InstanceId", "${local.instance_id}",
-              "cpu", "cpu-total"
-            ]
+            ["AWS/EC2", "CPUCreditUsage", "InstanceId", "${local.instance_id}"]
           ],
-          "title" : "CPU Steal % - Spikes = noisy neighbor taking your CPU",
+          "title" : "CPU Credit Usage - Rate of credit spending",
           "region" : local.aws_region,
           "view" : "timeSeries",
-          "period" : 300,
-          "yAxis" : { "left" : { "min" : 0 } }
+          "period" : 300
         }
       },
 
-      # CPU Credit Balance (underneath CPU steal time)
+      # CPU Credit Balance WITH COLORED ZONES (underneath credit usage)
       {
         "type" : "text",
         "x" : 18, "y" : 26, "width" : 6, "height" : 1,
         "properties" : {
-          "markdown" : "**⚡ CPU Credits**"
+          "markdown" : "**⚡ CPU Credit Balance**"
         }
       },
       {
@@ -389,19 +389,46 @@ resource "aws_cloudwatch_dashboard" "ec2_dashboard" {
         "x" : 18, "y" : 27, "width" : 6, "height" : 5,
         "properties" : {
           "metrics" : [
-            ["AWS/EC2", "CPUCreditBalance", "InstanceId", "${local.instance_id}"]
+            ["AWS/EC2", "CPUCreditBalance", "InstanceId", "${local.instance_id}", { "color" : "#2ca02c" }]
           ],
-          "title" : "CPU Credit Balance - Low credits = CPU throttling (T-instances only)",
+          "title" : "CPU Credit Balance (T-instances only)",
           "region" : local.aws_region,
           "view" : "timeSeries",
-          "period" : 300
+          "period" : 300,
+          "annotations" : {
+            "horizontal" : [
+              {
+                "label" : "🔴 CRITICAL: CPU Throttling",
+                "value" : 0,
+                "fill" : "above",
+                "color" : "#d62728"
+              },
+              {
+                "label" : "🟠 WARNING: Low Credits",
+                "value" : 50,
+                "fill" : "above",
+                "color" : "#ff7f0e"
+              },
+              {
+                "label" : "🟢 HEALTHY: Good Reserve",
+                "value" : 100,
+                "fill" : "above",
+                "color" : "#2ca02c"
+              }
+            ]
+          },
+          "yAxis" : {
+            "left" : {
+              "min" : 0
+            }
+          }
         }
       },
 
       # ================= ROW 3: NETWORK BLOCK (LEFT) =================
       {
         "type" : "text",
-        "x" : 0, "y" : 17, "width" : 12, "height" : 1,
+        "x" : 0, "y" : 17, "width" : 12, "height" : 2,
         "properties" : {
           "markdown" : "**📡 Network Throughput**"
         }
@@ -446,16 +473,17 @@ resource "aws_cloudwatch_dashboard" "ec2_dashboard" {
       },
 
       # ================= ROW 4: DISK LATENCY (BOTTOM FULL WIDTH) =================
+      # ================= ROW 4: DISK LATENCY & DISK SPACE OVER TIME (BOTTOM) =================
       {
         "type" : "text",
-        "x" : 0, "y" : 31, "width" : 24, "height" : 1,
+        "x" : 0, "y" : 31, "width" : 12, "height" : 1,
         "properties" : {
           "markdown" : "**💽 Disk Latency** - High read/write time = I/O bottleneck"
         }
       },
       {
         "type" : "metric",
-        "x" : 0, "y" : 32, "width" : 24, "height" : 6,
+        "x" : 0, "y" : 32, "width" : 12, "height" : 6,
         "properties" : {
           "metrics" : [
             ["AWS/EBS", "VolumeTotalReadTime", "VolumeId", "${local.root_volume_id}", { "label" : "Read Time" }],
@@ -465,6 +493,52 @@ resource "aws_cloudwatch_dashboard" "ec2_dashboard" {
           "region" : local.aws_region,
           "view" : "timeSeries",
           "period" : 300
+        }
+      },
+
+      # Disk Space Over Time (right side of disk latency)
+      {
+        "type" : "text",
+        "x" : 12, "y" : 31, "width" : 12, "height" : 1,
+        "properties" : {
+          "markdown" : "**💾 Disk Space Over Time**"
+        }
+      },
+      {
+        "type" : "metric",
+        "x" : 12, "y" : 32, "width" : 12, "height" : 6,
+        "properties" : {
+          "metrics" : [
+            [
+              "${local.cwagent_namespace}", "disk_used_percent",
+              "InstanceId", "${local.instance_id}",
+              "path", local.disk_path,
+              "device", local.disk_device,
+              "fstype", local.disk_fstype,
+              { "label" : "Disk Used %", "color" : "#ff7f0e" }
+            ]
+          ],
+          "title" : "Disk Used % Over Time - Rising = running out of space",
+          "region" : local.aws_region,
+          "view" : "timeSeries",
+          "period" : 300,
+          "yAxis" : { "left" : { "min" : 0, "max" : 100 } },
+          "annotations" : {
+            "horizontal" : [
+              {
+                "label" : "🔴 CRITICAL: Very Low Space",
+                "value" : 90,
+                "fill" : "above",
+                "color" : "#d62728"
+              },
+              {
+                "label" : "🟠 WARNING: Low Space",
+                "value" : 80,
+                "fill" : "above",
+                "color" : "#ff7f0e"
+              }
+            ]
+          }
         }
       }
 
