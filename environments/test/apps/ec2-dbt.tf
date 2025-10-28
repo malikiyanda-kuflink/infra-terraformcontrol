@@ -108,12 +108,6 @@ resource "aws_ssm_parameter" "dbt_cloudwatch_config" {
               log_group_name  = "/ec2/__INSTANCE_NAME__/dbt-runtime"
               log_stream_name = "{instance_id}-dbt-runtime"
               timezone        = "UTC"
-            },
-            {
-              file_path       = "/var/log/dbt/target/run_results.json"
-              log_group_name  = "/ec2/__INSTANCE_NAME__/dbt-run-results"
-              log_stream_name = "{instance_id}-dbt-run-results"
-              timezone        = "UTC"
             }
           ]
         }
