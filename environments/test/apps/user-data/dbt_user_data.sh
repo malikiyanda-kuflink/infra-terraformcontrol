@@ -262,8 +262,33 @@ prepare_deployment_directory() {
   log "✅ Created ${DBT_PROJECT_DIR}"
 }
 
+
+########################################
+# Host log/artifact directories for dbt
+########################################
+prepare_dbt_host_logging_dirs() {
+  log "🗂 Preparing /var/log/dbt mount points for container logs & artifacts..."
+
+  # Will receive /usr/app/logs/dbt.log from inside the container
+  # and /usr/app/target/{run_results.json,manifest.json,...}
+  mkdir -p /var/log/dbt
+  mkdir -p /var/log/dbt/target
+
+  # Let the ubuntu user (and docker containers that run as uid 1000) write there
+  chown -R "${USERNAME}:${USERNAME}" /var/log/dbt
+  chmod -R 755 /var/log/dbt
+
+  log "✅ /var/log/dbt ready (will be mounted into the docs container)"
+}
+
+
 install_docs_systemd_service() {
   log "🛠️ Creating systemd service for dbt-docs..."
+
+  # NOTE: docker-compose.yml in ${DBT_PROJECT_DIR} must mount:
+  #   - /var/log/dbt:/usr/app/logs
+  #   - /var/log/dbt/target:/usr/app/target
+  # so that dbt.log and run_results.json are visible on the host and can be shipped to CloudWatch.
   cat > /etc/systemd/system/dbt-docs.service <<UNIT
 [Unit]
 Description=DBT documentation server (Docker Compose)
@@ -428,6 +453,10 @@ main() {
   fetch_redshift_secrets_to_envfile
   write_runtime_profiles_yaml
   prepare_deployment_directory
+
+  # 🔹 NEW: make /var/log/dbt and /var/log/dbt/target on the host
+  prepare_dbt_host_logging_dirs
+
   install_docs_systemd_service
 
   install_monitoring_stack

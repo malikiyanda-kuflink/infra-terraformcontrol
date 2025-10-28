@@ -1,264 +1,59 @@
-resource "aws_cloudwatch_dashboard" "kuflink_dashboard" {
+resource "aws_cloudwatch_dashboard" "ec2_dashboard" {
   dashboard_name = "${local.instance_name}-Monitoring-Dashboard"
 
   dashboard_body = jsonencode({
     widgets = [
 
+      # ================= ROW 0: HEADER (full width) =================
       {
         "type" : "text",
         "x" : 0, "y" : 0, "width" : 24, "height" : 1,
         "properties" : {
-          "markdown" : "### Monitoring Dashboard – *${local.instance_name}* (${local.instance_id})"
+          "markdown" : "### Monitoring Dashboard – *${local.instance_name}* (${local.instance_id}) | ${var.instance_type}"
         }
       },
 
+      # ================= ROW 1: UPTIME (left col) =================
       {
         "type" : "text",
-        "x" : 18, "y" : 0, "width" : 6, "height" : 2,
+        "x" : 0, "y" : 1, "width" : 12, "height" : 1,
         "properties" : {
-          "markdown" : "**🧠 CPU Utilization**\nShows average and max CPU usage. >80% = bottlenecks or scaling need."
+          "markdown" : "**⏲️ Instance Uptime** - How long EC2 has been running"
         }
       },
       {
         "type" : "metric",
-        "x" : 18, "y" : 0, "width" : 6, "height" : 8,
+        "x" : 0, "y" : 2, "width" : 12, "height" : 3,
         "properties" : {
           "metrics" : [
-            ["AWS/EC2", "CPUUtilization", "InstanceId", "${local.instance_id}", { "stat" : "Average", "label" : "CPU Avg" }],
-            ["AWS/EC2", "CPUUtilization", "InstanceId", "${local.instance_id}", { "stat" : "Maximum", "label" : "CPU Max" }]
+            [
+              "${local.cwagent_namespace}", "uptime_seconds",
+              "InstanceId", "${local.instance_id}",
+              { "id" : "m1", "region" : "${local.aws_region}" }
+            ],
+            [{ "expression" : "m1/60", "label" : "Uptime (Minutes)", "id" : "m2" }],
+            [{ "expression" : "m1/3600", "label" : "Uptime (Hours)", "id" : "m3" }],
+            [{ "expression" : "m1/86400", "label" : "Uptime (Days)", "id" : "m4" }]
           ],
-          "title" : "CPU Utilization (Avg & Max)",
-          "region" : local.aws_region,
-          "view" : "gauge",
-          "period" : 5,
-          "liveData" : true,
-          "yAxis" : { "left" : { "min" : 0, "max" : 100 } }
-        }
-      },
-
-      {
-        "type" : "text",
-        "x" : 12, "y" : 2, "width" : 6, "height" : 2,
-        "properties" : {
-          "markdown" : "**🧠 Memory Utilization**\nRAM usage. Persistent >80% may mean memory leaks or need to scale."
-        }
-      },
-      {
-        "type" : "metric",
-        "x" : 12, "y" : 2, "width" : 6, "height" : 8,
-        "properties" : {
-          "metrics" : [
-            ["${local.cwagent_namespace}", "mem_used_percent", "InstanceId", "${local.instance_id}", { "stat" : "Average", "label" : "Mem Avg" }],
-            ["${local.cwagent_namespace}", "mem_used_percent", "InstanceId", "${local.instance_id}", { "stat" : "Maximum", "label" : "Mem Max" }]
-          ],
-          "title" : "Memory Utilization (Gauge)",
-          "region" : local.aws_region,
-          "view" : "gauge",
-          "liveData" : true,
-          "yAxis" : { "left" : { "min" : 0, "max" : 100 } }
-        }
-      },
-      {
-        "type" : "text",
-        "x" : 0, "y" : 11, "width" : 8, "height" : 2,
-        "properties" : {
-          "markdown" : "**💾 Disk Space Usage**\nUsed/free/total disk. Low free space (<10%) = cleanup or disk expansion."
-        }
-      },
-      {
-        "type" : "metric",
-        "x" : 0, "y" : 12, "width" : 8, "height" : 9,
-        "properties" : {
-          "metrics" : [
-            ["${local.cwagent_namespace}", "disk_used", "InstanceId", "${local.instance_id}", "path", local.disk_path, "device", local.disk_device, "fstype", local.disk_fstype, { "id" : "m1", "label" : "Used Space (GiB)" }],
-            ["${local.cwagent_namespace}", "disk_free", "InstanceId", "${local.instance_id}", "path", local.disk_path, "device", local.disk_device, "fstype", local.disk_fstype, { "id" : "m2", "label" : "Free Space (GiB)" }],
-            ["${local.cwagent_namespace}", "disk_total", "InstanceId", "${local.instance_id}", "path", local.disk_path, "device", local.disk_device, "fstype", local.disk_fstype, { "id" : "m3", "label" : "Total Space (GiB)" }]
-          ],
-          "title" : "Disk Space Usage (GiB)",
-          "region" : local.aws_region,
-          "view" : "bar",
-          "stat" : "Average",
-          "period" : 300
-        }
-      },
-
-      {
-        "type" : "metric",
-        "x" : 0, "y" : 12, "width" : 12, "height" : 3,
-        "properties" : {
-          "metrics" : [
-            ["${local.cwagent_namespace}", "disk_used", "InstanceId", "${local.instance_id}", "path", local.disk_path, "device", local.disk_device, "fstype", local.disk_fstype, { "id" : "m1", "label" : "Used Space (GiB)" }],
-            ["${local.cwagent_namespace}", "disk_free", "InstanceId", "${local.instance_id}", "path", local.disk_path, "device", local.disk_device, "fstype", local.disk_fstype, { "id" : "m2", "label" : "Free Space (GiB)" }],
-            ["${local.cwagent_namespace}", "disk_total", "InstanceId", "${local.instance_id}", "path", local.disk_path, "device", local.disk_device, "fstype", local.disk_fstype, { "id" : "m3", "label" : "Total Space (GiB)" }]
-          ],
-          "title" : "Disk Space Usage",
-          "region" : local.aws_region,
           "view" : "singleValue",
+          "region" : "${local.aws_region}",
+          "period" : 300,
           "stat" : "Average",
-          "period" : 300,
-          "yAxis" : {
-            "left" : {
-              "min" : 0,
-              "max" : 120
-            }
-          }
+          "title" : "EC2 Instance Uptime"
         }
       },
 
+      # ================= ROW 1: STATUS CHECKS (right col) =================
       {
         "type" : "text",
-        "x" : 8, "y" : 7, "width" : 4, "height" : 2,
+        "x" : 12, "y" : 1, "width" : 12, "height" : 1,
         "properties" : {
-          "markdown" : "**🔁 Disk IOPS**\nRead/write ops/sec. Spikes = disk activity or contention."
+          "markdown" : "**🚨 EC2 Status Checks** - Non-zero = instance or system failures"
         }
       },
       {
         "type" : "metric",
-        "x" : 8, "y" : 8, "width" : 4, "height" : 3,
-        "properties" : {
-          "metrics" : [["AWS/EC2", "EBSReadOps", "InstanceId", "${local.instance_id}", { "stat" : "Sum" }]],
-          "title" : "Current Disk Operations per Second",
-          "region" : local.aws_region,
-          "view" : "singleValue"
-        }
-      },
-
-      {
-        "type" : "text",
-        "x" : 8, "y" : 7, "width" : 4, "height" : 2,
-        "properties" : {
-          "markdown" : "**📡 Network Throughput**\nVolume of data in/out. Spikes = load, attacks, or backup traffic."
-        }
-      },
-      {
-        "type" : "metric",
-        "x" : 8, "y" : 8, "width" : 4, "height" : 3,
-        "properties" : {
-          "metrics" : [["AWS/EC2", "NetworkIn", "InstanceId", "${local.instance_id}", { "stat" : "Sum" }]],
-          "title" : "Current Network Throughput",
-          "region" : local.aws_region,
-          "view" : "singleValue"
-        }
-      },
-
-      {
-        "type" : "text",
-        "x" : 8, "y" : 7, "width" : 4, "height" : 2,
-        "properties" : {
-          "markdown" : "**📉 Swap Usage**\nSwap used when RAM is full. High values = memory pressure or leak."
-        }
-      },
-      {
-        "type" : "metric",
-        "x" : 8, "y" : 8, "width" : 4, "height" : 3,
-        "properties" : {
-          "metrics" : [["${local.cwagent_namespace}", "swap_used_percent"]],
-          "title" : "Swap Usage (%)",
-          "region" : local.aws_region,
-          "view" : "singleValue"
-        }
-      },
-      {
-        "type" : "text",
-        "x" : 0, "y" : 13, "width" : 12, "height" : 2,
-        "properties" : {
-          "markdown" : "**📡 Network Throughput**\nVolume of data in/out. Spikes = load, attacks, or backup traffic."
-        }
-      },
-      {
-        "type" : "metric",
-        "x" : 0, "y" : 14, "width" : 12, "height" : 4,
-        "properties" : {
-          "metrics" : [
-            ["AWS/EC2", "NetworkIn", "InstanceId", "${local.instance_id}"],
-            ["AWS/EC2", "NetworkOut", "InstanceId", "${local.instance_id}"]
-          ],
-          "title" : "Network In/Out",
-          "region" : local.aws_region,
-          "view" : "timeSeries"
-        }
-      },
-
-      {
-        "type" : "text",
-        "x" : 0, "y" : 13, "width" : 12, "height" : 2,
-        "properties" : {
-          "markdown" : "**📦 Network Packets**\nTracks number of packets. Spikes = bursts or DDoS risk."
-        }
-      },
-      {
-        "type" : "metric",
-        "x" : 0, "y" : 14, "width" : 12, "height" : 4,
-        "properties" : {
-          "metrics" : [
-            ["AWS/EC2", "NetworkPacketsIn", "InstanceId", "${local.instance_id}", { "label" : "Network Packets In" }],
-            ["AWS/EC2", "NetworkPacketsOut", "InstanceId", "${local.instance_id}", { "label" : "Network Packets Out" }]
-          ],
-          "title" : "Network Packets In/Out",
-          "region" : local.aws_region,
-          "view" : "timeSeries",
-          "stat" : "Sum",
-          "period" : 300,
-          "yAxis" : {
-            "left" : {
-              "label" : "Packets",
-              "showUnits" : false
-            }
-          }
-        }
-      },
-
-      {
-        "type" : "text",
-        "x" : 12, "y" : 3, "width" : 6, "height" : 2,
-        "properties" : {
-          "markdown" : "**📉 Swap Usage**\nSwap used over time. Sustained use = RAM exhaustion or misconfigured workload."
-        }
-      },
-      {
-        "type" : "metric",
-        "x" : 12, "y" : 4, "width" : 6, "height" : 6,
-        "properties" : {
-          "metrics" : [
-            ["${local.cwagent_namespace}", "swap_used_percent", "InstanceId", "${local.instance_id}"]
-          ],
-          "title" : "Swap Usage Over Time",
-          "region" : local.aws_region,
-          "view" : "timeSeries"
-        }
-      },
-
-      {
-        "type" : "text",
-        "x" : 12, "y" : 3, "width" : 6, "height" : 2,
-        "properties" : {
-          "markdown" : "**🧠 Memory Utilization**\nUsed memory over time. Spikes may indicate inefficient memory use or leaks."
-        }
-      },
-      {
-        "type" : "metric",
-        "x" : 12, "y" : 4, "width" : 6, "height" : 6,
-        "properties" : {
-          "metrics" : [
-            ["${local.cwagent_namespace}", "mem_used_percent", "InstanceId", "${local.instance_id}"]
-          ],
-          "title" : "Memory Utilization Over Time",
-          "region" : local.aws_region,
-          "view" : "timeSeries",
-          "yAxis" : { "left" : { "min" : 0, "max" : 100 } }
-        }
-      },
-
-      {
-        "type" : "text",
-        "x" : 12, "y" : 0, "width" : 12, "height" : 2,
-        "properties" : {
-          "markdown" : "**🚨 EC2 Status Checks**\nNon-zero = instance or system failures. Needs immediate attention."
-        }
-      },
-      {
-        "type" : "metric",
-        "x" : 12, "y" : 0, "width" : 12, "height" : 3,
+        "x" : 12, "y" : 2, "width" : 12, "height" : 3,
         "properties" : {
           "metrics" : [
             ["AWS/EC2", "StatusCheckFailed", "InstanceId", "${local.instance_id}", { "stat" : "Maximum", "label" : "Total Failures" }],
@@ -273,94 +68,403 @@ resource "aws_cloudwatch_dashboard" "kuflink_dashboard" {
         }
       },
 
+      # ================= ROW 2: DISK BLOCK (LEFT) =================
       {
         "type" : "text",
-        "x" : 0, "y" : 0, "width" : 12, "height" : 2,
+        "x" : 0, "y" : 5, "width" : 9, "height" : 1,
         "properties" : {
-          "markdown" : "**⏲️ Instance Uptime**\nHow long EC2 has been running. Useful for patching/stability audits."
+          "markdown" : "**💽 Disk Utilization**"
         }
       },
       {
         "type" : "metric",
-        "x" : 0, "y" : 0, "width" : 12, "height" : 3,
+        "x" : 0, "y" : 6, "width" : 9, "height" : 11,
         "properties" : {
           "metrics" : [
-            ["${local.cwagent_namespace}", "uptime_seconds", "InstanceId", "${local.instance_id}", { "id" : "m1", "region" : "${local.aws_region}" }],
-            [{ "expression" : "m1/60", "label" : "Uptime (Minutes)", "id" : "m2" }],
-            [{ "expression" : "m1/3600", "label" : "Uptime (Hours)", "id" : "m3" }],
-            [{ "expression" : "m1/86400", "label" : "Uptime (Days)", "id" : "m4" }]
+            [
+              "${local.cwagent_namespace}", "disk_used",
+              "InstanceId", "${local.instance_id}",
+              "path", local.disk_path,
+              "device", local.disk_device,
+              "fstype", local.disk_fstype,
+              { "label" : "Used Space (GiB)", "color" : "#ff7f0e" }
+            ],
+            [
+              "${local.cwagent_namespace}", "disk_free",
+              "InstanceId", "${local.instance_id}",
+              "path", local.disk_path,
+              "device", local.disk_device,
+              "fstype", local.disk_fstype,
+              { "label" : "Free Space (GiB)", "color" : "#1f77b4" }
+            ],
+            [
+              "${local.cwagent_namespace}", "disk_total",
+              "InstanceId", "${local.instance_id}",
+              "path", local.disk_path,
+              "device", local.disk_device,
+              "fstype", local.disk_fstype,
+              { "label" : "Total Space (GiB)", "color" : "#2ca02c" }
+            ]
           ],
-          "view" : "singleValue",
-          "region" : "${local.aws_region}",
-          "period" : 60,
-          "stat" : "Average",
-          "title" : "EC2 Instance Uptime",
-          "liveData" : false,
-          "stacked" : false,
-          "yAxis" : {
-            "left" : { "min" : 0 },
-            "right" : { "showUnits" : true }
-          }
-        }
-      },
-      {
-        "type" : "text",
-        "x" : 0, "y" : 13, "width" : 6, "height" : 2,
-        "properties" : {
-          "markdown" : "**💽 Disk Latency**\nHigh read/write time = I/O bottleneck. Investigate if over ~10ms."
-        }
-      },
-      {
-        "type" : "metric",
-        "x" : 0, "y" : 14, "width" : 6, "height" : 6,
-        "properties" : {
-          "metrics" : [
-            ["AWS/EBS", "VolumeTotalReadTime", "VolumeId", "${local.root_volume_id}"],
-            ["AWS/EBS", "VolumeTotalWriteTime", "VolumeId", "${local.root_volume_id}"]
-          ],
-          "title" : "Disk Latency (Read/Write)",
+          "title" : "Disk Space Usage (GiB)",
           "region" : local.aws_region,
-          "view" : "timeSeries"
+          "view" : "bar",
+          "stat" : "Average",
+          "period" : 300
+        }
+      },
+
+      # Disk Space single values (right of bar)
+      {
+        "type" : "metric",
+        "x" : 9, "y" : 6, "width" : 3, "height" : 4,
+        "properties" : {
+          "metrics" : [
+            [
+              "${local.cwagent_namespace}", "disk_used",
+              "InstanceId", "${local.instance_id}",
+              "path", local.disk_path,
+              "device", local.disk_device,
+              "fstype", local.disk_fstype,
+              { "stat" : "Average", "label" : "Used Space (GiB)", "color" : "#ff7f0e" }
+            ]
+          ],
+          "title" : "Used Space (GiB)",
+          "region" : local.aws_region,
+          "view" : "singleValue",
+          "period" : 300
         }
       },
 
       {
-        "type" : "text",
-        "x" : 18, "y" : 11, "width" : 6, "height" : 2,
+        "type" : "metric",
+        "x" : 9, "y" : 10, "width" : 3, "height" : 4,
         "properties" : {
-          "markdown" : "**⚡ CPU Credit Balance**\nBurstable T2/T3 instances need credit reserve. Low = throttling risk."
+          "metrics" : [
+            [
+              "${local.cwagent_namespace}", "disk_free",
+              "InstanceId", "${local.instance_id}",
+              "path", local.disk_path,
+              "device", local.disk_device,
+              "fstype", local.disk_fstype,
+              { "stat" : "Average", "label" : "Free Space (GiB)", "color" : "#1f77b4" }
+            ]
+          ],
+          "title" : "Free Space (GiB)",
+          "region" : local.aws_region,
+          "view" : "singleValue",
+          "period" : 300
+        }
+      },
+
+      {
+        "type" : "metric",
+        "x" : 9, "y" : 14, "width" : 3, "height" : 3,
+        "properties" : {
+          "metrics" : [
+            [
+              "${local.cwagent_namespace}", "disk_total",
+              "InstanceId", "${local.instance_id}",
+              "path", local.disk_path,
+              "device", local.disk_device,
+              "fstype", local.disk_fstype,
+              { "stat" : "Average", "label" : "Total Space (GiB)", "color" : "#2ca02c" }
+            ]
+          ],
+          "title" : "Total Space (GiB)",
+          "region" : local.aws_region,
+          "view" : "singleValue",
+          "period" : 300
+        }
+      },
+
+      # ================= ROW 2: MEMORY BLOCK (RIGHT) =================
+      {
+        "type" : "text",
+        "x" : 12, "y" : 5, "width" : 6, "height" : 1,
+        "properties" : {
+          "markdown" : "**🧠 Memory Utilization**"
         }
       },
       {
         "type" : "metric",
-        "x" : 18, "y" : 12, "width" : 6, "height" : 6,
+        "x" : 12, "y" : 6, "width" : 6, "height" : 8,
+        "properties" : {
+          "metrics" : [
+            [
+              "${local.cwagent_namespace}", "mem_used_percent",
+              "InstanceId", "${local.instance_id}",
+              { "stat" : "Average", "label" : "Mem Avg", "color" : "#1f77b4" }
+            ],
+            [
+              "${local.cwagent_namespace}", "mem_used_percent",
+              "InstanceId", "${local.instance_id}",
+              { "stat" : "Maximum", "label" : "Mem Max", "color" : "#d62728" }
+            ]
+          ],
+          "title" : "Memory % (Avg/Max) - >80% = memory pressure",
+          "region" : local.aws_region,
+          "view" : "gauge",
+          "period" : 300,
+          "yAxis" : { "left" : { "min" : 0, "max" : 100 } }
+        }
+      },
+
+      # Memory Over Time (underneath memory gauge)
+      {
+        "type" : "text",
+        "x" : 12, "y" : 14, "width" : 6, "height" : 1,
+        "properties" : {
+          "markdown" : "**🧠 Memory Over Time**"
+        }
+      },
+      {
+        "type" : "metric",
+        "x" : 12, "y" : 15, "width" : 6, "height" : 5,
+        "properties" : {
+          "metrics" : [
+            [
+              "${local.cwagent_namespace}", "mem_used_percent",
+              "InstanceId", "${local.instance_id}"
+            ]
+          ],
+          "title" : "Memory % Over Time - Rising trend = may need more RAM",
+          "region" : local.aws_region,
+          "view" : "timeSeries",
+          "period" : 300,
+          "yAxis" : { "left" : { "min" : 0, "max" : 100 } }
+        }
+      },
+
+      # Disk Space Over Time (underneath memory over time)
+      {
+        "type" : "text",
+        "x" : 12, "y" : 20, "width" : 6, "height" : 1,
+        "properties" : {
+          "markdown" : "**💾 Disk Space Over Time**"
+        }
+      },
+      {
+        "type" : "metric",
+        "x" : 12, "y" : 21, "width" : 6, "height" : 5,
+        "properties" : {
+          "metrics" : [
+            [
+              "${local.cwagent_namespace}", "disk_used_percent",
+              "InstanceId", "${local.instance_id}",
+              "path", local.disk_path,
+              "device", local.disk_device,
+              "fstype", local.disk_fstype
+            ]
+          ],
+          "title" : "Disk Used % Over Time - Rising = running out of space",
+          "region" : local.aws_region,
+          "view" : "timeSeries",
+          "period" : 300,
+          "yAxis" : { "left" : { "min" : 0, "max" : 100 } }
+        }
+      },
+
+      # Swap Over Time (underneath disk space over time)
+      {
+        "type" : "text",
+        "x" : 12, "y" : 26, "width" : 6, "height" : 1,
+        "properties" : {
+          "markdown" : "**📉 Swap Over Time**"
+        }
+      },
+      {
+        "type" : "metric",
+        "x" : 12, "y" : 27, "width" : 6, "height" : 5,
+        "properties" : {
+          "metrics" : [
+            [
+              "${local.cwagent_namespace}", "swap_used_percent",
+              "InstanceId", "${local.instance_id}"
+            ]
+          ],
+          "title" : "Swap % Over Time - >0% = low memory, expect slowness",
+          "region" : local.aws_region,
+          "view" : "timeSeries",
+          "period" : 300,
+          "yAxis" : { "left" : { "min" : 0, "max" : 100 } }
+        }
+      },
+
+      # ================= ROW 2: CPU BLOCK (FAR RIGHT) =================
+      {
+        "type" : "text",
+        "x" : 18, "y" : 5, "width" : 6, "height" : 1,
+        "properties" : {
+          "markdown" : "**💻 CPU Utilization**"
+        }
+      },
+      {
+        "type" : "metric",
+        "x" : 18, "y" : 6, "width" : 6, "height" : 8,
+        "properties" : {
+          "metrics" : [
+            [
+              "AWS/EC2", "CPUUtilization",
+              "InstanceId", "${local.instance_id}",
+              { "stat" : "Average", "label" : "CPU Avg", "color" : "#1f77b4" }
+            ],
+            [
+              "AWS/EC2", "CPUUtilization",
+              "InstanceId", "${local.instance_id}",
+              { "stat" : "Maximum", "label" : "CPU Max", "color" : "#d62728" }
+            ]
+          ],
+          "title" : "CPU % (Avg/Max) - >80% = bottleneck",
+          "region" : local.aws_region,
+          "view" : "gauge",
+          "period" : 300,
+          "yAxis" : { "left" : { "min" : 0, "max" : 100 } }
+        }
+      },
+
+      # CPU Over Time (underneath CPU gauge)
+      {
+        "type" : "text",
+        "x" : 18, "y" : 14, "width" : 6, "height" : 1,
+        "properties" : {
+          "markdown" : "**⏱️ CPU Over Time**"
+        }
+      },
+      {
+        "type" : "metric",
+        "x" : 18, "y" : 15, "width" : 6, "height" : 5,
+        "properties" : {
+          "metrics" : [
+            [
+              "AWS/EC2", "CPUUtilization",
+              "InstanceId", "${local.instance_id}",
+              { "stat" : "Average", "label" : "CPUUtilization" }
+            ]
+          ],
+          "title" : "CPU % Over Time - Sustained >80% = consider upgrade",
+          "region" : local.aws_region,
+          "view" : "timeSeries",
+          "period" : 300
+        }
+      },
+
+      # CPU Steal Time (underneath CPU over time)
+      {
+        "type" : "text",
+        "x" : 18, "y" : 20, "width" : 6, "height" : 1,
+        "properties" : {
+          "markdown" : "**🔒 CPU Steal Time**"
+        }
+      },
+      {
+        "type" : "metric",
+        "x" : 18, "y" : 21, "width" : 6, "height" : 5,
+        "properties" : {
+          "metrics" : [
+            [
+              "${local.cwagent_namespace}", "cpu_usage_steal",
+              "InstanceId", "${local.instance_id}",
+              "cpu", "cpu-total"
+            ]
+          ],
+          "title" : "CPU Steal % - Spikes = noisy neighbor taking your CPU",
+          "region" : local.aws_region,
+          "view" : "timeSeries",
+          "period" : 300,
+          "yAxis" : { "left" : { "min" : 0 } }
+        }
+      },
+
+      # CPU Credit Balance (underneath CPU steal time)
+      {
+        "type" : "text",
+        "x" : 18, "y" : 26, "width" : 6, "height" : 1,
+        "properties" : {
+          "markdown" : "**⚡ CPU Credits**"
+        }
+      },
+      {
+        "type" : "metric",
+        "x" : 18, "y" : 27, "width" : 6, "height" : 5,
         "properties" : {
           "metrics" : [
             ["AWS/EC2", "CPUCreditBalance", "InstanceId", "${local.instance_id}"]
           ],
-          "title" : "CPU Credit Balance",
+          "title" : "CPU Credit Balance - Low credits = CPU throttling (T-instances only)",
           "region" : local.aws_region,
-          "view" : "timeSeries"
+          "view" : "timeSeries",
+          "period" : 300
         }
       },
 
+      # ================= ROW 3: NETWORK BLOCK (LEFT) =================
       {
         "type" : "text",
-        "x" : 18, "y" : 11, "width" : 6, "height" : 2,
+        "x" : 0, "y" : 17, "width" : 12, "height" : 1,
         "properties" : {
-          "markdown" : "**⏱️ CPU Steal Time**\np99 CPU time taken by other VMs on host. High = noisy neighbor."
+          "markdown" : "**📡 Network Throughput**"
         }
       },
       {
         "type" : "metric",
-        "x" : 18, "y" : 12, "width" : 6, "height" : 6,
+        "x" : 0, "y" : 18, "width" : 12, "height" : 6,
         "properties" : {
           "metrics" : [
-            ["AWS/EC2", "CPUUtilization", "InstanceId", "${local.instance_id}", { "stat" : "p99" }]
+            ["AWS/EC2", "NetworkIn", "InstanceId", "${local.instance_id}", { "label" : "Network In" }],
+            ["AWS/EC2", "NetworkOut", "InstanceId", "${local.instance_id}", { "label" : "Network Out" }]
           ],
-          "title" : "CPU Steal Time (p99)",
+          "title" : "Network In/Out (Bytes) - Spikes = high traffic",
           "region" : local.aws_region,
-          "view" : "timeSeries"
+          "view" : "timeSeries",
+          "period" : 300
+        }
+      },
+
+      # Network Packets (underneath network throughput)
+      {
+        "type" : "text",
+        "x" : 0, "y" : 24, "width" : 12, "height" : 1,
+        "properties" : {
+          "markdown" : "**📦 Network Packets**"
+        }
+      },
+      {
+        "type" : "metric",
+        "x" : 0, "y" : 25, "width" : 12, "height" : 6,
+        "properties" : {
+          "metrics" : [
+            ["AWS/EC2", "NetworkPacketsIn", "InstanceId", "${local.instance_id}", { "label" : "Packets In" }],
+            ["AWS/EC2", "NetworkPacketsOut", "InstanceId", "${local.instance_id}", { "label" : "Packets Out" }]
+          ],
+          "title" : "Network Packets In/Out - Count of packets sent/received",
+          "region" : local.aws_region,
+          "view" : "timeSeries",
+          "stat" : "Sum",
+          "period" : 300
+        }
+      },
+
+      # ================= ROW 4: DISK LATENCY (BOTTOM FULL WIDTH) =================
+      {
+        "type" : "text",
+        "x" : 0, "y" : 31, "width" : 24, "height" : 1,
+        "properties" : {
+          "markdown" : "**💽 Disk Latency** - High read/write time = I/O bottleneck"
+        }
+      },
+      {
+        "type" : "metric",
+        "x" : 0, "y" : 32, "width" : 24, "height" : 6,
+        "properties" : {
+          "metrics" : [
+            ["AWS/EBS", "VolumeTotalReadTime", "VolumeId", "${local.root_volume_id}", { "label" : "Read Time" }],
+            ["AWS/EBS", "VolumeTotalWriteTime", "VolumeId", "${local.root_volume_id}", { "label" : "Write Time" }]
+          ],
+          "title" : "Disk Read/Write Time (Seconds) - Spikes = slow disk I/O",
+          "region" : local.aws_region,
+          "view" : "timeSeries",
+          "period" : 300
         }
       }
 

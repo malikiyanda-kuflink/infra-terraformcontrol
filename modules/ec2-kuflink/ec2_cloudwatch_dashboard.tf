@@ -4,7 +4,7 @@ locals {
 }
 
 
-resource "aws_cloudwatch_dashboard" "kuflink_dashboard" {
+resource "aws_cloudwatch_dashboard" "ec2_dashboard" {
   dashboard_name = "Kuflink-Test-Wordpress-EC2-Monitoring-Dashboard"
 
   dashboard_body = jsonencode({
