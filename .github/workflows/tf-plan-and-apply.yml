@@ -322,6 +322,31 @@ jobs:
         with:
           role-to-assume: ${{ steps.aws_role.outputs.role_arn }}
           aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Verify dependency state exists (foundation)
+        id: prereq_check
+        shell: bash
+        env:
+          TF_STATE_BUCKET: ${{ env.TF_STATE_BUCKET }}
+          ENVIRONMENT:     ${{ env.ENVIRONMENT }}
+        run: |
+          echo "Checking prerequisite Terraform state in s3://${TF_STATE_BUCKET} for env ${ENVIRONMENT}"
+
+          missing=0
+          for layer in foundation; do
+            key="${ENVIRONMENT}/${layer}/terraform.tfstate"
+            if aws s3api head-object --bucket "${TF_STATE_BUCKET}" --key "${key}" >/dev/null 2>&1; then
+              echo "✔ found ${key}"
+            else
+              echo "❌ missing ${key}"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            echo "Required base layers are not up. Deploy foundation first."
+            exit 1
+          fi
           
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -445,6 +470,31 @@ jobs:
         with:
           role-to-assume: ${{ steps.aws_role.outputs.role_arn }}
           aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Verify dependency state exists (foundation/platform)
+        id: prereq_check
+        shell: bash
+        env:
+          TF_STATE_BUCKET: ${{ env.TF_STATE_BUCKET }}
+          ENVIRONMENT:     ${{ env.ENVIRONMENT }}
+        run: |
+          echo "Checking prerequisite Terraform state in s3://${TF_STATE_BUCKET} for env ${ENVIRONMENT}"
+
+          missing=0
+          for layer in foundation platform; do
+            key="${ENVIRONMENT}/${layer}/terraform.tfstate"
+            if aws s3api head-object --bucket "${TF_STATE_BUCKET}" --key "${key}" >/dev/null 2>&1; then
+              echo "✔ found ${key}"
+            else
+              echo "❌ missing ${key}"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            echo "Required base layers are not up. Deploy foundation/platform first."
+            exit 1
+          fi
           
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -547,7 +597,7 @@ jobs:
       TF_LOCK_TABLE:   ${{ needs.detect-environment.outputs.lock_table }}
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Determine AWS Role
         id: aws_role
         run: |
@@ -562,13 +612,38 @@ jobs:
               echo "role_arn=${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
               ;;
           esac
-          
+
       - name: Configure AWS (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ steps.aws_role.outputs.role_arn }}
           aws-region: ${{ vars.AWS_REGION }}
-          
+
+      - name: Verify dependency state exists (foundation/platform/data)
+        id: prereq_check
+        shell: bash
+        env:
+          TF_STATE_BUCKET: ${{ env.TF_STATE_BUCKET }}
+          ENVIRONMENT:     ${{ env.ENVIRONMENT }}
+        run: |
+          echo "Checking prerequisite Terraform state in s3://${TF_STATE_BUCKET} for env ${ENVIRONMENT}"
+
+          missing=0
+          for layer in foundation platform data; do
+            key="${ENVIRONMENT}/${layer}/terraform.tfstate"
+            if aws s3api head-object --bucket "${TF_STATE_BUCKET}" --key "${key}" >/dev/null 2>&1; then
+              echo "✔ found ${key}"
+            else
+              echo "❌ missing ${key}"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            echo "Required base layers are not up. Deploy foundation/platform/data first."
+            exit 1
+          fi
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with: { terraform_wrapper: false }
