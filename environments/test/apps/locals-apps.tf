@@ -21,7 +21,7 @@ locals {
     ssh_key_name             = data.terraform_remote_state.foundation.outputs.global.ec2_key_name
     instance_type            = "t3.micro"
     dbt_name                 = "Kuflink-Test-DBT"
-    dbt_docs_subdomain       = "dbt-test.brickfin.co.uk"
+    dbt_docs_subdomain       = "dbt-test.${data.terraform_remote_state.foundation.outputs.route53_zone_name}"
     code_deploy_project_name = "Kuflink-Test-DBT-Project"
   }
 
