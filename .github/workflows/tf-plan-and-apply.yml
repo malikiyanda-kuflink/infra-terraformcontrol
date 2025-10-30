@@ -398,22 +398,50 @@ jobs:
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         run: |
-          echo "## Terraform Summary - ${{ env.LAYER }} (${{ env.ENVIRONMENT }})" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
+          # Header
+          cat >>"$GITHUB_STEP_SUMMARY" <<'HDR'
+          ## Terraform Summary - ${LAYER} (${ENVIRONMENT})
+
+          HDR
+
+          # Plan section (only if file exists)
           if [ -f plan_output.txt ]; then
-            PLAN_SUMMARY=$(grep -E "Plan:|No changes\." plan_output.txt | tail -1 || echo "Plan completed")
-            echo "### 📋 Plan" >> $GITHUB_STEP_SUMMARY
-            echo "$PLAN_SUMMARY" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "<details><summary>View full plan output</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat plan_output.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
+            PLAN_SUMMARY="$(grep -E 'Plan:|No changes\.' plan_output.txt | tail -1 || echo 'Plan completed')"
+            cat >>"$GITHUB_STEP_SUMMARY" <<'PLAN'
+          ### 📋 Plan
+          PLAN
+            printf '%s\n\n' "$PLAN_SUMMARY" >>"$GITHUB_STEP_SUMMARY"
+            {
+              echo "<details><summary>View full plan output</summary>"
+              echo
+              echo '```'
+              cat plan_output.txt
+              echo '```'
+              echo "</details>"
+              echo
+            } >>"$GITHUB_STEP_SUMMARY"
           fi
+
+          # Apply section (only if file exists)
+          if [ -f apply_output.txt ]; then
+            # strip ANSI to keep summary clean
+            sed 's/\x1b\[[0-9;]*m//g' apply_output.txt > apply_output_clean.txt
+            APPLY_SUMMARY="$(grep -E 'Apply complete!' apply_output_clean.txt | tail -1 || echo 'Apply completed')"
+            cat >>"$GITHUB_STEP_SUMMARY" <<'APPLY'
+          ### ✅ Apply
+          APPLY
+            printf '%s\n\n' "$APPLY_SUMMARY" >>"$GITHUB_STEP_SUMMARY"
+            {
+              echo "<details><summary>View full apply output</summary>"
+              echo
+              echo '```'
+              cat apply_output_clean.txt
+              echo '```'
+              echo "</details>"
+              echo
+            } >>"$GITHUB_STEP_SUMMARY"
+          fi
+
           
           if [ -f apply_output.txt ]; then
             sed 's/\x1b\[[0-9;]*m//g' apply_output.txt > apply_output_clean.txt
