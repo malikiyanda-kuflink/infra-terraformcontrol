@@ -161,6 +161,7 @@ jobs:
           echo "state_bucket=$STATE_BUCKET" >> $GITHUB_OUTPUT
           echo "lock_table=$LOCK_TABLE"     >> $GITHUB_OUTPUT
           echo "Using backend: bucket=$STATE_BUCKET, lock=$LOCK_TABLE"
+
   apply-foundation:
     needs: detect-environment
     if: contains(fromJson(needs.detect-environment.outputs.layers_json), 'foundation')
@@ -169,7 +170,7 @@ jobs:
       ENVIRONMENT:  ${{ needs.detect-environment.outputs.environment }}
       IS_DEPLOY:    ${{ needs.detect-environment.outputs.is_deploy }}
       LAYER:        foundation
-      AWS_REGION:   ${{ vars.AWS_REGION }}
+      AWS_REGION:   eu-west-2
       TF_STATE_BUCKET: ${{ needs.detect-environment.outputs.state_bucket }}
       TF_LOCK_TABLE:   ${{ needs.detect-environment.outputs.lock_table }}
     steps:
@@ -194,7 +195,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ steps.aws_role.outputs.role_arn }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
           
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -292,7 +293,7 @@ jobs:
       ENVIRONMENT:  ${{ needs.detect-environment.outputs.environment }}
       IS_DEPLOY:    ${{ needs.detect-environment.outputs.is_deploy }}
       LAYER:        platform
-      AWS_REGION:   ${{ vars.AWS_REGION }}
+      AWS_REGION:   eu-west-2
       TF_STATE_BUCKET: ${{ needs.detect-environment.outputs.state_bucket }}
       TF_LOCK_TABLE:   ${{ needs.detect-environment.outputs.lock_table }}
     steps:
@@ -317,7 +318,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ steps.aws_role.outputs.role_arn }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Verify dependency state exists (foundation)
         id: prereq_check
@@ -398,48 +399,36 @@ jobs:
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         run: |
-          # Header (expand ${LAYER}/${ENVIRONMENT})
-          cat >>"$GITHUB_STEP_SUMMARY" <<HDR
-          ## Terraform Summary - ${LAYER} (${ENVIRONMENT})
-
-          HDR
-
-          # Plan section (only if file exists)
+          echo "## Terraform Summary - ${{ env.LAYER }} (${{ env.ENVIRONMENT }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
           if [ -f plan_output.txt ]; then
-            PLAN_SUMMARY="$(grep -E 'Plan:|No changes\.' plan_output.txt | tail -1 || echo 'Plan completed')"
-            cat >>"$GITHUB_STEP_SUMMARY" <<PLAN
-          ### 📋 Plan
-          PLAN
-            printf '%s\n\n' "$PLAN_SUMMARY" >>"$GITHUB_STEP_SUMMARY"
-            {
-              echo "<details><summary>View full plan output</summary>"
-              echo
-              echo '```'
-              cat plan_output.txt
-              echo '```'
-              echo "</details>"
-              echo
-            } >>"$GITHUB_STEP_SUMMARY"
+            PLAN_SUMMARY=$(grep -E "Plan:|No changes\." plan_output.txt | tail -1 || echo "Plan completed")
+            echo "### 📋 Plan" >> $GITHUB_STEP_SUMMARY
+            echo "$PLAN_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full plan output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat plan_output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           fi
-
-          # Apply section (only if file exists)
+          
           if [ -f apply_output.txt ]; then
-            # strip ANSI to keep summary clean
             sed 's/\x1b\[[0-9;]*m//g' apply_output.txt > apply_output_clean.txt
-            APPLY_SUMMARY="$(grep -E 'Apply complete!' apply_output_clean.txt | tail -1 || echo 'Apply completed')"
-            cat >>"$GITHUB_STEP_SUMMARY" <<APPLY
-          ### ✅ Apply
-          APPLY
-            printf '%s\n\n' "$APPLY_SUMMARY" >>"$GITHUB_STEP_SUMMARY"
-            {
-              echo "<details><summary>View full apply output</summary>"
-              echo
-              echo '```'
-              cat apply_output_clean.txt
-              echo '```'
-              echo "</details>"
-              echo
-            } >>"$GITHUB_STEP_SUMMARY"
+            APPLY_SUMMARY=$(grep -E "Apply complete!" apply_output_clean.txt | tail -1 || echo "Apply completed")
+            echo "### ✅ Apply" >> $GITHUB_STEP_SUMMARY
+            echo "$APPLY_SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>View full apply output</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat apply_output_clean.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           fi
 
   apply-data:
@@ -452,7 +441,7 @@ jobs:
       ENVIRONMENT:  ${{ needs.detect-environment.outputs.environment }}
       IS_DEPLOY:    ${{ needs.detect-environment.outputs.is_deploy }}
       LAYER:        data
-      AWS_REGION:   ${{ vars.AWS_REGION }}
+      AWS_REGION:   eu-west-2
       TF_STATE_BUCKET: ${{ needs.detect-environment.outputs.state_bucket }}
       TF_LOCK_TABLE:   ${{ needs.detect-environment.outputs.lock_table }}
     steps:
@@ -477,7 +466,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ steps.aws_role.outputs.role_arn }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Verify dependency state exists (foundation/platform)
         id: prereq_check
@@ -588,6 +577,7 @@ jobs:
             echo '```' >> $GITHUB_STEP_SUMMARY
             echo "</details>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
+          fi
 
   apply-apps:
     needs: [detect-environment, apply-data]
@@ -599,7 +589,7 @@ jobs:
       ENVIRONMENT:  ${{ needs.detect-environment.outputs.environment }}
       IS_DEPLOY:    ${{ needs.detect-environment.outputs.is_deploy }}
       LAYER:        apps
-      AWS_REGION:   ${{ vars.AWS_REGION }}
+      AWS_REGION:   eu-west-2
       TF_STATE_BUCKET: ${{ needs.detect-environment.outputs.state_bucket }}
       TF_LOCK_TABLE:   ${{ needs.detect-environment.outputs.lock_table }}
     steps:
@@ -624,7 +614,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ steps.aws_role.outputs.role_arn }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Verify dependency state exists (foundation/platform/data)
         id: prereq_check
@@ -735,3 +725,4 @@ jobs:
             echo '```' >> $GITHUB_STEP_SUMMARY
             echo "</details>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
+          fi
