@@ -398,8 +398,8 @@ jobs:
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         run: |
-          # Header
-          cat >>"$GITHUB_STEP_SUMMARY" <<'HDR'
+          # Header (expand ${LAYER}/${ENVIRONMENT})
+          cat >>"$GITHUB_STEP_SUMMARY" <<HDR
           ## Terraform Summary - ${LAYER} (${ENVIRONMENT})
 
           HDR
@@ -407,7 +407,7 @@ jobs:
           # Plan section (only if file exists)
           if [ -f plan_output.txt ]; then
             PLAN_SUMMARY="$(grep -E 'Plan:|No changes\.' plan_output.txt | tail -1 || echo 'Plan completed')"
-            cat >>"$GITHUB_STEP_SUMMARY" <<'PLAN'
+            cat >>"$GITHUB_STEP_SUMMARY" <<PLAN
           ### 📋 Plan
           PLAN
             printf '%s\n\n' "$PLAN_SUMMARY" >>"$GITHUB_STEP_SUMMARY"
@@ -427,7 +427,7 @@ jobs:
             # strip ANSI to keep summary clean
             sed 's/\x1b\[[0-9;]*m//g' apply_output.txt > apply_output_clean.txt
             APPLY_SUMMARY="$(grep -E 'Apply complete!' apply_output_clean.txt | tail -1 || echo 'Apply completed')"
-            cat >>"$GITHUB_STEP_SUMMARY" <<'APPLY'
+            cat >>"$GITHUB_STEP_SUMMARY" <<APPLY
           ### ✅ Apply
           APPLY
             printf '%s\n\n' "$APPLY_SUMMARY" >>"$GITHUB_STEP_SUMMARY"
@@ -441,21 +441,6 @@ jobs:
               echo
             } >>"$GITHUB_STEP_SUMMARY"
           fi
-
-          
-          if [ -f apply_output.txt ]; then
-            sed 's/\x1b\[[0-9;]*m//g' apply_output.txt > apply_output_clean.txt
-            APPLY_SUMMARY=$(grep -E "Apply complete!" apply_output_clean.txt | tail -1 || echo "Apply completed")
-            echo "### ✅ Apply" >> $GITHUB_STEP_SUMMARY
-            echo "$APPLY_SUMMARY" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "<details><summary>View full apply output</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat apply_output_clean.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
 
   apply-data:
     needs: [detect-environment, apply-platform]
