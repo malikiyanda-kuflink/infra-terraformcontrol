@@ -109,21 +109,18 @@ jobs:
             [[ "$f" =~ ^modules/ec2-|^modules/s3-admin/|^modules/s3-frontend/|^modules/eb-api/ ]] && need_apps=true
           done <<< "$CHANGED"
 
-          # ----- Cascade rules -----
-          # foundation ⇒ platform,data,apps
-          if $need_foundation; then
-            need_platform=true
+          # ----- Upstream prerequisite cascade (ONLY) -----
+          # apps implies data
+          if $need_apps; then
             need_data=true
-            need_apps=true
           fi
-          # platform ⇒ data,apps
-          if $need_platform; then
-            need_data=true
-            need_apps=true
-          fi
-          # data ⇒ apps
+          # data implies platform
           if $need_data; then
-            need_apps=true
+            need_platform=true
+          fi
+          # platform implies foundation
+          if $need_platform; then
+            need_foundation=true
           fi
 
           # Build ordered unique list
@@ -164,7 +161,6 @@ jobs:
           echo "state_bucket=$STATE_BUCKET" >> $GITHUB_OUTPUT
           echo "lock_table=$LOCK_TABLE"     >> $GITHUB_OUTPUT
           echo "Using backend: bucket=$STATE_BUCKET, lock=$LOCK_TABLE"
-
   apply-foundation:
     needs: detect-environment
     if: contains(fromJson(needs.detect-environment.outputs.layers_json), 'foundation')
@@ -432,7 +428,6 @@ jobs:
             echo '```' >> $GITHUB_STEP_SUMMARY
             echo "</details>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-          fi
 
   apply-data:
     needs: [detect-environment, apply-platform]
@@ -580,7 +575,6 @@ jobs:
             echo '```' >> $GITHUB_STEP_SUMMARY
             echo "</details>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-          fi
 
   apply-apps:
     needs: [detect-environment, apply-data]
@@ -728,4 +722,3 @@ jobs:
             echo '```' >> $GITHUB_STEP_SUMMARY
             echo "</details>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-          fi
