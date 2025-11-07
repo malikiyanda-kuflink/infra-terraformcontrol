@@ -11,7 +11,7 @@ locals {
   enable_redis               = true
   enable_bastion             = true
   enable_bastion_dns         = true
-  enable_dbt                 = true
+  enable_dbt                 = false
   enable_wordpress           = false
   enable_test_instance       = false
   enable_metabase            = false
