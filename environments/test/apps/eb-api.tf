@@ -73,6 +73,8 @@ module "eb-api" {
   stream_logs             = local.stream_logs
   log_retention_in_days   = local.log_retention_in_days
   log_publication_control = local.log_publication_control
+  alb_log_bucket          = local.alb_log_bucket
+  alb_conn_log_prefix     = local.alb_conn_log_prefix
 
   # networking
   vpc_id             = data.terraform_remote_state.foundation.outputs.vpc_resources.vpc.id

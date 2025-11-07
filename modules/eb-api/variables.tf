@@ -153,6 +153,8 @@ variable "notification_protocol" { type = string } # "email", "https", etc.
 variable "stream_logs" { type = bool }
 variable "log_retention_in_days" { type = number }
 variable "log_publication_control" { type = bool }
+variable "alb_log_bucket" { type = string }
+variable "alb_conn_log_prefix" { type = string }
 
 # =============================================================================
 # Deploy / Scaling / Env Type

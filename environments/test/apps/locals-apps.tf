@@ -297,6 +297,8 @@ locals {
   stream_logs             = true
   log_retention_in_days   = 30
   log_publication_control = true
+  alb_log_bucket =  "${local.name_prefix}-alb-logs"
+  alb_conn_log_prefix = "conn"
 
   # Deploy / scaling
   deployment_policy       = "AllAtOnce"
