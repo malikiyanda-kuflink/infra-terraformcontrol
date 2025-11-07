@@ -11,7 +11,7 @@ resource "aws_elastic_beanstalk_environment" "worker_env" {
   #   ignore_changes = [setting] # TEMPORARY; remove once stable
   # }
 
-  
+
   # -------------------------------------------
   # Service Access (roles, profiles, key, SGs, SSH)
   # -------------------------------------------

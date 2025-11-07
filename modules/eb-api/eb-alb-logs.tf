@@ -71,7 +71,7 @@ resource "aws_s3_bucket_policy" "alb_logs" {
         Principal = {
           Service = "logdelivery.elasticloadbalancing.amazonaws.com"
         },
-        Action = ["s3:GetBucketAcl"],
+        Action   = ["s3:GetBucketAcl"],
         Resource = "arn:aws:s3:::${aws_s3_bucket.alb_logs.id}",
         Condition = {
           StringEquals = {
@@ -80,10 +80,10 @@ resource "aws_s3_bucket_policy" "alb_logs" {
         }
       },
       {
-        Sid    = "DenyNonALBPutToLogsPrefix",
-        Effect = "Deny",
+        Sid       = "DenyNonALBPutToLogsPrefix",
+        Effect    = "Deny",
         Principal = "*",
-        Action   = "s3:PutObject",
+        Action    = "s3:PutObject",
         Resource = [
           "arn:aws:s3:::${aws_s3_bucket.alb_logs.id}/AWSLogs/${data.aws_caller_identity.me.account_id}/*",
           "arn:aws:s3:::${aws_s3_bucket.alb_logs.id}/*/AWSLogs/${data.aws_caller_identity.me.account_id}/*"
