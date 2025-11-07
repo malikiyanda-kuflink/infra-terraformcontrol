@@ -2,7 +2,7 @@ data "aws_caller_identity" "me" {}
 data "aws_partition" "part" {}
 
 resource "aws_s3_bucket" "alb_logs" {
-  bucket        = var.alb_log_bucket 
+  bucket        = var.alb_log_bucket
   force_destroy = true
 }
 
@@ -48,40 +48,40 @@ resource "aws_s3_bucket_policy" "alb_logs" {
     Version = "2012-10-17",
     Statement = [
       {
-        Sid: "AllowALBPutScopedToAccountAndPrefix",
-        Effect: "Allow",
-        Principal: { Service: "logdelivery.elasticloadbalancing.amazonaws.com" },
-        Action: ["s3:PutObject"],
-        Resource: "arn:${data.aws_partition.part.partition}:s3:::${aws_s3_bucket.alb_logs.id}/AWSLogs/${data.aws_caller_identity.me.account_id}/*",
-        Condition: {
-          StringEquals: {
-            "aws:SourceAccount": data.aws_caller_identity.me.account_id
+        Sid : "AllowALBPutScopedToAccountAndPrefix",
+        Effect : "Allow",
+        Principal : { Service : "logdelivery.elasticloadbalancing.amazonaws.com" },
+        Action : ["s3:PutObject"],
+        Resource : "arn:${data.aws_partition.part.partition}:s3:::${aws_s3_bucket.alb_logs.id}/AWSLogs/${data.aws_caller_identity.me.account_id}/*",
+        Condition : {
+          StringEquals : {
+            "aws:SourceAccount" : data.aws_caller_identity.me.account_id
           }
         }
       },
       {
-        Sid: "AllowALBGetBucketAclScoped",
-        Effect: "Allow",
-        Principal: { Service: "logdelivery.elasticloadbalancing.amazonaws.com" },
-        Action: ["s3:GetBucketAcl"],
-        Resource: "arn:${data.aws_partition.part.partition}:s3:::${aws_s3_bucket.alb_logs.id}",
-        Condition: {
-          StringEquals: {
-            "aws:SourceAccount": data.aws_caller_identity.me.account_id
+        Sid : "AllowALBGetBucketAclScoped",
+        Effect : "Allow",
+        Principal : { Service : "logdelivery.elasticloadbalancing.amazonaws.com" },
+        Action : ["s3:GetBucketAcl"],
+        Resource : "arn:${data.aws_partition.part.partition}:s3:::${aws_s3_bucket.alb_logs.id}",
+        Condition : {
+          StringEquals : {
+            "aws:SourceAccount" : data.aws_caller_identity.me.account_id
           }
         }
       },
 
       # Optional: explicit deny to everything else (tighten further)
       {
-        Sid: "DenyNonALBPutToLogsPrefix",
-        Effect: "Deny",
-        Principal: "*",
-        Action: "s3:PutObject",
-        Resource: "arn:${data.aws_partition.part.partition}:s3:::${aws_s3_bucket.alb_logs.id}/AWSLogs/${data.aws_caller_identity.me.account_id}/*",
-        Condition: {
-          StringNotEquals: {
-            "aws:PrincipalServiceName": "logdelivery.elasticloadbalancing.amazonaws.com"
+        Sid : "DenyNonALBPutToLogsPrefix",
+        Effect : "Deny",
+        Principal : "*",
+        Action : "s3:PutObject",
+        Resource : "arn:${data.aws_partition.part.partition}:s3:::${aws_s3_bucket.alb_logs.id}/AWSLogs/${data.aws_caller_identity.me.account_id}/*",
+        Condition : {
+          StringNotEquals : {
+            "aws:PrincipalServiceName" : "logdelivery.elasticloadbalancing.amazonaws.com"
           }
         }
       }

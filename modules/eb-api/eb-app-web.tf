@@ -29,6 +29,40 @@ resource "aws_elastic_beanstalk_environment" "web_env" {
   # Load Balancer / HTTPS / Listeners
   # -------------------------------------------
   setting {
+    namespace = "aws:elbv2:loadbalancer"
+    name      = "AccessLogsS3Enabled"
+    value     = "true"
+  }
+
+  setting {
+    namespace = "aws:elbv2:loadbalancer"
+    name      = "ConnectionLogsS3Enabled"
+    value     = "true"
+  }
+  setting {
+    namespace = "aws:elbv2:loadbalancer"
+    name      = "AccessLogsS3Bucket"
+    value     = aws_s3_bucket.alb_logs.id
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "ALB_CONN_LOG_BUCKET"
+    value     = var.alb_log_bucket
+  }
+
+  # Optional: per-env prefix
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "ALB_CONN_LOG_PREFIX"
+    value     = var.alb_conn_log_prefix # e.g. "conn"
+  }
+  setting {
+    namespace = "aws:elbv2:loadbalancer"
+    name      = "AccessLogsS3Prefix"
+    value     = "alb" # optional
+  }
+  setting {
     namespace = "aws:elbv2:listener:443"
     name      = "SSLCertificateArns"
     value     = var.ssl_certificate_arn
