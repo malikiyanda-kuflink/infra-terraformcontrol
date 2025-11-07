@@ -240,7 +240,9 @@ resource "aws_iam_policy" "codepipeline_extras" {
           "elasticloadbalancing:DescribeTargetHealth",
           "elasticloadbalancing:RegisterTargets",
           "elasticloadbalancing:DeregisterTargets",
-          "elasticloadbalancing:ModifyTargetGroup"
+          "elasticloadbalancing:ModifyTargetGroup",
+          "elasticloadbalancing:DescribeLoadBalancerAttributes",
+          "elasticloadbalancing:ModifyLoadBalancerAttributes"
         ],
         "Resource" : "*"
       },

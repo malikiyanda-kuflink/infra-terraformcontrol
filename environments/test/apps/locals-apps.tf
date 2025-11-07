@@ -255,7 +255,7 @@ locals {
   worker_env_name         = "Kuflink-${local.environment}-Worker"
   tier                    = "Worker"
   application_description = "${local.environment} Kuflink Laravel 9 Application"
-  solution_stack_name     = "64bit Amazon Linux 2023 v4.7.7 running PHP 8.4"
+  solution_stack_name     = "64bit Amazon Linux 2023 v4.7.8 running PHP 8.4"
   ec2_key_name            = data.terraform_remote_state.foundation.outputs.global.ec2_key_name
   github_branch           = "test"
   web_instance_type       = "t3.medium"
