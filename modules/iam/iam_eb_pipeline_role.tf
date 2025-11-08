@@ -61,7 +61,7 @@ resource "aws_iam_policy" "codepipeline_extras" {
       {
         "Effect" : "Allow",
         "Action" : [
-          "lambda:InvokeFunction",              # Allows lmabda invokation 
+          "lambda:InvokeFunction", # Allows lmabda invokation 
         ],
         "Resource" : "*"
       },

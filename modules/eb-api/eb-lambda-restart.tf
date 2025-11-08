@@ -14,9 +14,9 @@ resource "aws_iam_role" "restart_eb_instances_role" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
-      Effect = "Allow",
+      Effect    = "Allow",
       Principal = { Service = "lambda.amazonaws.com" },
-      Action = "sts:AssumeRole"
+      Action    = "sts:AssumeRole"
     }]
   })
 }
@@ -29,7 +29,7 @@ resource "aws_iam_policy" "restart_eb_instances_policy" {
     Version = "2012-10-17",
     Statement = [
       {
-      # Discover EB resources → CFN → ASG → EC2
+        # Discover EB resources → CFN → ASG → EC2
         Effect = "Allow",
         Action = [
           "elasticbeanstalk:DescribeEnvironmentResources",
@@ -43,8 +43,8 @@ resource "aws_iam_policy" "restart_eb_instances_policy" {
       },
       {
         # Actually reboot the EB instances
-        Effect   = "Allow",
-        Action   = [
+        Effect = "Allow",
+        Action = [
           "ec2:RebootInstances"
         ],
         Resource = "*"
