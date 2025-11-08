@@ -18,8 +18,9 @@ resource "aws_s3_bucket_versioning" "cicd_artifacts_versioning" {
     status = "Enabled"
   }
 }
-
-
+############################################
+# CODEPIPELINE
+############################################
 ############################################
 # CODEPIPELINE
 ############################################
@@ -31,7 +32,6 @@ resource "aws_codepipeline" "eb_pipeline" {
   depends_on = [
     aws_elastic_beanstalk_environment.web_env,
     aws_elastic_beanstalk_environment.worker_env,
-    aws_lambda_function.restart_eb_instances
   ]
 
   pipeline_type  = var.pipeline_type
@@ -95,27 +95,6 @@ resource "aws_codepipeline" "eb_pipeline" {
       configuration = {
         ApplicationName = var.eb_application_name
         EnvironmentName = var.eb_worker_environment_name
-      }
-
-      run_order = 1
-    }
-  }
-
-  # ---- Restart EB Instances (arm kdump) ----
-  stage {
-    name = "RestartForKdump"
-
-    action {
-      name             = "RestartEbInstances"
-      category         = "Invoke"
-      owner            = "AWS"
-      provider         = "Lambda"
-      version          = "1"
-      input_artifacts  = []
-      output_artifacts = []
-
-      configuration = {
-        FunctionName = aws_lambda_function.restart_eb_instances.function_name
       }
 
       run_order = 1

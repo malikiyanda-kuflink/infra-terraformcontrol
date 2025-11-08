@@ -79,7 +79,6 @@ variable "create_pipeline_notification_rule" { type = bool }
 variable "pipeline_notification_rule_name" { type = string }
 variable "pipeline_arn" { type = string }
 variable "pipeline_notification_event_type_ids" { type = list(string) }
-variable "lambda_restart_eb_instances_policy_name" { type = string }
 
 
 # =============================================================================

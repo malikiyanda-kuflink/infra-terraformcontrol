@@ -70,7 +70,7 @@ module "eb-api" {
   notification_protocol = local.notification_protocol
 
   # Logs & monitoring
-  stream_logs             = local.stream_logs
+  stream_logs             = local.stream_logs 
   log_retention_in_days   = local.log_retention_in_days
   log_publication_control = local.log_publication_control
   alb_log_bucket          = local.alb_log_bucket
@@ -257,7 +257,6 @@ module "eb-api" {
   pipeline_type                           = local.pipeline_type
   execution_mode                          = local.execution_mode
   codepipeline_role_arn                   = local.codepipeline_role_arn
-  lambda_restart_eb_instances_policy_name = local.lambda_restart_eb_instances_policy_name
 
   # Artifact store / S3
   artifact_bucket_name             = local.artifact_bucket_name
