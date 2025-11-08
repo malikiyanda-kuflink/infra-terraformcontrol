@@ -430,7 +430,7 @@ locals {
   ]
 
   # --- Pipeline ARN (derived from name/account/region) ---
-  pipeline_arn = "arn:${data.aws_partition.current.partition}:codepipeline:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:${local.pipeline_name}"
+  pipeline_arn                            = "arn:${data.aws_partition.current.partition}:codepipeline:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:${local.pipeline_name}"
   lambda_restart_eb_instances_policy_name = "${local.name_prefix}-lambda-restart-eb_instances-policy"
 
 
