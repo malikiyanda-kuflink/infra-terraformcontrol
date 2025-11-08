@@ -18,6 +18,8 @@ resource "aws_s3_bucket_versioning" "cicd_artifacts_versioning" {
     status = "Enabled"
   }
 }
+
+
 ############################################
 # CODEPIPELINE
 ############################################
@@ -25,7 +27,12 @@ resource "aws_codepipeline" "eb_pipeline" {
   name     = var.pipeline_name
   role_arn = var.codepipeline_role_arn
 
-  depends_on = [aws_elastic_beanstalk_environment.web_env, aws_elastic_beanstalk_environment.worker_env]
+  # Ensure EB envs and restart Lambda exist before pipeline
+  depends_on = [
+    aws_elastic_beanstalk_environment.web_env,
+    aws_elastic_beanstalk_environment.worker_env,
+    aws_lambda_function.restart_eb_instances
+  ]
 
   pipeline_type  = var.pipeline_type
   execution_mode = var.execution_mode
@@ -55,11 +62,11 @@ resource "aws_codepipeline" "eb_pipeline" {
     }
   }
 
-  # ---- Deploy ----
+  # ---- Deploy to EB (Web + Worker) ----
   stage {
     name = var.deploy_stage_name
 
-    # Web
+    # Web environment
     action {
       name            = var.deploy_action_name_web
       category        = "Deploy"
@@ -72,24 +79,47 @@ resource "aws_codepipeline" "eb_pipeline" {
         ApplicationName = var.eb_application_name
         EnvironmentName = var.eb_web_environment_name
       }
+
+      run_order = 1
     }
 
-    # Worker (optional)
-    dynamic "action" {
-      for_each = var.enable_worker_deploy ? [1] : []
-      content {
-        name            = var.deploy_action_name_worker
-        category        = "Deploy"
-        owner           = var.deploy_owner
-        provider        = var.deploy_provider
-        version         = var.deploy_version
-        input_artifacts = [var.source_output_artifact]
+    # Worker environment
+    action {
+      name            = var.deploy_action_name_worker
+      category        = "Deploy"
+      owner           = var.deploy_owner
+      provider        = var.deploy_provider
+      version         = var.deploy_version
+      input_artifacts = [var.source_output_artifact]
 
-        configuration = {
-          ApplicationName = var.eb_application_name
-          EnvironmentName = var.eb_worker_environment_name
-        }
+      configuration = {
+        ApplicationName = var.eb_application_name
+        EnvironmentName = var.eb_worker_environment_name
       }
+
+      run_order = 1
+    }
+  }
+
+  # ---- Restart EB Instances (arm kdump) ----
+  stage {
+    name = "RestartForKdump"
+
+    action {
+      name             = "RestartEbInstances"
+      category         = "Invoke"
+      owner            = "AWS"
+      provider         = "Lambda"
+      version          = "1"
+      input_artifacts  = []
+      output_artifacts = []
+
+      configuration = {
+        FunctionName = aws_lambda_function.restart_eb_instances.function_name
+      }
+
+      run_order = 1
     }
   }
 }
+

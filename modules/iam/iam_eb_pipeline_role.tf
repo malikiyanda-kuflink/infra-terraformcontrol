@@ -61,6 +61,15 @@ resource "aws_iam_policy" "codepipeline_extras" {
       {
         "Effect" : "Allow",
         "Action" : [
+          "lambda:InvokeFunction",              # Allows lmabda invokation 
+        ],
+        "Resource" : "*"
+      },
+
+      # Permissions for EC2
+      {
+        "Effect" : "Allow",
+        "Action" : [
           "ec2:DescribeInstances",              # Allows describing EC2 instances
           "ec2:DescribeSecurityGroups",         # Allows describing security groups
           "ec2:DescribeSubnets",                # Allows describing subnets

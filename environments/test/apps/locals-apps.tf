@@ -302,6 +302,7 @@ locals {
 
   # Deploy / scaling
   deployment_policy       = "AllAtOnce"
+  # deployment_policy       = "immutable"
   worker_environment_type = "SingleInstance"
   asg_min_size            = 1
   asg_max_size            = 3
