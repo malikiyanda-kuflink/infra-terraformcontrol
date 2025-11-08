@@ -257,6 +257,7 @@ module "eb-api" {
   pipeline_type         = local.pipeline_type
   execution_mode        = local.execution_mode
   codepipeline_role_arn = local.codepipeline_role_arn
+  lambda_restart_eb_instances_policy_name = local.lambda_restart_eb_instances_policy_name
 
   # Artifact store / S3
   artifact_bucket_name             = local.artifact_bucket_name
