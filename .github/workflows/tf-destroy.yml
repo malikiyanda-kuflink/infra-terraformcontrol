@@ -45,7 +45,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       can_proceed: ${{ steps.check.outputs.can_proceed }}
-      role_arn: ${{ steps.check.outputs.role_arn }}
       state_bucket: ${{ steps.check.outputs.state_bucket }}
       lock_table: ${{ steps.check.outputs.lock_table }}
       layers_to_destroy: ${{ steps.check.outputs.layers_to_destroy }}
@@ -63,23 +62,19 @@ jobs:
           ENV="${{ github.event.inputs.environment }}"
           case "$ENV" in
             test)
-              ROLE="${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}"
               STATE_BUCKET="kuflink-test-states"
               LOCK_TABLE="kuflink-tf-locks-test"
               ;;
             staging)
-              ROLE="${{ secrets.STAGING_AWS_OIDC_ROLE_ARN }}"
               STATE_BUCKET="kuflink-staging-states"
               LOCK_TABLE="kuflink-tf-locks-staging"
               ;;
             production)
-              ROLE="${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}"
               STATE_BUCKET="kuflink-prod-states"
               LOCK_TABLE="kuflink-tf-locks-prod"
               ;;
           esac
           
-          echo "role_arn=$ROLE" >> $GITHUB_OUTPUT
           echo "state_bucket=$STATE_BUCKET" >> $GITHUB_OUTPUT
           echo "lock_table=$LOCK_TABLE" >> $GITHUB_OUTPUT
           
@@ -121,7 +116,6 @@ jobs:
       name: ${{ github.event.inputs.environment }}-destroy
     env:
       ENVIRONMENT: ${{ github.event.inputs.environment }}
-      ROLE_ARN: ${{ needs.validate-destroy.outputs.role_arn }}
       LAYER: apps
       AWS_REGION: ${{ vars.AWS_REGION }}
       TF_STATE_BUCKET: ${{ needs.validate-destroy.outputs.state_bucket }}
@@ -131,10 +125,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Determine AWS Role
+        id: aws_role
+        run: |
+          case "${{ env.ENVIRONMENT }}" in
+            test)
+              echo "role_arn=${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+            staging)
+              echo "role_arn=${{ secrets.STAGING_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+            production)
+              echo "role_arn=${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+          esac
+      
       - name: Configure AWS (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.ROLE_ARN }}
+          role-to-assume: ${{ steps.aws_role.outputs.role_arn }}
           aws-region: ${{ env.AWS_REGION }}
       
       - name: Setup Terraform
@@ -306,7 +315,6 @@ jobs:
       name: ${{ github.event.inputs.environment }}-destroy
     env:
       ENVIRONMENT: ${{ github.event.inputs.environment }}
-      ROLE_ARN: ${{ needs.validate-destroy.outputs.role_arn }}
       LAYER: data
       AWS_REGION: ${{ vars.AWS_REGION }}
       TF_STATE_BUCKET: ${{ needs.validate-destroy.outputs.state_bucket }}
@@ -321,10 +329,25 @@ jobs:
       
       - uses: actions/checkout@v4
       
+      - name: Determine AWS Role
+        id: aws_role
+        run: |
+          case "${{ env.ENVIRONMENT }}" in
+            test)
+              echo "role_arn=${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+            staging)
+              echo "role_arn=${{ secrets.STAGING_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+            production)
+              echo "role_arn=${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+          esac
+      
       - name: Configure AWS (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.ROLE_ARN }}
+          role-to-assume: ${{ steps.aws_role.outputs.role_arn }}
           aws-region: ${{ env.AWS_REGION }}
       
       - name: Setup Terraform
@@ -496,7 +519,6 @@ jobs:
       name: ${{ github.event.inputs.environment }}-destroy
     env:
       ENVIRONMENT: ${{ github.event.inputs.environment }}
-      ROLE_ARN: ${{ needs.validate-destroy.outputs.role_arn }}
       LAYER: platform
       AWS_REGION: ${{ vars.AWS_REGION }}
       TF_STATE_BUCKET: ${{ needs.validate-destroy.outputs.state_bucket }}
@@ -511,10 +533,25 @@ jobs:
       
       - uses: actions/checkout@v4
       
+      - name: Determine AWS Role
+        id: aws_role
+        run: |
+          case "${{ env.ENVIRONMENT }}" in
+            test)
+              echo "role_arn=${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+            staging)
+              echo "role_arn=${{ secrets.STAGING_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+            production)
+              echo "role_arn=${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+          esac
+      
       - name: Configure AWS (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.ROLE_ARN }}
+          role-to-assume: ${{ steps.aws_role.outputs.role_arn }}
           aws-region: ${{ env.AWS_REGION }}
       
       - name: Setup Terraform
@@ -686,7 +723,6 @@ jobs:
       name: ${{ github.event.inputs.environment }}-destroy
     env:
       ENVIRONMENT: ${{ github.event.inputs.environment }}
-      ROLE_ARN: ${{ needs.validate-destroy.outputs.role_arn }}
       LAYER: foundation
       AWS_REGION: ${{ vars.AWS_REGION }}
       TF_STATE_BUCKET: ${{ needs.validate-destroy.outputs.state_bucket }}
@@ -701,10 +737,25 @@ jobs:
       
       - uses: actions/checkout@v4
       
+      - name: Determine AWS Role
+        id: aws_role
+        run: |
+          case "${{ env.ENVIRONMENT }}" in
+            test)
+              echo "role_arn=${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+            staging)
+              echo "role_arn=${{ secrets.STAGING_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+            production)
+              echo "role_arn=${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              ;;
+          esac
+      
       - name: Configure AWS (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.ROLE_ARN }}
+          role-to-assume: ${{ steps.aws_role.outputs.role_arn }}
           aws-region: ${{ env.AWS_REGION }}
       
       - name: Setup Terraform
