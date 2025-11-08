@@ -36,7 +36,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AWS_REGION: eu-west-2
+  AWS_REGION: ${{ vars.AWS_REGION }}
   TF_IN_AUTOMATION: "true"
   TF_INPUT: "false"
 
@@ -63,17 +63,17 @@ jobs:
           ENV="${{ github.event.inputs.environment }}"
           case "$ENV" in
             test)
-              ROLE="arn:aws:iam::137167813802:role/kuflink-test-github-oidc-terraform"
+              ROLE="${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}"
               STATE_BUCKET="kuflink-test-states"
               LOCK_TABLE="kuflink-tf-locks-test"
               ;;
             staging)
-              ROLE="arn:aws:iam::222222222222:role/kuflink-staging-github-oidc-terraform"
+              ROLE="${{ secrets.STAGING_AWS_OIDC_ROLE_ARN }}"
               STATE_BUCKET="kuflink-staging-states"
               LOCK_TABLE="kuflink-tf-locks-staging"
               ;;
             production)
-              ROLE="arn:aws:iam::333333333333:role/kuflink-prod-github-oidc-terraform"
+              ROLE="${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}"
               STATE_BUCKET="kuflink-prod-states"
               LOCK_TABLE="kuflink-tf-locks-prod"
               ;;
@@ -135,7 +135,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
       
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -156,18 +156,28 @@ jobs:
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
         run: |
+          set +e
           terraform plan -destroy -no-color -out=destroy.tfplan -var="environment=${ENVIRONMENT}" 2>&1 | tee destroy_plan_output.txt
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          EXIT_CODE=$?
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "plan_success=true" >> $GITHUB_OUTPUT
+          else
+            echo "plan_success=false" >> $GITHUB_OUTPUT
+          fi
+          
+          exit $EXIT_CODE
       
       - name: Show Destroy Plan
-        if: steps.plan.outcome == 'success'
+        if: steps.plan.outputs.plan_success == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         run: terraform show destroy.tfplan
       
       - name: Terraform Destroy (Attempt 1)
         id: destroy_attempt1
         if: |
-          steps.plan.outcome == 'success' &&
+          steps.plan.outputs.plan_success == 'true' &&
           (github.event.inputs.auto_approve == 'true' || github.event.inputs.environment == 'test')
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
@@ -196,7 +206,16 @@ jobs:
         id: final_status
         if: always()
         run: |
-          if [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
+          if [[ "${{ steps.plan.outputs.plan_success }}" != "true" ]]; then
+            echo "❌ Destroy plan failed"
+            echo "status=failed" >> $GITHUB_OUTPUT
+            if [[ "${{ github.event.inputs.force_continue_on_failure }}" == "true" ]]; then
+              echo "⚠️ Force-continue enabled, allowing workflow to proceed"
+              echo "status=failed_forced" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            exit 1
+          elif [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
             echo "✅ Apps layer destroyed successfully on retry"
             echo "status=success" >> $GITHUB_OUTPUT
             exit 0
@@ -214,7 +233,7 @@ jobs:
             echo "::error::Apps layer destroy failed. Review logs and manually clean up if needed."
             exit 1
           fi
-
+      
       - name: Generate Summary
         if: always()
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
@@ -306,7 +325,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
       
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -327,18 +346,28 @@ jobs:
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
         run: |
+          set +e
           terraform plan -destroy -no-color -out=destroy.tfplan -var="environment=${ENVIRONMENT}" 2>&1 | tee destroy_plan_output.txt
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          EXIT_CODE=$?
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "plan_success=true" >> $GITHUB_OUTPUT
+          else
+            echo "plan_success=false" >> $GITHUB_OUTPUT
+          fi
+          
+          exit $EXIT_CODE
       
       - name: Show Destroy Plan
-        if: steps.plan.outcome == 'success'
+        if: steps.plan.outputs.plan_success == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         run: terraform show destroy.tfplan
       
       - name: Terraform Destroy (Attempt 1)
         id: destroy_attempt1
         if: |
-          steps.plan.outcome == 'success' &&
+          steps.plan.outputs.plan_success == 'true' &&
           (github.event.inputs.auto_approve == 'true' || github.event.inputs.environment == 'test')
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
@@ -367,7 +396,16 @@ jobs:
         id: final_status
         if: always()
         run: |
-          if [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
+          if [[ "${{ steps.plan.outputs.plan_success }}" != "true" ]]; then
+            echo "❌ Destroy plan failed"
+            echo "status=failed" >> $GITHUB_OUTPUT
+            if [[ "${{ github.event.inputs.force_continue_on_failure }}" == "true" ]]; then
+              echo "⚠️ Force-continue enabled, allowing workflow to proceed"
+              echo "status=failed_forced" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            exit 1
+          elif [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
             echo "✅ Data layer destroyed successfully on retry"
             echo "status=success" >> $GITHUB_OUTPUT
             exit 0
@@ -385,7 +423,7 @@ jobs:
             echo "::error::Data layer destroy failed. Review logs and manually clean up if needed."
             exit 1
           fi
-
+      
       - name: Generate Summary
         if: always()
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
@@ -477,7 +515,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
       
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -498,18 +536,28 @@ jobs:
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
         run: |
+          set +e
           terraform plan -destroy -no-color -out=destroy.tfplan -var="environment=${ENVIRONMENT}" 2>&1 | tee destroy_plan_output.txt
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          EXIT_CODE=$?
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "plan_success=true" >> $GITHUB_OUTPUT
+          else
+            echo "plan_success=false" >> $GITHUB_OUTPUT
+          fi
+          
+          exit $EXIT_CODE
       
       - name: Show Destroy Plan
-        if: steps.plan.outcome == 'success'
+        if: steps.plan.outputs.plan_success == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         run: terraform show destroy.tfplan
       
       - name: Terraform Destroy (Attempt 1)
         id: destroy_attempt1
         if: |
-          steps.plan.outcome == 'success' &&
+          steps.plan.outputs.plan_success == 'true' &&
           (github.event.inputs.auto_approve == 'true' || github.event.inputs.environment == 'test')
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
@@ -538,7 +586,16 @@ jobs:
         id: final_status
         if: always()
         run: |
-          if [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
+          if [[ "${{ steps.plan.outputs.plan_success }}" != "true" ]]; then
+            echo "❌ Destroy plan failed"
+            echo "status=failed" >> $GITHUB_OUTPUT
+            if [[ "${{ github.event.inputs.force_continue_on_failure }}" == "true" ]]; then
+              echo "⚠️ Force-continue enabled, allowing workflow to proceed"
+              echo "status=failed_forced" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            exit 1
+          elif [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
             echo "✅ Platform layer destroyed successfully on retry"
             echo "status=success" >> $GITHUB_OUTPUT
             exit 0
@@ -556,7 +613,7 @@ jobs:
             echo "::error::Platform layer destroy failed. Review logs and manually clean up if needed."
             exit 1
           fi
-
+      
       - name: Generate Summary
         if: always()
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
@@ -648,7 +705,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
       
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -669,18 +726,28 @@ jobs:
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
         run: |
+          set +e
           terraform plan -destroy -no-color -out=destroy.tfplan -var="environment=${ENVIRONMENT}" 2>&1 | tee destroy_plan_output.txt
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          EXIT_CODE=$?
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "plan_success=true" >> $GITHUB_OUTPUT
+          else
+            echo "plan_success=false" >> $GITHUB_OUTPUT
+          fi
+          
+          exit $EXIT_CODE
       
       - name: Show Destroy Plan
-        if: steps.plan.outcome == 'success'
+        if: steps.plan.outputs.plan_success == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         run: terraform show destroy.tfplan
       
       - name: Terraform Destroy (Attempt 1)
         id: destroy_attempt1
         if: |
-          steps.plan.outcome == 'success' &&
+          steps.plan.outputs.plan_success == 'true' &&
           (github.event.inputs.auto_approve == 'true' || github.event.inputs.environment == 'test')
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
@@ -709,7 +776,16 @@ jobs:
         id: final_status
         if: always()
         run: |
-          if [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
+          if [[ "${{ steps.plan.outputs.plan_success }}" != "true" ]]; then
+            echo "❌ Destroy plan failed"
+            echo "status=failed" >> $GITHUB_OUTPUT
+            if [[ "${{ github.event.inputs.force_continue_on_failure }}" == "true" ]]; then
+              echo "⚠️ Force-continue enabled, allowing workflow to proceed"
+              echo "status=failed_forced" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            exit 1
+          elif [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
             echo "✅ Foundation layer destroyed successfully on retry"
             echo "status=success" >> $GITHUB_OUTPUT
             exit 0
@@ -727,7 +803,7 @@ jobs:
             echo "::error::Foundation layer destroy failed. Review logs and manually clean up if needed."
             exit 1
           fi
-
+      
       - name: Generate Summary
         if: always()
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
