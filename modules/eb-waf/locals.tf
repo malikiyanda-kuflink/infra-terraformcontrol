@@ -6,13 +6,13 @@ locals {
   metric_base = replace(replace(local.metric_base_raw, "-", "_"), " ", "_")
 
   rule_order = [
-    "AWSManagedRulesCommonRuleSet",
+    "AWSManagedRulesAnonymousIpList",
     "AWSManagedRulesAmazonIpReputationList",
     "AWSManagedRulesKnownBadInputsRuleSet",
-    "AWSManagedRulesLinuxRuleSet",
     "AWSManagedRulesPHPRuleSet",
+    "AWSManagedRulesLinuxRuleSet",
+    "AWSManagedRulesCommonRuleSet",
     "AWSManagedRulesSQLiRuleSet",
-    "AWSManagedRulesAnonymousIpList",
     "BlockAdminPathsNotFromTrustedIPs"
   ]
 

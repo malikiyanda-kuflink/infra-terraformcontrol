@@ -202,7 +202,7 @@ locals {
   # Check if ALB exists
   eb_alb_exists = local.eb_alb_arn != null && local.eb_alb_arn != ""
 
-  admin_rule_action = "COUNT" # or "COUNT"/ "BLOCK" / "ALLOW" / "CAPTCHA" / "CHALLENGE"
+  admin_rule_action = "BLOCK" # or "COUNT"/ "BLOCK" / "ALLOW" / "CAPTCHA" / "CHALLENGE"
   trusted_ip_cidrs  = [for ip in data.terraform_remote_state.foundation.outputs.kuflink_office_ips : ip.cidr]
   admin_uri_regexes = [".*/admin/.*", ".*/wp-admin/.*"]
 
@@ -218,12 +218,35 @@ locals {
 
   # Set noisy subrules to COUNT (others use default managed action)
   waf_overrides = {
-    common           = ["SizeRestrictions_BODY", "CrossSiteScripting_BODY", "CrossSiteScripting_QUERYARGUMENTS", "CrossSiteScripting_COOKIE", "CrossSiteScripting_URIPATH"]
+    common = [
+      "NoUserAgent_HEADER",
+      "UserAgent_BadBots_HEADER",
+      "SizeRestrictions_QUERYSTRING",
+      "SizeRestrictions_Cookie_HEADER",
+      "SizeRestrictions_BODY",
+      "SizeRestrictions_URIPATH",
+      "EC2MetaDataSSRF_BODY",
+      "EC2MetaDataSSRF_COOKIE",
+      "EC2MetaDataSSRF_URIPATH",
+      "EC2MetaDataSSRF_QUERYARGUMENTS",
+      "GenericLFI_QUERYARGUMENTS",
+      "GenericLFI_URIPATH",
+      "GenericLFI_BODY",
+      "RestrictedExtensions_URIPATH",
+      "RestrictedExtensions_QUERYARGUMENTS",
+      "GenericRFI_QUERYARGUMENTS",
+      "GenericRFI_BODY",
+      "GenericRFI_URIPATH",
+      "CrossSiteScripting_COOKIE",
+      "CrossSiteScripting_QUERYARGUMENTS",
+      "CrossSiteScripting_BODY",
+      "CrossSiteScripting_URIPATH"
+    ]
     ip_reputation    = []
     known_bad_inputs = []
     linux            = []
     php              = []
-    sqli             = []
+    sqli             = ["SQLi_BODY"]
     anonymous_ip     = ["AnonymousIPList"]
   }
 
@@ -315,7 +338,7 @@ locals {
   asg_evaluation_periods           = 2
   asg_breach_duration              = 20
   asg_upper_threshold              = 95
-  asg_lower_threshold              = 10
+  asg_lower_threshold              = 25
   asg_upper_breach_scale_increment = 1
   asg_lower_breach_scale_increment = -1
 
