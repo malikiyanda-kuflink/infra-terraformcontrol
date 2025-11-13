@@ -63,6 +63,27 @@ resource "aws_vpc_security_group_ingress_rule" "deprecated_redshift_office" {
 #============================================================
 # Redshift SG
 #============================================================
+#   # Allow Redshift Access from Kuflink Office Cidr (dynamic)
+#   resource "aws_vpc_security_group_ingress_rule" "redshift_office_cidr" {
+#   for_each          = { for ip in data.terraform_remote_state.foundation.outputs.office_cidr : ip.cidr => ip }
+#   security_group_id = aws_security_group.redshift_access.id
+#   description       = each.value.description
+#   ip_protocol       = "tcp"
+#   from_port         = 5439
+#   to_port           = 5439
+#   cidr_ipv4         = each.key
+# }
+
+
+resource "aws_vpc_security_group_ingress_rule" "redshift_office_cidr" {
+  security_group_id = aws_security_group.redshift_access.id
+  description       = "Kuflink Office Access"
+  ip_protocol       = "tcp"
+  from_port         = 5439
+  to_port           = 5439
+  cidr_ipv4         = data.terraform_remote_state.foundation.outputs.office_cidr
+}
+
 # Office IPs → 5439
 resource "aws_vpc_security_group_ingress_rule" "redshift_office" {
   for_each          = { for ip in data.terraform_remote_state.foundation.outputs.kuflink_office_ips : ip.cidr => ip }
