@@ -270,7 +270,7 @@ module "eb-api" {
 
   aws_cli_region = local.aws_cli_region
 
-  # Source stage (CodeStar)
+  # Source stage -CodeStar
   source_stage_name       = local.source_stage_name
   source_action_name      = local.source_action_name
   source_owner            = local.source_owner
