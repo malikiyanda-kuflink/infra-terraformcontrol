@@ -34,9 +34,13 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "alb_logs" {
 # (Optional) lifecycle to control storage cost
 resource "aws_s3_bucket_lifecycle_configuration" "alb_logs" {
   bucket = aws_s3_bucket.alb_logs.id
+
   rule {
     id     = "expire-90d"
     status = "Enabled"
+
+    filter {}
+
     expiration { days = 90 }
   }
 }

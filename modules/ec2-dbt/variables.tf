@@ -34,9 +34,6 @@ variable "dbt_docs_subdomain" {
 # ============================================================================
 # Variables for CodeDeploy Configuration
 # ============================================================================
-
-
-
 variable "code_deploy_project_name" {
   description = "Name of your project (used for resource naming)"
   type        = string
@@ -55,5 +52,4 @@ variable "notification_email" {
   type        = string
   default     = "" # Set to your email: "you@example.com"
 }
-
 

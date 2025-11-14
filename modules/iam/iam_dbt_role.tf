@@ -60,7 +60,8 @@ resource "aws_iam_role_policy" "dbt_inline_policy" {
           "s3:GetBucketLocation",
           "ec2:DescribeTags",
           "cloudwatch:ListMetrics",
-          "cloudwatch:GetMetricStatistics"
+          "cloudwatch:GetMetricStatistics",
+          "sns:Publish"
         ],
         Resource = "*"
       }

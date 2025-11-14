@@ -145,7 +145,7 @@ install_base_utils() {
   log "📦 Installing base utils (AWS CLI, git, Docker, etc.)..."
   apt-get update -y
   apt-get install -y \
-    awscli git ca-certificates curl gnupg lsb-release netcat unzip jq
+    awscli git ca-certificates curl gnupg lsb-release netcat unzip jq python3-pip
 
   install -m 0755 -d /etc/apt/keyrings
   curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
@@ -211,12 +211,15 @@ set_redshift_param_paths() {
 }
 
 fetch_redshift_secrets_to_envfile() {
-  log "🔐 Fetching Redshift credentials from SSM..."
+  log "🔐 Fetching Redshift credentials and SNS topic from SSM..."
   RS_HOST=$(aws ssm get-parameter --with-decryption --region "$REGION" --name "$SSM_RS_HOST" --query 'Parameter.Value' --output text)
   RS_DB=$(aws ssm get-parameter   --with-decryption --region "$REGION" --name "$SSM_RS_DB"   --query 'Parameter.Value' --output text)
   RS_USER=$(aws ssm get-parameter --with-decryption --region "$REGION" --name "$SSM_RS_USER" --query 'Parameter.Value' --output text)
   RS_PASS=$(aws ssm get-parameter --with-decryption --region "$REGION" --name "$SSM_RS_PASS" --query 'Parameter.Value' --output text)
   RS_PORT=$(aws ssm get-parameter --with-decryption --region "$REGION" --name "$SSM_RS_PORT" --query 'Parameter.Value' --output text)
+  
+  # Fetch SNS topic ARN
+  SNS_TOPIC=$(aws ssm get-parameter --region "$REGION" --name "/ec2/dbt/${ENV_NAME}/sns_topic_arn" --query 'Parameter.Value' --output text 2>/dev/null || echo "")
 
   mkdir -p "$DBT_BASE_DIR"
   cat > "$DBT_ENV_FILE" <<EOF
@@ -226,6 +229,9 @@ DBT_RS_USER=${RS_USER}
 DBT_RS_PASS=${RS_PASS}
 DBT_RS_PORT=${RS_PORT}
 DBT_RS_SCHEMA=analytics
+SNS_TOPIC_ARN=${SNS_TOPIC}
+ENV_NAME=${ENV_NAME}
+REGION=${REGION}
 EOF
   chown "$USERNAME:$USERNAME" "$DBT_ENV_FILE"
   chmod 600 "$DBT_ENV_FILE"
@@ -262,33 +268,24 @@ prepare_deployment_directory() {
   log "✅ Created ${DBT_PROJECT_DIR}"
 }
 
-
 ########################################
 # Host log/artifact directories for dbt
 ########################################
 prepare_dbt_host_logging_dirs() {
   log "🗂 Preparing /var/log/dbt mount points for container logs & artifacts..."
 
-  # Will receive /usr/app/logs/dbt.log from inside the container
-  # and /usr/app/target/{run_results.json,manifest.json,...}
   mkdir -p /var/log/dbt
   mkdir -p /var/log/dbt/target
 
-  # Let the ubuntu user (and docker containers that run as uid 1000) write there
   chown -R "${USERNAME}:${USERNAME}" /var/log/dbt
   chmod -R 755 /var/log/dbt
 
   log "✅ /var/log/dbt ready (will be mounted into the docs container)"
 }
 
-
 install_docs_systemd_service() {
   log "🛠️ Creating systemd service for dbt-docs..."
 
-  # NOTE: docker-compose.yml in ${DBT_PROJECT_DIR} must mount:
-  #   - /var/log/dbt:/usr/app/logs
-  #   - /var/log/dbt/target:/usr/app/target
-  # so that dbt.log and run_results.json are visible on the host and can be shipped to CloudWatch.
   cat > /etc/systemd/system/dbt-docs.service <<UNIT
 [Unit]
 Description=DBT documentation server (Docker Compose)
@@ -310,6 +307,193 @@ UNIT
   systemctl daemon-reload
   systemctl enable dbt-docs.service
   log "✅ dbt-docs.service created and enabled"
+}
+
+########################################
+# DBT Scheduled Runs
+########################################
+install_dbt_scheduled_runs() {
+  log "⏰ Setting up scheduled DBT runs..."
+  
+  # Create DBT run script
+  cat > /usr/local/bin/dbt-scheduled-run.sh <<'SCRIPT'
+#!/bin/bash
+set -euo pipefail
+
+LOG_FILE="/var/log/dbt/scheduled-runs.log"
+RESULT_FILE="/var/log/dbt/target/run_results.json"
+ENV_FILE="/opt/dbt/.env"
+PROJECT_DIR="/opt/dbt/project"
+
+# Load environment variables
+if [[ -f "$ENV_FILE" ]]; then
+  set -a
+  source "$ENV_FILE"
+  set +a
+fi
+
+log() {
+  echo "[$(date +'%F %T')] $*" | tee -a "$LOG_FILE"
+}
+
+send_notification() {
+  local status=$1
+  local summary=$2
+  
+  # Only send if SNS topic is configured
+  if [[ -z "${SNS_TOPIC_ARN:-}" ]]; then
+    log "⚠️  SNS_TOPIC_ARN not configured, skipping notification"
+    return 0
+  fi
+  
+  # Get instance details
+  TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" \
+    -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" 2>/dev/null || echo "")
+  
+  if [[ -n "$TOKEN" ]]; then
+    INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
+      http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null || echo "unknown")
+    INSTANCE_NAME=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
+      http://169.254.169.254/latest/meta-data/tags/instance/Name 2>/dev/null || echo "Unknown")
+  else
+    INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null || echo "unknown")
+    INSTANCE_NAME="Unknown"
+  fi
+  
+  # Send SNS notification
+  aws sns publish \
+    --topic-arn "${SNS_TOPIC_ARN}" \
+    --subject "DBT Run ${status} - ${INSTANCE_NAME}" \
+    --message "$(cat <<EOF
+DBT Scheduled Run ${status}
+
+Instance: ${INSTANCE_NAME} (${INSTANCE_ID})
+Time: $(date +'%F %T %Z')
+Environment: ${ENV_NAME:-unknown}
+
+${summary}
+
+View logs: ssh to instance and check /var/log/dbt/scheduled-runs.log
+EOF
+)" \
+    --region "${REGION:-eu-west-2}" 2>&1 | tee -a "$LOG_FILE" || log "⚠️  Failed to send SNS notification"
+}
+
+log "=========================================="
+log "🚀 Starting scheduled DBT run"
+log "=========================================="
+
+cd "$PROJECT_DIR"
+
+# Run DBT models
+log "📊 Running DBT models..."
+if docker compose run --rm dbt-core run --log-path /tmp 2>&1 | tee -a "$LOG_FILE"; then
+  log "✅ DBT run completed successfully"
+  RUN_STATUS="SUCCESS"
+else
+  log "❌ DBT run failed"
+  RUN_STATUS="FAILED"
+  
+  # Send failure notification immediately
+  send_notification "FAILED" "DBT models failed to run. Check logs for details."
+  exit 1
+fi
+
+# Run DBT tests
+log "🧪 Running DBT tests..."
+if docker compose run --rm dbt-core test --log-path /tmp 2>&1 | tee -a "$LOG_FILE"; then
+  log "✅ DBT tests passed"
+  TEST_STATUS="SUCCESS"
+else
+  log "⚠️  Some DBT tests failed"
+  TEST_STATUS="FAILED"
+fi
+
+# Generate documentation
+log "📚 Generating documentation..."
+if docker compose run --rm dbt-core docs generate --log-path /tmp 2>&1 | tee -a "$LOG_FILE"; then
+  log "✅ Documentation generated"
+  DOCS_STATUS="SUCCESS"
+else
+  log "⚠️  Documentation generation failed"
+  DOCS_STATUS="FAILED"
+fi
+
+# Parse results
+if [[ -f "$RESULT_FILE" ]]; then
+  SUMMARY=$(python3 -c "
+import sys, json
+try:
+    with open('$RESULT_FILE') as f:
+        data = json.load(f)
+        results = data.get('results', [])
+        success = sum(1 for r in results if r.get('status') == 'success')
+        error = sum(1 for r in results if r.get('status') == 'error')
+        skipped = sum(1 for r in results if r.get('status') == 'skipped')
+        print(f'Models: {len(results)} total')
+        print(f'✅ Success: {success}')
+        print(f'❌ Error: {error}')
+        print(f'⏭️  Skipped: {skipped}')
+except Exception as e:
+    print(f'Could not parse results: {e}')
+" 2>/dev/null) || SUMMARY="Results parsing failed"
+else
+  SUMMARY="No run_results.json found"
+fi
+
+log ""
+log "📊 Run Summary:"
+log "$SUMMARY"
+log "Run Status: $RUN_STATUS"
+log "Test Status: $TEST_STATUS"
+log "Docs Status: $DOCS_STATUS"
+log "=========================================="
+
+# Send success notification with summary
+if [[ "$RUN_STATUS" == "SUCCESS" ]]; then
+  FULL_SUMMARY="DBT Run: $RUN_STATUS
+Tests: $TEST_STATUS
+Docs: $DOCS_STATUS
+
+$SUMMARY"
+  send_notification "SUCCESS" "$FULL_SUMMARY"
+fi
+
+log "✅ Scheduled run complete"
+SCRIPT
+
+  chmod +x /usr/local/bin/dbt-scheduled-run.sh
+  chown "$USERNAME:$USERNAME" /usr/local/bin/dbt-scheduled-run.sh
+  
+  # Create log rotation for scheduled runs
+  cat > /etc/logrotate.d/dbt-scheduled-runs <<'LOGROTATE'
+/var/log/dbt/scheduled-runs.log {
+    daily
+    rotate 30
+    compress
+    delaycompress
+    notifempty
+    create 0640 ubuntu ubuntu
+    sharedscripts
+}
+LOGROTATE
+
+  log "✅ DBT scheduled run script installed"
+}
+
+setup_dbt_cron() {
+  log "📅 Setting up cron for DBT scheduled runs..."
+  
+  # Add cron job as ubuntu user
+  # Run every 2 hours at 10 minutes past the hour
+  CRON_LINE="10 */2 * * * /usr/local/bin/dbt-scheduled-run.sh >> /var/log/dbt/cron.log 2>&1"
+  
+  # Add to ubuntu user's crontab
+  (crontab -u "$USERNAME" -l 2>/dev/null || true; echo "$CRON_LINE") | crontab -u "$USERNAME" -
+  
+  log "✅ Cron job installed for user: $USERNAME"
+  log "   Schedule: Every 2 hours at :10 past the hour"
+  log "   Command: /usr/local/bin/dbt-scheduled-run.sh"
 }
 
 ########################################
@@ -453,11 +637,13 @@ main() {
   fetch_redshift_secrets_to_envfile
   write_runtime_profiles_yaml
   prepare_deployment_directory
-
-  # 🔹 NEW: make /var/log/dbt and /var/log/dbt/target on the host
   prepare_dbt_host_logging_dirs
 
   install_docs_systemd_service
+  
+  # 🔹 NEW: Install scheduled DBT runs
+  install_dbt_scheduled_runs
+  setup_dbt_cron
 
   install_monitoring_stack
   install_uptime_metric_script
@@ -466,6 +652,7 @@ main() {
   log "📊 Environment: ${ENV_NAME}"
   log "📁 Deployment dir: ${DBT_PROJECT_DIR}"
   log "📈 CloudWatch namespace: ${CW_NAMESPACE}"
+  log "⏰ Scheduled runs: Every 2 hours at :10 past the hour"
 }
 
 main "$@"

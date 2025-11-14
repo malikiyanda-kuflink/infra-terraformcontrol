@@ -104,9 +104,33 @@ resource "aws_ssm_parameter" "dbt_cloudwatch_config" {
               timezone        = "UTC"
             },
             {
+              file_path       = "/var/log/kern.log"
+              log_group_name  = "/ec2/__INSTANCE_NAME__/kern"
+              log_stream_name = "{instance_id}-kern"
+              timezone        = "UTC"
+            },
+            {
+              file_path       = "/var/log/auth.log"
+              log_group_name  = "/ec2/__INSTANCE_NAME__/auth"
+              log_stream_name = "{instance_id}-auth"
+              timezone        = "UTC"
+            },
+            {
               file_path       = "/var/log/dbt/dbt.log"
               log_group_name  = "/ec2/__INSTANCE_NAME__/dbt-runtime"
               log_stream_name = "{instance_id}-dbt-runtime"
+              timezone        = "UTC"
+            },
+            {
+              file_path       = "/var/log/dbt/scheduled-runs.log"
+              log_group_name  = "/ec2/__INSTANCE_NAME__/dbt-scheduled-runs"
+              log_stream_name = "{instance_id}-scheduled-runs"
+              timezone        = "UTC"
+            },
+            {
+              file_path       = "/var/log/dbt/cron.log"
+              log_group_name  = "/ec2/__INSTANCE_NAME__/dbt-cron"
+              log_stream_name = "{instance_id}-cron"
               timezone        = "UTC"
             }
           ]
@@ -142,7 +166,7 @@ module "ec2-dbt" {
   dbt_instance_profile_name = data.terraform_remote_state.foundation.outputs.iam_resources.dbt.instance_profile_name
   acm_certificate_arn       = data.terraform_remote_state.foundation.outputs.ssl_certificate_arn
 
-  # DNS
+  # DNS 
   route53_zone_name  = local.aws_route53_zone
   dbt_docs_subdomain = local.dbt_config.dbt_docs_subdomain
 
