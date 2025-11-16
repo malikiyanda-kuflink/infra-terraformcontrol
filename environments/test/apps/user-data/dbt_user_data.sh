@@ -371,9 +371,9 @@ UNIT
 # DBT Scheduled Runs
 ########################################
 install_dbt_scheduled_runs() {
-  log "⏰ Setting up scheduled DBT runs..."
+  log "⏰ Setting up scheduled DBT runs with Redshift connectivity checks..."
   
-  # Create DBT run script
+  # Create DBT run script with Redshift connectivity check
   cat > /usr/local/bin/dbt-scheduled-run.sh <<'SCRIPT'
 #!/bin/bash
 set -euo pipefail
@@ -382,6 +382,10 @@ LOG_FILE="/var/log/dbt/scheduled-runs.log"
 RESULT_FILE="/var/log/dbt/target/run_results.json"
 ENV_FILE="/opt/dbt/.env"
 PROJECT_DIR="/opt/dbt/project"
+
+# Redshift connectivity settings
+MAX_RETRIES=3
+RETRY_DELAY=30  # seconds between retries
 
 # Load environment variables (includes DBT_PROFILE)
 if [[ -f "$ENV_FILE" ]]; then
@@ -409,17 +413,17 @@ fi
 send_notification() {
   local status=$1
   local summary=$2
-  
+
   # Only send if SNS topic is configured
   if [[ -z "${SNS_TOPIC_ARN:-}" ]]; then
     log "⚠️  SNS_TOPIC_ARN not configured, skipping notification"
     return 0
   fi
-  
+
   # Get instance details
   TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" \
     -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" 2>/dev/null || echo "")
-  
+
   if [[ -n "$TOKEN" ]]; then
     INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
       http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null || echo "unknown")
@@ -429,7 +433,7 @@ send_notification() {
     INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null || echo "unknown")
     INSTANCE_NAME="Unknown"
   fi
-  
+
   # Send SNS notification
   aws sns publish \
     --topic-arn "${SNS_TOPIC_ARN}" \
@@ -450,11 +454,87 @@ EOF
     --region "${REGION:-eu-west-2}" 2>&1 | tee -a "$LOG_FILE" || log "⚠️  Failed to send SNS notification"
 }
 
+check_redshift_connectivity() {
+  local host="${DBT_RS_HOST}"
+  local port="${DBT_RS_PORT:-5439}"
+  
+  log "🔍 Checking Redshift connectivity..."
+  log "   Host: ${host}"
+  log "   Port: ${port}"
+  
+  # Extract hostname (remove protocol if present)
+  host=$(echo "$host" | sed 's|^[^/]*//||' | sed 's|/.*||')
+  
+  # Try to connect using netcat (timeout after 10 seconds)
+  if timeout 10 bash -c "cat < /dev/null > /dev/tcp/${host}/${port}" 2>/dev/null; then
+    log "✅ Redshift cluster is reachable"
+    return 0
+  else
+    log "❌ Redshift cluster is NOT reachable"
+    return 1
+  fi
+}
+
+check_redshift_with_retries() {
+  local attempt=1
+  
+  while [[ $attempt -le $MAX_RETRIES ]]; do
+    log "📡 Connectivity check attempt ${attempt}/${MAX_RETRIES}..."
+    
+    if check_redshift_connectivity; then
+      log "✅ Redshift is accessible"
+      return 0
+    fi
+    
+    if [[ $attempt -lt $MAX_RETRIES ]]; then
+      log "⏳ Retrying in ${RETRY_DELAY} seconds..."
+      sleep $RETRY_DELAY
+    fi
+    
+    ((attempt++))
+  done
+  
+  # All retries failed
+  log "❌ Redshift cluster is NOT accessible after ${MAX_RETRIES} attempts"
+  
+  # Send notification about connectivity failure
+  FAILURE_SUMMARY="Redshift cluster at ${DBT_RS_HOST}:${DBT_RS_PORT} is not accessible.
+
+Attempted ${MAX_RETRIES} times with ${RETRY_DELAY}s delay between attempts.
+
+Possible causes:
+- Redshift cluster is paused
+- Network connectivity issues
+- Security group blocking access
+- VPC routing issues
+
+DBT scheduled run was SKIPPED.
+
+Action required: Check Redshift cluster status and network connectivity."
+
+  send_notification "SKIPPED - Redshift Unreachable" "$FAILURE_SUMMARY"
+  
+  return 1
+}
+
 log "=========================================="
 log "🚀 Starting scheduled DBT run"
 log "   Environment: ${ENV_NAME:-unknown}"
 log "   DBT Profile: ${DBT_PROFILE}"
 log "=========================================="
+log ""
+
+# Check Redshift connectivity before proceeding
+if ! check_redshift_with_retries; then
+  log "❌ Aborting DBT run - Redshift cluster is not accessible"
+  log "=========================================="
+  exit 1
+fi
+
+log ""
+log "✅ Redshift connectivity verified"
+log "📊 Proceeding with DBT run..."
+log ""
 
 cd "$PROJECT_DIR"
 
@@ -466,7 +546,7 @@ if docker compose run --rm dbt-core run --log-path /tmp 2>&1 | tee -a "$LOG_FILE
 else
   log "❌ DBT run failed"
   RUN_STATUS="FAILED"
-  
+
   # Send failure notification immediately
   send_notification "FAILED" "DBT models failed to run. Check logs for details."
   exit 1
@@ -521,6 +601,7 @@ log "Run Status: $RUN_STATUS"
 log "Test Status: $TEST_STATUS"
 log "Docs Status: $DOCS_STATUS"
 log "DBT Profile: ${DBT_PROFILE}"
+log "Redshift Host: ${DBT_RS_HOST}"
 log "=========================================="
 
 # Send success notification with summary
@@ -529,6 +610,7 @@ if [[ "$RUN_STATUS" == "SUCCESS" ]]; then
 Tests: $TEST_STATUS
 Docs: $DOCS_STATUS
 Profile: ${DBT_PROFILE}
+Redshift: ${DBT_RS_HOST}
 
 $SUMMARY"
   send_notification "SUCCESS" "$FULL_SUMMARY"
@@ -553,7 +635,9 @@ SCRIPT
 }
 LOGROTATE
 
-  log "✅ DBT scheduled run script installed"
+  log "✅ DBT scheduled run script installed with Redshift connectivity checks"
+  log "   Max retries: 3"
+  log "   Retry delay: 30 seconds"
 }
 
 setup_dbt_cron() {
@@ -716,7 +800,7 @@ main() {
 
   install_docs_systemd_service
   
-  # Install scheduled DBT runs
+  # Install scheduled DBT runs with Redshift connectivity checks
   install_dbt_scheduled_runs
   setup_dbt_cron
 
@@ -729,6 +813,7 @@ main() {
   log "📁 Deployment dir: ${DBT_PROJECT_DIR}"
   log "📈 CloudWatch namespace: ${CW_NAMESPACE}"
   log "⏰ Scheduled runs: Every 2 hours at :10 past the hour"
+  log "🔍 Redshift checks: 3 retries with 30s delay"
   
   # Final verification
   log ""
