@@ -16,7 +16,7 @@ locals {
 
 
   # RDS and Redshift toggles
-  create_read_replica                      = true
+  create_read_replica                      = false
   restore_rds_from_snapshot                = true
   restored_primary_rds_instance_identifier = "kuflink-test"
   new_primary_rds_instance_identifier      = "kuflink-test-mysql"
