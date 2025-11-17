@@ -185,13 +185,13 @@ module "ec2-dbt" {
   root_volume_encrypted             = local.dbt_config.root_volume_encrypted
   root_volume_kms_key_id            = local.dbt_config.root_volume_kms_key_id
   root_volume_delete_on_termination = local.dbt_config.root_volume_delete_on_termination
-       
+
 
   # Code Deploy Configuration
   code_deploy_project_name    = local.dbt_config.code_deploy_project_name
   codedeploy_service_role_arn = data.terraform_remote_state.foundation.outputs.iam_resources.code_deploy.role_arn
 
-  instance_tags = {  
+  instance_tags = {
     DBT-Test-DeploymentTarget = local.dbt_config.code_deploy_project_name
   }
 

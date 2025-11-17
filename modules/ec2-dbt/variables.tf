@@ -1,12 +1,12 @@
 # ========================================
 # Network Configuration
 # ========================================
-variable "private_subnet_id" { 
+variable "private_subnet_id" {
   type        = string
   description = "Private subnet ID for DBT instance"
 }
 
-variable "vpc_id" { 
+variable "vpc_id" {
   type        = string
   description = "VPC ID"
 }
@@ -19,27 +19,27 @@ variable "public_subnet_ids" {
 # ========================================
 # Instance Configuration
 # ========================================
-variable "dbt_name" { 
+variable "dbt_name" {
   type        = string
   description = "Name of the DBT instance"
 }
 
-variable "instance_type" { 
+variable "instance_type" {
   type        = string
   description = "EC2 instance type"
 }
 
-variable "ssh_key_name" { 
+variable "ssh_key_name" {
   type        = string
   description = "SSH key pair name"
 }
 
-variable "dbt_user_data" { 
+variable "dbt_user_data" {
   type        = string
   description = "User data script for instance initialization"
 }
 
-variable "canonical_id" { 
+variable "canonical_id" {
   type        = string
   description = "Canonical AWS account ID for Ubuntu AMIs"
 }
@@ -51,7 +51,7 @@ variable "instance_tags" {
 # ========================================
 # IAM Configuration
 # ========================================
-variable "dbt_instance_profile_name" { 
+variable "dbt_instance_profile_name" {
   type        = string
   description = "IAM instance profile name"
 }
@@ -59,12 +59,12 @@ variable "dbt_instance_profile_name" {
 # ========================================
 # Security Configuration
 # ========================================
-variable "alb_sg_id" { 
+variable "alb_sg_id" {
   type        = string
   description = "Security group ID for ALB"
 }
 
-variable "dbt_sg_id" { 
+variable "dbt_sg_id" {
   type        = string
   description = "Security group ID for DBT instance"
 }
@@ -137,7 +137,7 @@ variable "root_volume_delete_on_termination" {
 # ========================================
 # DNS & Certificate Configuration
 # ========================================
-variable "route53_zone_name" { 
+variable "route53_zone_name" {
   type        = string
   description = "Route53 hosted zone name"
 }
@@ -155,7 +155,7 @@ variable "dbt_docs_subdomain" {
 # ========================================
 # Monitoring & Notifications
 # ========================================
-variable "cloudwatch_ops_notification_email" { 
+variable "cloudwatch_ops_notification_email" {
   type        = string
   description = "Email address for CloudWatch operational notifications"
 }
@@ -174,12 +174,12 @@ variable "code_deploy_project_name" {
   type        = string
 }
 
-variable "name_prefix" { 
+variable "name_prefix" {
   type        = string
   description = "Prefix for resource naming"
 }
 
-variable "environment" { 
+variable "environment" {
   type        = string
   description = "Environment name (test, staging, production)"
 }

@@ -14,8 +14,8 @@ resource "aws_instance" "dbt_host" {
     throughput            = var.root_volume_type == "gp3" ? var.root_volume_throughput : null
     delete_on_termination = var.root_volume_delete_on_termination
     encrypted             = var.root_volume_encrypted
-    kms_key_id            = var.root_volume_kms_key_id  # null = AWS managed key, or provide custom KMS key ARN
-    
+    kms_key_id            = var.root_volume_kms_key_id # null = AWS managed key, or provide custom KMS key ARN
+
     tags = {
       Name        = "${var.dbt_name}-Root"
       Environment = var.environment

@@ -30,7 +30,7 @@ locals {
     root_volume_iops                  = 3000
     root_volume_throughput            = 125
     root_volume_encrypted             = true
-    root_volume_kms_key_id            = null  # Use AWS managed key (free)
+    root_volume_kms_key_id            = null # Use AWS managed key (free)
     root_volume_delete_on_termination = true
   }
 
