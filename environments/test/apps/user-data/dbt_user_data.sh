@@ -630,12 +630,14 @@ SCRIPT
     compress
     delaycompress
     notifempty
+    missingok
     create 0640 ubuntu ubuntu
     sharedscripts
 }
 LOGROTATE
 
   log "✅ DBT scheduled run script installed with Redshift connectivity checks"
+  log "✅ Log rotation configured for scheduled-runs.log (daily, 30 days)"
   log "   Max retries: 3"
   log "   Retry delay: 30 seconds"
 }
@@ -650,9 +652,24 @@ setup_dbt_cron() {
   # Add to ubuntu user's crontab
   (crontab -u "$USERNAME" -l 2>/dev/null || true; echo "$CRON_LINE") | crontab -u "$USERNAME" -
   
+  # Create log rotation for cron log
+  cat > /etc/logrotate.d/dbt-cron <<'LOGROTATE'
+/var/log/dbt/cron.log {
+    daily
+    rotate 30
+    compress
+    delaycompress
+    notifempty
+    missingok
+    create 0664 ubuntu ubuntu
+    sharedscripts
+}
+LOGROTATE
+  
   log "✅ Cron job installed for user: $USERNAME"
   log "   Schedule: Every 2 hours at :10 past the hour"
   log "   Command: /usr/local/bin/dbt-scheduled-run.sh"
+  log "✅ Log rotation configured for cron.log (daily, 30 days)"
 }
 
 ########################################
@@ -772,8 +789,22 @@ SCRIPT
   # Add to cron (every 5 minutes)
   echo "*/5 * * * * /usr/local/bin/send-uptime-metric.sh >> /var/log/uptime-metric.log 2>&1" | crontab -
   
+  # Create log rotation for uptime metric
+  cat > /etc/logrotate.d/uptime-metric <<'LOGROTATE'
+/var/log/uptime-metric.log {
+    weekly
+    rotate 4
+    compress
+    delaycompress
+    notifempty
+    missingok
+    create 0644 root root
+}
+LOGROTATE
+  
   log "✅ Uptime metric script installed and scheduled"
   log "   Namespace: ${CW_NAMESPACE}"
+  log "✅ Log rotation configured for uptime-metric.log (weekly, 4 weeks)"
 }
 
 ########################################
@@ -814,6 +845,11 @@ main() {
   log "📈 CloudWatch namespace: ${CW_NAMESPACE}"
   log "⏰ Scheduled runs: Every 2 hours at :10 past the hour"
   log "🔍 Redshift checks: 3 retries with 30s delay"
+  log ""
+  log "📋 Log Rotation Summary:"
+  log "   - /var/log/dbt/scheduled-runs.log (daily, 30 days)"
+  log "   - /var/log/dbt/cron.log (daily, 30 days)"
+  log "   - /var/log/uptime-metric.log (weekly, 4 weeks)"
   
   # Final verification
   log ""

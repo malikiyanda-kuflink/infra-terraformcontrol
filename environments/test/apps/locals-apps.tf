@@ -23,6 +23,15 @@ locals {
     dbt_name                 = "Kuflink-Test-DBT"
     dbt_docs_subdomain       = "dbt-test.${data.terraform_remote_state.foundation.outputs.route53_zone_name}"
     code_deploy_project_name = "Kuflink-Test-DBT-Project"
+
+    # Root Block Device Configuration
+    root_volume_type                  = "gp3"
+    root_volume_size                  = 50
+    root_volume_iops                  = 3000
+    root_volume_throughput            = 125
+    root_volume_encrypted             = true
+    root_volume_kms_key_id            = null  # Use AWS managed key (free)
+    root_volume_delete_on_termination = true
   }
 
   # Read script and convert to Unix line endings

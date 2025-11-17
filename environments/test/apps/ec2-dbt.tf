@@ -177,11 +177,21 @@ module "ec2-dbt" {
   canonical_id  = data.terraform_remote_state.foundation.outputs.global.canonical_id
   dbt_name      = local.dbt_config.dbt_name
 
-  #Code Deploy Configuration
+  # Root Block Device Configuration
+  root_volume_type                  = local.dbt_config.root_volume_type
+  root_volume_size                  = local.dbt_config.root_volume_size
+  root_volume_iops                  = local.dbt_config.root_volume_iops
+  root_volume_throughput            = local.dbt_config.root_volume_throughput
+  root_volume_encrypted             = local.dbt_config.root_volume_encrypted
+  root_volume_kms_key_id            = local.dbt_config.root_volume_kms_key_id
+  root_volume_delete_on_termination = local.dbt_config.root_volume_delete_on_termination
+       
+
+  # Code Deploy Configuration
   code_deploy_project_name    = local.dbt_config.code_deploy_project_name
   codedeploy_service_role_arn = data.terraform_remote_state.foundation.outputs.iam_resources.code_deploy.role_arn
 
-  instance_tags = {
+  instance_tags = {  
     DBT-Test-DeploymentTarget = local.dbt_config.code_deploy_project_name
   }
 
