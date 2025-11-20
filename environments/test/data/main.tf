@@ -74,11 +74,12 @@ module "rds_restore" {
   # Database Insights settings
   monitoring_role_arn             = data.terraform_remote_state.foundation.outputs.iam_resources.rds_enhanced_monitoring.role_arn
   performance_insights_enabled    = true
-  monitoring_interval             = 60                                # Enhanced monitoring every 60 seconds
-  enabled_cloudwatch_logs_exports = ["error", "general", "slowquery"] # MySQL logs
+  monitoring_interval             = 60                                         # Enhanced monitoring every 60 seconds
+  enabled_cloudwatch_logs_exports = ["audit", "error", "general", "slowquery"] # MySQL logs
 
   #RDS Components 
   db_parameter_group_name = aws_db_parameter_group.kuflink_parameter_group.name
+  db_option_group_name    = aws_db_option_group.kuflink_option_group.name
   db_subnet_group_name    = aws_db_subnet_group.kuflink_db_subnet_group.name
 
   # Networking
@@ -95,15 +96,18 @@ module "rds_restore" {
   publicly_accessible = false
   skip_final_snapshot = true
   deletion_protection = false
-  # instance_class      = "db.t3.small"  # performance insights done work for this
-  instance_class = "db.t3.medium"
-  # instance_class      = "db.t3.xlarge"  # testing 
+  # instance_class    = "db.t3.small" # performance insights done work for this
+  # instance_class    = "db.t3.medium"  # staging/test
+  instance_class    = "db.t3.xlarge" # Production Setting 
+  storage_type      = "io1"
   allocated_storage = 100
+  iops              = 1000
 
 
   # Read replica
   create_read_replica    = local.create_read_replica
-  replica_instance_class = "db.t3.small"
+  replica_instance_class = "db.t3.xlarge"
+  # replica_instance_class = "db.t3.small"
 
 
 

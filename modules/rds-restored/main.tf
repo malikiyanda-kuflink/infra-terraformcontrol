@@ -11,9 +11,12 @@ resource "aws_db_instance" "restored_primary_rds_instance" {
   storage_encrypted   = var.storage_encrypted
   skip_final_snapshot = var.skip_final_snapshot
   deletion_protection = var.deletion_protection
+  storage_type        = var.storage_type
   allocated_storage   = var.allocated_storage
+  iops                = var.iops
 
   parameter_group_name   = var.db_parameter_group_name
+  option_group_name      = var.db_option_group_name
   db_subnet_group_name   = var.db_subnet_group_name
   vpc_security_group_ids = [var.rds_sg_id]
 

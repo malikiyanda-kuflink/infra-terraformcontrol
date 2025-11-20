@@ -4,6 +4,67 @@
 # RDS 
 # -------------------------------------------------------
 
+# options group 
+resource "aws_db_option_group" "kuflink_option_group" {
+  name                     = "${local.name_prefix}-mysql-option-group"
+  option_group_description = "${local.name_prefix} MySQL 8.0 option group with audit plugin"
+  engine_name              = "mysql"
+  major_engine_version     = "8.0"
+
+  # option {
+  #   option_name = "MARIADB_AUDIT_PLUGIN"
+
+  #   option_settings {
+  #     name  = "SERVER_AUDIT_EVENTS"
+  #     value = "CONNECT,QUERY"
+  #   }
+
+  #   option_settings {
+  #     name  = "SERVER_AUDIT_FILE_PATH"
+  #     value = "/rdsdbdata/log/audit/"
+  #   }
+
+  #   option_settings {
+  #     name  = "SERVER_AUDIT_QUERY_LOG_LIMIT"
+  #     value = "1024"
+  #   }
+
+  #   option_settings {
+  #     name  = "SERVER_AUDIT"
+  #     value = "FORCE_PLUS_PERMANENT"
+  #   }
+
+  #   # option_settings {
+  #   #   name  = "SERVER_AUDIT_LOGGING"
+  #   #   value = "ON"
+  #   # }
+
+  #   option_settings {
+  #     name  = "SERVER_AUDIT_EXCL_USERS"
+  #     value = ""
+  #   }
+
+  #   option_settings {
+  #     name  = "SERVER_AUDIT_INCL_USERS"
+  #     value = ""
+  #   }
+
+  #   option_settings {
+  #     name  = "SERVER_AUDIT_FILE_ROTATE_SIZE"
+  #     value = ""
+  #   }
+
+  #   option_settings {
+  #     name  = "SERVER_AUDIT_FILE_ROTATIONS"
+  #     value = ""
+  #   }
+  # }
+
+  tags = {
+    Name = "${local.name_prefix}-option-group"
+  }
+}
+
 # Subnet Group
 resource "aws_db_subnet_group" "kuflink_db_subnet_group" {
   name       = "${local.name_prefix}-private-subnet-group"
@@ -18,12 +79,12 @@ resource "aws_db_parameter_group" "kuflink_parameter_group" {
   family      = "mysql8.0"
   description = "${local.name_prefix}-mysql-parameter-group"
 
-  # Default parameters + caller overrides
   dynamic "parameter" {
     for_each = local.mysql_parameters
     content {
-      name  = parameter.key
-      value = parameter.value
+      name         = parameter.value.name
+      value        = parameter.value.value
+      apply_method = parameter.value.apply_method
     }
   }
 

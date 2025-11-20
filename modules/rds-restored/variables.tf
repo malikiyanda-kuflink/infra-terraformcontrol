@@ -9,6 +9,11 @@ variable "tags" {
   default     = {}
 }
 
+variable "db_option_group_name" {
+  description = "db options group name "
+  type        = string
+}
+
 variable "db_parameter_group_name" {
   description = "db parameter group name "
   type        = string

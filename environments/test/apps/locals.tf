@@ -11,14 +11,14 @@ locals {
   enable_bastion_dns = true
 
   # --- API Platform toggles --- # flip to true/false to skip creating the stacks
-  enable_eb     = false
-  enable_eb_waf = false
-  enable_redis  = false
+  enable_eb     = true
+  enable_eb_waf = true
+  enable_redis  = true
 
   # --- Frontend/Admin S3 toggles --- # flip to true/false to skip creating the stacks
-  enable_s3_admin            = false
-  enable_s3_admin_waf        = false
-  enable_s3_frontend         = false
+  enable_s3_admin            = true
+  enable_s3_admin_waf        = true
+  enable_s3_frontend         = true
   serve_frontend_maintenance = false
 
   # --- EC2 Site toggles --- # flip to true/false to skip creating the stacks
