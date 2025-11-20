@@ -20,15 +20,15 @@ on:
         type: boolean
         default: false
       destroy_data:
-        description: 'Destroy DATA layer'
+        description: 'Destroy DATA layer (will also destroy apps)'
         type: boolean
         default: false
       destroy_platform:
-        description: 'Destroy PLATFORM layer'
+        description: 'Destroy PLATFORM layer (will also destroy apps + data)'
         type: boolean
         default: false
       destroy_foundation:
-        description: 'Destroy FOUNDATION layer'
+        description: 'Destroy FOUNDATION layer (will also destroy apps + data + platform)'
         type: boolean
         default: false
       confirm_destroy:
@@ -105,26 +105,46 @@ jobs:
           DESTROY_PLATFORM="${{ github.event.inputs.destroy_platform }}"
           DESTROY_FOUNDATION="${{ github.event.inputs.destroy_foundation }}"
           
-          LAYERS=()
-          
+          # ─────────────────────────────────────────────
+          # Dependency cascade (apps <- data <- platform <- foundation)
+          # ─────────────────────────────────────────────
           if [[ "$DESTROY_ALL" == "true" ]]; then
-            # Full destroy in safe order
-            LAYERS=("apps" "data" "platform" "foundation")
+            DESTROY_APPS="true"
+            DESTROY_DATA="true"
+            DESTROY_PLATFORM="true"
+            DESTROY_FOUNDATION="true"
           else
-            # Always respect safe destroy order:
-            # apps -> data -> platform -> foundation
-            if [[ "$DESTROY_APPS" == "true" ]]; then
-              LAYERS+=("apps")
-            fi
-            if [[ "$DESTROY_DATA" == "true" ]]; then
-              LAYERS+=("data")
-            fi
-            if [[ "$DESTROY_PLATFORM" == "true" ]]; then
-              LAYERS+=("platform")
-            fi
+            # Foundation implies platform, data, apps
             if [[ "$DESTROY_FOUNDATION" == "true" ]]; then
-              LAYERS+=("foundation")
+              DESTROY_PLATFORM="true"
+              DESTROY_DATA="true"
+              DESTROY_APPS="true"
             fi
+            # Platform implies data, apps
+            if [[ "$DESTROY_PLATFORM" == "true" ]]; then
+              DESTROY_DATA="true"
+              DESTROY_APPS="true"
+            fi
+            # Data implies apps
+            if [[ "$DESTROY_DATA" == "true" ]]; then
+              DESTROY_APPS="true"
+            fi
+          fi
+          
+          LAYERS=()
+          # Always respect safe destroy order:
+          # apps -> data -> platform -> foundation
+          if [[ "$DESTROY_APPS" == "true" ]]; then
+            LAYERS+=("apps")
+          fi
+          if [[ "$DESTROY_DATA" == "true" ]]; then
+            LAYERS+=("data")
+          fi
+          if [[ "$DESTROY_PLATFORM" == "true" ]]; then
+            LAYERS+=("platform")
+          fi
+          if [[ "$DESTROY_FOUNDATION" == "true" ]]; then
+            LAYERS+=("foundation")
           fi
           
           if [[ ${#LAYERS[@]} -eq 0 ]]; then
@@ -140,7 +160,7 @@ jobs:
           
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "🎯 Environment: $ENV"
-          echo "🗑️  Layers to destroy (in order): $LAYERS_JSON"
+          echo "🗑️  Layers to destroy (in dependency order): $LAYERS_JSON"
           if [[ "${{ github.event.inputs.force_continue_on_failure }}" == "true" ]]; then
             echo "⚠️  FORCE CONTINUE ENABLED - will continue even if layers fail!"
           fi
