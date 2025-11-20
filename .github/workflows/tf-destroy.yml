@@ -11,10 +11,26 @@ on:
           - test
           - staging
           # - production  # Uncomment only if you really need this
-      layers:
-        description: 'Layers to destroy (comma-separated: foundation,platform,data,apps or "all")'
-        required: true
-        default: 'all'
+      destroy_all_layers:
+        description: 'Destroy ALL layers (apps, data, platform, foundation)'
+        type: boolean
+        default: false
+      destroy_apps:
+        description: 'Destroy APPS layer'
+        type: boolean
+        default: false
+      destroy_data:
+        description: 'Destroy DATA layer'
+        type: boolean
+        default: false
+      destroy_platform:
+        description: 'Destroy PLATFORM layer'
+        type: boolean
+        default: false
+      destroy_foundation:
+        description: 'Destroy FOUNDATION layer'
+        type: boolean
+        default: false
       confirm_destroy:
         description: 'Type "DESTROY" to confirm (case-sensitive)'
         required: true
@@ -82,49 +98,42 @@ jobs:
           echo "state_bucket=$STATE_BUCKET" >> "$GITHUB_OUTPUT"
           echo "lock_table=$LOCK_TABLE" >> "$GITHUB_OUTPUT"
           
-          # Parse layers safely (strip whitespace and validate)
-          LAYERS_INPUT_RAW="${{ github.event.inputs.layers }}"
-          LAYERS_INPUT_CLEAN=$(echo "$LAYERS_INPUT_RAW" | tr -d '[:space:]')
+          # Determine layers to destroy from checkboxes
+          DESTROY_ALL="${{ github.event.inputs.destroy_all_layers }}"
+          DESTROY_APPS="${{ github.event.inputs.destroy_apps }}"
+          DESTROY_DATA="${{ github.event.inputs.destroy_data }}"
+          DESTROY_PLATFORM="${{ github.event.inputs.destroy_platform }}"
+          DESTROY_FOUNDATION="${{ github.event.inputs.destroy_foundation }}"
           
-          ALLOWED_LAYERS=("foundation" "platform" "data" "apps")
+          LAYERS=()
           
-          if [[ "$LAYERS_INPUT_CLEAN" == "all" ]]; then
-            # Reverse order for destroy: apps -> data -> platform -> foundation
-            LAYERS_JSON='["apps","data","platform","foundation"]'
+          if [[ "$DESTROY_ALL" == "true" ]]; then
+            # Full destroy in safe order
+            LAYERS=("apps" "data" "platform" "foundation")
           else
-            IFS=',' read -ra LAYER_ARRAY <<< "$LAYERS_INPUT_CLEAN"
-            
-            REVERSED=()
-            for ((i=${#LAYER_ARRAY[@]}-1; i>=0; i--)); do
-              LAYER="${LAYER_ARRAY[i]}"
-              if [[ -z "$LAYER" ]]; then
-                continue
-              fi
-              
-              VALID="false"
-              for allowed in "${ALLOWED_LAYERS[@]}"; do
-                if [[ "$LAYER" == "$allowed" ]]; then
-                  VALID="true"
-                  break
-                fi
-              done
-              
-              if [[ "$VALID" != "true" ]]; then
-                echo "❌ Invalid layer specified: '$LAYER'"
-                echo "   Allowed: foundation, platform, data, apps, or 'all'"
-                exit 1
-              fi
-              
-              REVERSED+=("$LAYER")
-            done
-            
-            if [[ ${#REVERSED[@]} -eq 0 ]]; then
-              echo "❌ No valid layers specified after parsing input: '$LAYERS_INPUT_RAW'"
-              exit 1
+            # Always respect safe destroy order:
+            # apps -> data -> platform -> foundation
+            if [[ "$DESTROY_APPS" == "true" ]]; then
+              LAYERS+=("apps")
             fi
-            
-            LAYERS_JSON=$(printf '%s\n' "${REVERSED[@]}" | jq -R . | jq -sc .)
+            if [[ "$DESTROY_DATA" == "true" ]]; then
+              LAYERS+=("data")
+            fi
+            if [[ "$DESTROY_PLATFORM" == "true" ]]; then
+              LAYERS+=("platform")
+            fi
+            if [[ "$DESTROY_FOUNDATION" == "true" ]]; then
+              LAYERS+=("foundation")
+            fi
           fi
+          
+          if [[ ${#LAYERS[@]} -eq 0 ]]; then
+            echo "❌ No layers selected to destroy."
+            echo "   Tick 'Destroy ALL layers' or one/more individual layer checkboxes."
+            exit 1
+          fi
+          
+          LAYERS_JSON=$(printf '%s\n' "${LAYERS[@]}" | jq -R . | jq -sc .)
           
           echo "layers_to_destroy=$LAYERS_JSON" >> "$GITHUB_OUTPUT"
           echo "can_proceed=true" >> "$GITHUB_OUTPUT"
@@ -138,7 +147,7 @@ jobs:
           echo "⚠️  THIS ACTION IS IRREVERSIBLE!"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-  # Destroy jobs in REVERSE order: apps -> data -> platform -> foundation
+  # Destroy jobs in REVERSE dependency order: apps -> data -> platform -> foundation
   
   destroy-apps:
     needs: validate-destroy
