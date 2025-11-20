@@ -73,54 +73,61 @@ jobs:
               STATE_BUCKET="kuflink-prod-states"
               LOCK_TABLE="kuflink-tf-locks-prod"
               ;;
+            *)
+              echo "❌ Unsupported environment: $ENV"
+              exit 1
+              ;;
           esac
           
-          echo "state_bucket=$STATE_BUCKET" >> $GITHUB_OUTPUT
-          echo "lock_table=$LOCK_TABLE" >> $GITHUB_OUTPUT
+          echo "state_bucket=$STATE_BUCKET" >> "$GITHUB_OUTPUT"
+          echo "lock_table=$LOCK_TABLE" >> "$GITHUB_OUTPUT"
           
-          # Parse and validate layers
-          LAYERS_INPUT="${{ github.event.inputs.layers }}"
+          # Parse layers safely (strip whitespace and validate)
+          LAYERS_INPUT_RAW="${{ github.event.inputs.layers }}"
+          LAYERS_INPUT_CLEAN=$(echo "$LAYERS_INPUT_RAW" | tr -d '[:space:]')
           
-          # Validate layer dependencies and order
-          if [[ "$LAYERS_INPUT" != "all" ]]; then
-            # Check for invalid combinations
-            if [[ "$LAYERS_INPUT" =~ foundation.*platform ]] || \
-               [[ "$LAYERS_INPUT" =~ foundation.*data ]] || \
-               [[ "$LAYERS_INPUT" =~ foundation.*apps ]] || \
-               [[ "$LAYERS_INPUT" =~ platform.*data ]] || \
-               [[ "$LAYERS_INPUT" =~ platform.*apps ]] || \
-               [[ "$LAYERS_INPUT" =~ data.*apps ]]; then
-              echo "::error::❌ Invalid layer order detected!"
-              echo "::error::Layers must be destroyed in reverse dependency order:"
-              echo "::error::  apps → data → platform → foundation"
-              echo "::error::"
-              echo "::error::You specified: $LAYERS_INPUT"
-              echo "::error::This violates the dependency order."
-              exit 1
-            fi
-          fi
+          ALLOWED_LAYERS=("foundation" "platform" "data" "apps")
           
-          # Parse layers and reverse for destroy
-          if [[ "$LAYERS_INPUT" == "all" ]]; then
+          if [[ "$LAYERS_INPUT_CLEAN" == "all" ]]; then
             # Reverse order for destroy: apps -> data -> platform -> foundation
             LAYERS_JSON='["apps","data","platform","foundation"]'
           else
-            # Parse comma-separated and reverse
-            IFS=',' read -ra LAYER_ARRAY <<< "$LAYERS_INPUT"
-            # Remove whitespace
-            for i in "${!LAYER_ARRAY[@]}"; do
-              LAYER_ARRAY[$i]=$(echo "${LAYER_ARRAY[$i]}" | xargs)
-            done
-            # Reverse the array
+            IFS=',' read -ra LAYER_ARRAY <<< "$LAYERS_INPUT_CLEAN"
+            
             REVERSED=()
             for ((i=${#LAYER_ARRAY[@]}-1; i>=0; i--)); do
-              REVERSED+=("${LAYER_ARRAY[i]}")
+              LAYER="${LAYER_ARRAY[i]}"
+              if [[ -z "$LAYER" ]]; then
+                continue
+              fi
+              
+              VALID="false"
+              for allowed in "${ALLOWED_LAYERS[@]}"; do
+                if [[ "$LAYER" == "$allowed" ]]; then
+                  VALID="true"
+                  break
+                fi
+              done
+              
+              if [[ "$VALID" != "true" ]]; then
+                echo "❌ Invalid layer specified: '$LAYER'"
+                echo "   Allowed: foundation, platform, data, apps, or 'all'"
+                exit 1
+              fi
+              
+              REVERSED+=("$LAYER")
             done
+            
+            if [[ ${#REVERSED[@]} -eq 0 ]]; then
+              echo "❌ No valid layers specified after parsing input: '$LAYERS_INPUT_RAW'"
+              exit 1
+            fi
+            
             LAYERS_JSON=$(printf '%s\n' "${REVERSED[@]}" | jq -R . | jq -sc .)
           fi
           
-          echo "layers_to_destroy=$LAYERS_JSON" >> $GITHUB_OUTPUT
-          echo "can_proceed=true" >> $GITHUB_OUTPUT
+          echo "layers_to_destroy=$LAYERS_JSON" >> "$GITHUB_OUTPUT"
+          echo "can_proceed=true" >> "$GITHUB_OUTPUT"
           
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "🎯 Environment: $ENV"
@@ -155,13 +162,13 @@ jobs:
         run: |
           case "${{ env.ENVIRONMENT }}" in
             test)
-              echo "role_arn=${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              echo "role_arn=${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}" >> "$GITHUB_OUTPUT"
               ;;
             staging)
-              echo "role_arn=${{ secrets.STAGING_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              echo "role_arn=${{ secrets.STAGING_AWS_OIDC_ROLE_ARN }}" >> "$GITHUB_OUTPUT"
               ;;
             production)
-              echo "role_arn=${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              echo "role_arn=${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}" >> "$GITHUB_OUTPUT"
               ;;
           esac
       
@@ -185,90 +192,50 @@ jobs:
             -backend-config="dynamodb_table=${TF_LOCK_TABLE}" \
             -backend-config="encrypt=true"
       
-      - name: Check State for Resources
-        id: state_check
-        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        continue-on-error: true
-        run: |
-          echo "🔍 Checking for resources in state..."
-          terraform state list > state_resources.txt 2>&1 || true
-          
-          if [ ! -s state_resources.txt ] || ! grep -q . state_resources.txt; then
-            echo "⚠️ No resources found in state"
-            echo "has_resources=false" >> $GITHUB_OUTPUT
-          else
-            echo "📦 Found resources in state:"
-            cat state_resources.txt
-            echo "has_resources=true" >> $GITHUB_OUTPUT
-          fi
-      
-      - name: Refresh State
-        if: steps.state_check.outputs.has_resources == 'true'
-        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        continue-on-error: true
-        run: |
-          echo "🔄 Refreshing Terraform state..."
-          terraform refresh -var="environment=${ENVIRONMENT}" || {
-            echo "⚠️ State refresh had issues but continuing to plan"
-          }
-      
       - name: Terraform Destroy Plan
         id: plan
-        if: steps.state_check.outputs.has_resources == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
         run: |
           set +e
           terraform plan -destroy -no-color -out=destroy.tfplan -var="environment=${ENVIRONMENT}" 2>&1 | tee destroy_plan_output.txt
           EXIT_CODE=$?
-          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
           
-          # Check if plan shows no changes
-          if grep -q "No changes" destroy_plan_output.txt; then
-            echo "✅ No changes needed - state is already clean"
-            echo "plan_success=true" >> $GITHUB_OUTPUT
-            echo "no_changes=true" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          if [ $EXIT_CODE -eq 0 ]; then
-            echo "plan_success=true" >> $GITHUB_OUTPUT
-            echo "no_changes=false" >> $GITHUB_OUTPUT
+          if [ $EXIT_CODE -eq 0 ] && [ -f destroy.tfplan ]; then
+            echo "plan_success=true" >> "$GITHUB_OUTPUT"
           else
-            echo "plan_success=false" >> $GITHUB_OUTPUT
-            echo "no_changes=false" >> $GITHUB_OUTPUT
-            
-            # Provide helpful error context
-            echo "::error::Destroy plan failed. Common causes:"
-            echo "::error::  - Resources have dependencies that still exist"
-            echo "::error::  - State is out of sync with actual infrastructure"
-            echo "::error::  - Resources were manually deleted outside Terraform"
+            echo "plan_success=false" >> "$GITHUB_OUTPUT"
+            if [ $EXIT_CODE -ne 0 ]; then
+              echo "❌ terraform plan failed with exit code $EXIT_CODE"
+            else
+              echo "❌ terraform plan reported success but destroy.tfplan is missing"
+            fi
           fi
           
-          exit $EXIT_CODE
+          # Do not fail here; final status step will decide
+          exit 0
       
       - name: Show Destroy Plan
-        if: |
-          steps.plan.outputs.plan_success == 'true' && 
-          steps.plan.outputs.no_changes != 'true' &&
-          steps.state_check.outputs.has_resources == 'true'
+        if: steps.plan.outputs.plan_success == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        run: terraform show destroy.tfplan
+        run: |
+          if [ ! -f destroy.tfplan ]; then
+            echo "::warning::destroy.tfplan not found, skipping terraform show"
+            exit 0
+          fi
+          terraform show destroy.tfplan
       
       - name: Terraform Destroy (Attempt 1)
         id: destroy_attempt1
         if: |
           steps.plan.outputs.plan_success == 'true' &&
-          steps.plan.outputs.no_changes != 'true' &&
-          steps.state_check.outputs.has_resources == 'true' &&
           (github.event.inputs.auto_approve == 'true' || github.event.inputs.environment == 'test')
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
         run: |
           terraform apply -auto-approve destroy.tfplan 2>&1 | tee destroy_attempt1_output.txt
-          EXIT_CODE=$?
-          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
-          exit $EXIT_CODE
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
       
       - name: Wait Before Retry
         if: steps.destroy_attempt1.outcome == 'failure'
@@ -285,56 +252,36 @@ jobs:
           echo "🔄 Refreshing state and retrying destroy..."
           terraform refresh -var="environment=${ENVIRONMENT}" || true
           terraform destroy -auto-approve -var="environment=${ENVIRONMENT}" 2>&1 | tee destroy_attempt2_output.txt
-          EXIT_CODE=$?
-          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
-          exit $EXIT_CODE
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
       
       - name: Final Status Check
         id: final_status
         if: always()
         run: |
-          # No resources in state - success
-          if [[ "${{ steps.state_check.outputs.has_resources }}" != "true" ]]; then
-            echo "✅ No resources to destroy - layer already clean"
-            echo "status=success" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          # Plan showed no changes - success
-          if [[ "${{ steps.plan.outputs.no_changes }}" == "true" ]]; then
-            echo "✅ No changes needed - layer already clean"
-            echo "status=success" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          # Plan failed
           if [[ "${{ steps.plan.outputs.plan_success }}" != "true" ]]; then
-            echo "❌ Destroy plan failed"
-            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "❌ Destroy plan failed (no valid plan available)"
+            echo "status=failed" >> "$GITHUB_OUTPUT"
             if [[ "${{ github.event.inputs.force_continue_on_failure }}" == "true" ]]; then
               echo "⚠️ Force-continue enabled, allowing workflow to proceed"
-              echo "status=failed_forced" >> $GITHUB_OUTPUT
+              echo "status=failed_forced" >> "$GITHUB_OUTPUT"
               exit 0
             fi
             exit 1
-          fi
-          
-          # Check destroy attempts
-          if [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
+          elif [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
             echo "✅ Apps layer destroyed successfully on retry"
-            echo "status=success" >> $GITHUB_OUTPUT
+            echo "status=success" >> "$GITHUB_OUTPUT"
             exit 0
           elif [[ "${{ steps.destroy_attempt1.outcome }}" == "success" ]]; then
             echo "✅ Apps layer destroyed successfully"
-            echo "status=success" >> $GITHUB_OUTPUT
+            echo "status=success" >> "$GITHUB_OUTPUT"
             exit 0
           elif [[ "${{ github.event.inputs.force_continue_on_failure }}" == "true" ]]; then
             echo "⚠️ Apps layer destroy FAILED but force-continue is enabled"
-            echo "status=failed_forced" >> $GITHUB_OUTPUT
+            echo "status=failed_forced" >> "$GITHUB_OUTPUT"
             exit 0
           else
             echo "❌ Apps layer destroy failed after retries"
-            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "status=failed" >> "$GITHUB_OUTPUT"
             echo "::error::Apps layer destroy failed. Review logs and manually clean up if needed."
             exit 1
           fi
@@ -344,42 +291,21 @@ jobs:
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         run: |
-          echo "## Terraform Destroy Summary - ${{ env.LAYER }} (${{ env.ENVIRONMENT }})" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # State check results
-          if [[ "${{ steps.state_check.outputs.has_resources }}" != "true" ]]; then
-            echo "### ✅ No Resources Found" >> $GITHUB_STEP_SUMMARY
-            echo "State file is empty or contains no resources." >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-          elif [[ "${{ steps.plan.outputs.no_changes }}" == "true" ]]; then
-            echo "### ✅ No Changes Needed" >> $GITHUB_STEP_SUMMARY
-            echo "All resources already destroyed." >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          if [ -f state_resources.txt ] && [ -s state_resources.txt ]; then
-            echo "<details><summary>Resources found in state</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat state_resources.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "## Terraform Destroy Summary - ${{ env.LAYER }} (${{ env.ENVIRONMENT }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
           
           if [ -f destroy_plan_output.txt ]; then
             PLAN_SUMMARY=$(grep -E "Plan:|No changes\." destroy_plan_output.txt | tail -1 || echo "Destroy plan completed")
-            echo "### 📋 Destroy Plan" >> $GITHUB_STEP_SUMMARY
-            echo "$PLAN_SUMMARY" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "<details><summary>View full destroy plan output</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat destroy_plan_output.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📋 Destroy Plan" >> "$GITHUB_STEP_SUMMARY"
+            echo "$PLAN_SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "<details><summary>View full destroy plan output</summary>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            cat destroy_plan_output.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
           
           if [ -f destroy_attempt1_output.txt ]; then
@@ -387,19 +313,19 @@ jobs:
             DESTROY_SUMMARY=$(grep -E "Destroy complete!|Apply complete!" destroy_attempt1_clean.txt | tail -1 || echo "Destroy attempt 1 completed")
             
             if [[ "${{ steps.destroy_attempt1.outcome }}" == "success" ]]; then
-              echo "### ✅ Destroy (Attempt 1 - Success)" >> $GITHUB_STEP_SUMMARY
+              echo "### ✅ Destroy (Attempt 1 - Success)" >> "$GITHUB_STEP_SUMMARY"
             else
-              echo "### ❌ Destroy (Attempt 1 - Failed)" >> $GITHUB_STEP_SUMMARY
+              echo "### ❌ Destroy (Attempt 1 - Failed)" >> "$GITHUB_STEP_SUMMARY"
             fi
-            echo "$DESTROY_SUMMARY" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "<details><summary>View full destroy attempt 1 output</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat destroy_attempt1_clean.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "$DESTROY_SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "<details><summary>View full destroy attempt 1 output</summary>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            cat destroy_attempt1_clean.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
           
           if [ -f destroy_attempt2_output.txt ]; then
@@ -407,26 +333,25 @@ jobs:
             DESTROY_SUMMARY=$(grep -E "Destroy complete!|Apply complete!" destroy_attempt2_clean.txt | tail -1 || echo "Destroy attempt 2 completed")
             
             if [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
-              echo "### ✅ Destroy (Attempt 2 - Success after retry)" >> $GITHUB_STEP_SUMMARY
+              echo "### ✅ Destroy (Attempt 2 - Success after retry)" >> "$GITHUB_STEP_SUMMARY"
             else
-              echo "### ❌ Destroy (Attempt 2 - Failed)" >> $GITHUB_STEP_SUMMARY
+              echo "### ❌ Destroy (Attempt 2 - Failed)" >> "$GITHUB_STEP_SUMMARY"
             fi
-            echo "$DESTROY_SUMMARY" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "<details><summary>View full destroy attempt 2 output</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat destroy_attempt2_clean.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "$DESTROY_SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "<details><summary>View full destroy attempt 2 output</summary>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            cat destroy_attempt2_clean.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
 
   destroy-data:
     needs: [validate-destroy, destroy-apps]
     if: |
-      always() &&
-      (needs.destroy-apps.result == 'success' || needs.destroy-apps.result == 'skipped' || github.event.inputs.force_continue_on_failure == 'true') &&
+      ((!failure() && !cancelled()) || github.event.inputs.force_continue_on_failure == 'true') &&
       contains(fromJson(needs.validate-destroy.outputs.layers_to_destroy), 'data')
     runs-on: ubuntu-latest
     environment: 
@@ -441,17 +366,9 @@ jobs:
       status: ${{ steps.final_status.outputs.status }}
     steps:
       - name: Check Previous Layer Status
+        if: needs.destroy-apps.outputs.status == 'failed_forced'
         run: |
-          if [[ "${{ needs.destroy-apps.result }}" == "failure" ]]; then
-            if [[ "${{ github.event.inputs.force_continue_on_failure }}" == "true" ]]; then
-              echo "::warning::⚠️ Previous layer (apps) failed but continuing due to force flag"
-            else
-              echo "::error::❌ Previous layer (apps) failed - cannot proceed safely"
-              exit 1
-            fi
-          elif [[ "${{ needs.destroy-apps.outputs.status }}" == "failed_forced" ]]; then
-            echo "::warning::⚠️ Previous layer (apps) was force-continued after failure"
-          fi
+          echo "::warning::⚠️ Previous layer (apps) failed but continuing due to force flag"
       
       - uses: actions/checkout@v4
       
@@ -460,13 +377,13 @@ jobs:
         run: |
           case "${{ env.ENVIRONMENT }}" in
             test)
-              echo "role_arn=${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              echo "role_arn=${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}" >> "$GITHUB_OUTPUT"
               ;;
             staging)
-              echo "role_arn=${{ secrets.STAGING_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              echo "role_arn=${{ secrets.STAGING_AWS_OIDC_ROLE_ARN }}" >> "$GITHUB_OUTPUT"
               ;;
             production)
-              echo "role_arn=${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              echo "role_arn=${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}" >> "$GITHUB_OUTPUT"
               ;;
           esac
       
@@ -490,89 +407,49 @@ jobs:
             -backend-config="dynamodb_table=${TF_LOCK_TABLE}" \
             -backend-config="encrypt=true"
       
-      - name: Check State for Resources
-        id: state_check
-        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        continue-on-error: true
-        run: |
-          echo "🔍 Checking for resources in state..."
-          terraform state list > state_resources.txt 2>&1 || true
-          
-          if [ ! -s state_resources.txt ] || ! grep -q . state_resources.txt; then
-            echo "⚠️ No resources found in state"
-            echo "has_resources=false" >> $GITHUB_OUTPUT
-          else
-            echo "📦 Found resources in state:"
-            cat state_resources.txt
-            echo "has_resources=true" >> $GITHUB_OUTPUT
-          fi
-      
-      - name: Refresh State
-        if: steps.state_check.outputs.has_resources == 'true'
-        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        continue-on-error: true
-        run: |
-          echo "🔄 Refreshing Terraform state..."
-          terraform refresh -var="environment=${ENVIRONMENT}" || {
-            echo "⚠️ State refresh had issues but continuing to plan"
-          }
-      
       - name: Terraform Destroy Plan
         id: plan
-        if: steps.state_check.outputs.has_resources == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
         run: |
           set +e
           terraform plan -destroy -no-color -out=destroy.tfplan -var="environment=${ENVIRONMENT}" 2>&1 | tee destroy_plan_output.txt
           EXIT_CODE=$?
-          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
           
-          # Check if plan shows no changes
-          if grep -q "No changes" destroy_plan_output.txt; then
-            echo "✅ No changes needed - state is already clean"
-            echo "plan_success=true" >> $GITHUB_OUTPUT
-            echo "no_changes=true" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          if [ $EXIT_CODE -eq 0 ]; then
-            echo "plan_success=true" >> $GITHUB_OUTPUT
-            echo "no_changes=false" >> $GITHUB_OUTPUT
+          if [ $EXIT_CODE -eq 0 ] && [ -f destroy.tfplan ]; then
+            echo "plan_success=true" >> "$GITHUB_OUTPUT"
           else
-            echo "plan_success=false" >> $GITHUB_OUTPUT
-            echo "no_changes=false" >> $GITHUB_OUTPUT
-            
-            echo "::error::Destroy plan failed. Common causes:"
-            echo "::error::  - Resources have dependencies that still exist"
-            echo "::error::  - State is out of sync with actual infrastructure"
-            echo "::error::  - Resources were manually deleted outside Terraform"
+            echo "plan_success=false" >> "$GITHUB_OUTPUT"
+            if [ $EXIT_CODE -ne 0 ]; then
+              echo "❌ terraform plan failed with exit code $EXIT_CODE"
+            else
+              echo "❌ terraform plan reported success but destroy.tfplan is missing"
+            fi
           fi
           
-          exit $EXIT_CODE
+          exit 0
       
       - name: Show Destroy Plan
-        if: |
-          steps.plan.outputs.plan_success == 'true' && 
-          steps.plan.outputs.no_changes != 'true' &&
-          steps.state_check.outputs.has_resources == 'true'
+        if: steps.plan.outputs.plan_success == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        run: terraform show destroy.tfplan
+        run: |
+          if [ ! -f destroy.tfplan ]; then
+            echo "::warning::destroy.tfplan not found, skipping terraform show"
+            exit 0
+          fi
+          terraform show destroy.tfplan
       
       - name: Terraform Destroy (Attempt 1)
         id: destroy_attempt1
         if: |
           steps.plan.outputs.plan_success == 'true' &&
-          steps.plan.outputs.no_changes != 'true' &&
-          steps.state_check.outputs.has_resources == 'true' &&
           (github.event.inputs.auto_approve == 'true' || github.event.inputs.environment == 'test')
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
         run: |
           terraform apply -auto-approve destroy.tfplan 2>&1 | tee destroy_attempt1_output.txt
-          EXIT_CODE=$?
-          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
-          exit $EXIT_CODE
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
       
       - name: Wait Before Retry
         if: steps.destroy_attempt1.outcome == 'failure'
@@ -589,52 +466,36 @@ jobs:
           echo "🔄 Refreshing state and retrying destroy..."
           terraform refresh -var="environment=${ENVIRONMENT}" || true
           terraform destroy -auto-approve -var="environment=${ENVIRONMENT}" 2>&1 | tee destroy_attempt2_output.txt
-          EXIT_CODE=$?
-          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
-          exit $EXIT_CODE
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
       
       - name: Final Status Check
         id: final_status
         if: always()
         run: |
-          if [[ "${{ steps.state_check.outputs.has_resources }}" != "true" ]]; then
-            echo "✅ No resources to destroy - layer already clean"
-            echo "status=success" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          if [[ "${{ steps.plan.outputs.no_changes }}" == "true" ]]; then
-            echo "✅ No changes needed - layer already clean"
-            echo "status=success" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
           if [[ "${{ steps.plan.outputs.plan_success }}" != "true" ]]; then
-            echo "❌ Destroy plan failed"
-            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "❌ Destroy plan failed (no valid plan available)"
+            echo "status=failed" >> "$GITHUB_OUTPUT"
             if [[ "${{ github.event.inputs.force_continue_on_failure }}" == "true" ]]; then
               echo "⚠️ Force-continue enabled, allowing workflow to proceed"
-              echo "status=failed_forced" >> $GITHUB_OUTPUT
+              echo "status=failed_forced" >> "$GITHUB_OUTPUT"
               exit 0
             fi
             exit 1
-          fi
-          
-          if [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
+          elif [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
             echo "✅ Data layer destroyed successfully on retry"
-            echo "status=success" >> $GITHUB_OUTPUT
+            echo "status=success" >> "$GITHUB_OUTPUT"
             exit 0
           elif [[ "${{ steps.destroy_attempt1.outcome }}" == "success" ]]; then
             echo "✅ Data layer destroyed successfully"
-            echo "status=success" >> $GITHUB_OUTPUT
+            echo "status=success" >> "$GITHUB_OUTPUT"
             exit 0
           elif [[ "${{ github.event.inputs.force_continue_on_failure }}" == "true" ]]; then
             echo "⚠️ Data layer destroy FAILED but force-continue is enabled"
-            echo "status=failed_forced" >> $GITHUB_OUTPUT
+            echo "status=failed_forced" >> "$GITHUB_OUTPUT"
             exit 0
           else
             echo "❌ Data layer destroy failed after retries"
-            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "status=failed" >> "$GITHUB_OUTPUT"
             echo "::error::Data layer destroy failed. Review logs and manually clean up if needed."
             exit 1
           fi
@@ -644,41 +505,21 @@ jobs:
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         run: |
-          echo "## Terraform Destroy Summary - ${{ env.LAYER }} (${{ env.ENVIRONMENT }})" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          if [[ "${{ steps.state_check.outputs.has_resources }}" != "true" ]]; then
-            echo "### ✅ No Resources Found" >> $GITHUB_STEP_SUMMARY
-            echo "State file is empty or contains no resources." >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-          elif [[ "${{ steps.plan.outputs.no_changes }}" == "true" ]]; then
-            echo "### ✅ No Changes Needed" >> $GITHUB_STEP_SUMMARY
-            echo "All resources already destroyed." >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          if [ -f state_resources.txt ] && [ -s state_resources.txt ]; then
-            echo "<details><summary>Resources found in state</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat state_resources.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "## Terraform Destroy Summary - ${{ env.LAYER }} (${{ env.ENVIRONMENT }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
           
           if [ -f destroy_plan_output.txt ]; then
             PLAN_SUMMARY=$(grep -E "Plan:|No changes\." destroy_plan_output.txt | tail -1 || echo "Destroy plan completed")
-            echo "### 📋 Destroy Plan" >> $GITHUB_STEP_SUMMARY
-            echo "$PLAN_SUMMARY" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "<details><summary>View full destroy plan output</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat destroy_plan_output.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📋 Destroy Plan" >> "$GITHUB_STEP_SUMMARY"
+            echo "$PLAN_SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "<details><summary>View full destroy plan output</summary>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            cat destroy_plan_output.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
           
           if [ -f destroy_attempt1_output.txt ]; then
@@ -686,19 +527,19 @@ jobs:
             DESTROY_SUMMARY=$(grep -E "Destroy complete!|Apply complete!" destroy_attempt1_clean.txt | tail -1 || echo "Destroy attempt 1 completed")
             
             if [[ "${{ steps.destroy_attempt1.outcome }}" == "success" ]]; then
-              echo "### ✅ Destroy (Attempt 1 - Success)" >> $GITHUB_STEP_SUMMARY
+              echo "### ✅ Destroy (Attempt 1 - Success)" >> "$GITHUB_STEP_SUMMARY"
             else
-              echo "### ❌ Destroy (Attempt 1 - Failed)" >> $GITHUB_STEP_SUMMARY
+              echo "### ❌ Destroy (Attempt 1 - Failed)" >> "$GITHUB_STEP_SUMMARY"
             fi
-            echo "$DESTROY_SUMMARY" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "<details><summary>View full destroy attempt 1 output</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat destroy_attempt1_clean.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "$DESTROY_SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "<details><summary>View full destroy attempt 1 output</summary>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            cat destroy_attempt1_clean.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
           
           if [ -f destroy_attempt2_output.txt ]; then
@@ -706,26 +547,25 @@ jobs:
             DESTROY_SUMMARY=$(grep -E "Destroy complete!|Apply complete!" destroy_attempt2_clean.txt | tail -1 || echo "Destroy attempt 2 completed")
             
             if [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
-              echo "### ✅ Destroy (Attempt 2 - Success after retry)" >> $GITHUB_STEP_SUMMARY
+              echo "### ✅ Destroy (Attempt 2 - Success after retry)" >> "$GITHUB_STEP_SUMMARY"
             else
-              echo "### ❌ Destroy (Attempt 2 - Failed)" >> $GITHUB_STEP_SUMMARY
+              echo "### ❌ Destroy (Attempt 2 - Failed)" >> "$GITHUB_STEP_SUMMARY"
             fi
-            echo "$DESTROY_SUMMARY" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "<details><summary>View full destroy attempt 2 output</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat destroy_attempt2_clean.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "$DESTROY_SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "<details><summary>View full destroy attempt 2 output</summary>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            cat destroy_attempt2_clean.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
 
   destroy-platform:
     needs: [validate-destroy, destroy-data]
     if: |
-      always() &&
-      (needs.destroy-data.result == 'success' || needs.destroy-data.result == 'skipped' || github.event.inputs.force_continue_on_failure == 'true') &&
+      ((!failure() && !cancelled()) || github.event.inputs.force_continue_on_failure == 'true') &&
       contains(fromJson(needs.validate-destroy.outputs.layers_to_destroy), 'platform')
     runs-on: ubuntu-latest
     environment: 
@@ -740,17 +580,9 @@ jobs:
       status: ${{ steps.final_status.outputs.status }}
     steps:
       - name: Check Previous Layer Status
+        if: needs.destroy-data.outputs.status == 'failed_forced'
         run: |
-          if [[ "${{ needs.destroy-data.result }}" == "failure" ]]; then
-            if [[ "${{ github.event.inputs.force_continue_on_failure }}" == "true" ]]; then
-              echo "::warning::⚠️ Previous layer (data) failed but continuing due to force flag"
-            else
-              echo "::error::❌ Previous layer (data) failed - cannot proceed safely"
-              exit 1
-            fi
-          elif [[ "${{ needs.destroy-data.outputs.status }}" == "failed_forced" ]]; then
-            echo "::warning::⚠️ Previous layer (data) was force-continued after failure"
-          fi
+          echo "::warning::⚠️ Previous layer (data) failed but continuing due to force flag"
       
       - uses: actions/checkout@v4
       
@@ -759,13 +591,13 @@ jobs:
         run: |
           case "${{ env.ENVIRONMENT }}" in
             test)
-              echo "role_arn=${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              echo "role_arn=${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}" >> "$GITHUB_OUTPUT"
               ;;
             staging)
-              echo "role_arn=${{ secrets.STAGING_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              echo "role_arn=${{ secrets.STAGING_AWS_OIDC_ROLE_ARN }}" >> "$GITHUB_OUTPUT"
               ;;
             production)
-              echo "role_arn=${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              echo "role_arn=${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}" >> "$GITHUB_OUTPUT"
               ;;
           esac
       
@@ -789,88 +621,49 @@ jobs:
             -backend-config="dynamodb_table=${TF_LOCK_TABLE}" \
             -backend-config="encrypt=true"
       
-      - name: Check State for Resources
-        id: state_check
-        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        continue-on-error: true
-        run: |
-          echo "🔍 Checking for resources in state..."
-          terraform state list > state_resources.txt 2>&1 || true
-          
-          if [ ! -s state_resources.txt ] || ! grep -q . state_resources.txt; then
-            echo "⚠️ No resources found in state"
-            echo "has_resources=false" >> $GITHUB_OUTPUT
-          else
-            echo "📦 Found resources in state:"
-            cat state_resources.txt
-            echo "has_resources=true" >> $GITHUB_OUTPUT
-          fi
-      
-      - name: Refresh State
-        if: steps.state_check.outputs.has_resources == 'true'
-        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        continue-on-error: true
-        run: |
-          echo "🔄 Refreshing Terraform state..."
-          terraform refresh -var="environment=${ENVIRONMENT}" || {
-            echo "⚠️ State refresh had issues but continuing to plan"
-          }
-      
       - name: Terraform Destroy Plan
         id: plan
-        if: steps.state_check.outputs.has_resources == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
         run: |
           set +e
           terraform plan -destroy -no-color -out=destroy.tfplan -var="environment=${ENVIRONMENT}" 2>&1 | tee destroy_plan_output.txt
           EXIT_CODE=$?
-          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
           
-          if grep -q "No changes" destroy_plan_output.txt; then
-            echo "✅ No changes needed - state is already clean"
-            echo "plan_success=true" >> $GITHUB_OUTPUT
-            echo "no_changes=true" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          if [ $EXIT_CODE -eq 0 ]; then
-            echo "plan_success=true" >> $GITHUB_OUTPUT
-            echo "no_changes=false" >> $GITHUB_OUTPUT
+          if [ $EXIT_CODE -eq 0 ] && [ -f destroy.tfplan ]; then
+            echo "plan_success=true" >> "$GITHUB_OUTPUT"
           else
-            echo "plan_success=false" >> $GITHUB_OUTPUT
-            echo "no_changes=false" >> $GITHUB_OUTPUT
-            
-            echo "::error::Destroy plan failed. Common causes:"
-            echo "::error::  - Resources have dependencies that still exist"
-            echo "::error::  - State is out of sync with actual infrastructure"
-            echo "::error::  - Resources were manually deleted outside Terraform"
+            echo "plan_success=false" >> "$GITHUB_OUTPUT"
+            if [ $EXIT_CODE -ne 0 ]; then
+              echo "❌ terraform plan failed with exit code $EXIT_CODE"
+            else
+              echo "❌ terraform plan reported success but destroy.tfplan is missing"
+            fi
           fi
           
-          exit $EXIT_CODE
+          exit 0
       
       - name: Show Destroy Plan
-        if: |
-          steps.plan.outputs.plan_success == 'true' && 
-          steps.plan.outputs.no_changes != 'true' &&
-          steps.state_check.outputs.has_resources == 'true'
+        if: steps.plan.outputs.plan_success == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        run: terraform show destroy.tfplan
+        run: |
+          if [ ! -f destroy.tfplan ]; then
+            echo "::warning::destroy.tfplan not found, skipping terraform show"
+            exit 0
+          fi
+          terraform show destroy.tfplan
       
       - name: Terraform Destroy (Attempt 1)
         id: destroy_attempt1
         if: |
           steps.plan.outputs.plan_success == 'true' &&
-          steps.plan.outputs.no_changes != 'true' &&
-          steps.state_check.outputs.has_resources == 'true' &&
           (github.event.inputs.auto_approve == 'true' || github.event.inputs.environment == 'test')
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
         run: |
           terraform apply -auto-approve destroy.tfplan 2>&1 | tee destroy_attempt1_output.txt
-          EXIT_CODE=$?
-          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
-          exit $EXIT_CODE
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
       
       - name: Wait Before Retry
         if: steps.destroy_attempt1.outcome == 'failure'
@@ -887,52 +680,36 @@ jobs:
           echo "🔄 Refreshing state and retrying destroy..."
           terraform refresh -var="environment=${ENVIRONMENT}" || true
           terraform destroy -auto-approve -var="environment=${ENVIRONMENT}" 2>&1 | tee destroy_attempt2_output.txt
-          EXIT_CODE=$?
-          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
-          exit $EXIT_CODE
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
       
       - name: Final Status Check
         id: final_status
         if: always()
         run: |
-          if [[ "${{ steps.state_check.outputs.has_resources }}" != "true" ]]; then
-            echo "✅ No resources to destroy - layer already clean"
-            echo "status=success" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          if [[ "${{ steps.plan.outputs.no_changes }}" == "true" ]]; then
-            echo "✅ No changes needed - layer already clean"
-            echo "status=success" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
           if [[ "${{ steps.plan.outputs.plan_success }}" != "true" ]]; then
-            echo "❌ Destroy plan failed"
-            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "❌ Destroy plan failed (no valid plan available)"
+            echo "status=failed" >> "$GITHUB_OUTPUT"
             if [[ "${{ github.event.inputs.force_continue_on_failure }}" == "true" ]]; then
               echo "⚠️ Force-continue enabled, allowing workflow to proceed"
-              echo "status=failed_forced" >> $GITHUB_OUTPUT
+              echo "status=failed_forced" >> "$GITHUB_OUTPUT"
               exit 0
             fi
             exit 1
-          fi
-          
-          if [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
+          elif [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
             echo "✅ Platform layer destroyed successfully on retry"
-            echo "status=success" >> $GITHUB_OUTPUT
+            echo "status=success" >> "$GITHUB_OUTPUT"
             exit 0
           elif [[ "${{ steps.destroy_attempt1.outcome }}" == "success" ]]; then
             echo "✅ Platform layer destroyed successfully"
-            echo "status=success" >> $GITHUB_OUTPUT
+            echo "status=success" >> "$GITHUB_OUTPUT"
             exit 0
           elif [[ "${{ github.event.inputs.force_continue_on_failure }}" == "true" ]]; then
             echo "⚠️ Platform layer destroy FAILED but force-continue is enabled"
-            echo "status=failed_forced" >> $GITHUB_OUTPUT
+            echo "status=failed_forced" >> "$GITHUB_OUTPUT"
             exit 0
           else
             echo "❌ Platform layer destroy failed after retries"
-            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "status=failed" >> "$GITHUB_OUTPUT"
             echo "::error::Platform layer destroy failed. Review logs and manually clean up if needed."
             exit 1
           fi
@@ -942,41 +719,21 @@ jobs:
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         run: |
-          echo "## Terraform Destroy Summary - ${{ env.LAYER }} (${{ env.ENVIRONMENT }})" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          if [[ "${{ steps.state_check.outputs.has_resources }}" != "true" ]]; then
-            echo "### ✅ No Resources Found" >> $GITHUB_STEP_SUMMARY
-            echo "State file is empty or contains no resources." >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-          elif [[ "${{ steps.plan.outputs.no_changes }}" == "true" ]]; then
-            echo "### ✅ No Changes Needed" >> $GITHUB_STEP_SUMMARY
-            echo "All resources already destroyed." >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          if [ -f state_resources.txt ] && [ -s state_resources.txt ]; then
-            echo "<details><summary>Resources found in state</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat state_resources.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "## Terraform Destroy Summary - ${{ env.LAYER }} (${{ env.ENVIRONMENT }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
           
           if [ -f destroy_plan_output.txt ]; then
             PLAN_SUMMARY=$(grep -E "Plan:|No changes\." destroy_plan_output.txt | tail -1 || echo "Destroy plan completed")
-            echo "### 📋 Destroy Plan" >> $GITHUB_STEP_SUMMARY
-            echo "$PLAN_SUMMARY" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "<details><summary>View full destroy plan output</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat destroy_plan_output.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📋 Destroy Plan" >> "$GITHUB_STEP_SUMMARY"
+            echo "$PLAN_SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "<details><summary>View full destroy plan output</summary>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            cat destroy_plan_output.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
           
           if [ -f destroy_attempt1_output.txt ]; then
@@ -984,19 +741,19 @@ jobs:
             DESTROY_SUMMARY=$(grep -E "Destroy complete!|Apply complete!" destroy_attempt1_clean.txt | tail -1 || echo "Destroy attempt 1 completed")
             
             if [[ "${{ steps.destroy_attempt1.outcome }}" == "success" ]]; then
-              echo "### ✅ Destroy (Attempt 1 - Success)" >> $GITHUB_STEP_SUMMARY
+              echo "### ✅ Destroy (Attempt 1 - Success)" >> "$GITHUB_STEP_SUMMARY"
             else
-              echo "### ❌ Destroy (Attempt 1 - Failed)" >> $GITHUB_STEP_SUMMARY
+              echo "### ❌ Destroy (Attempt 1 - Failed)" >> "$GITHUB_STEP_SUMMARY"
             fi
-            echo "$DESTROY_SUMMARY" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "<details><summary>View full destroy attempt 1 output</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat destroy_attempt1_clean.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "$DESTROY_SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "<details><summary>View full destroy attempt 1 output</summary>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            cat destroy_attempt1_clean.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
           
           if [ -f destroy_attempt2_output.txt ]; then
@@ -1004,26 +761,25 @@ jobs:
             DESTROY_SUMMARY=$(grep -E "Destroy complete!|Apply complete!" destroy_attempt2_clean.txt | tail -1 || echo "Destroy attempt 2 completed")
             
             if [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
-              echo "### ✅ Destroy (Attempt 2 - Success after retry)" >> $GITHUB_STEP_SUMMARY
+              echo "### ✅ Destroy (Attempt 2 - Success after retry)" >> "$GITHUB_STEP_SUMMARY"
             else
-              echo "### ❌ Destroy (Attempt 2 - Failed)" >> $GITHUB_STEP_SUMMARY
+              echo "### ❌ Destroy (Attempt 2 - Failed)" >> "$GITHUB_STEP_SUMMARY"
             fi
-            echo "$DESTROY_SUMMARY" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "<details><summary>View full destroy attempt 2 output</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat destroy_attempt2_clean.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "$DESTROY_SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "<details><summary>View full destroy attempt 2 output</summary>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            cat destroy_attempt2_clean.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
 
   destroy-foundation:
     needs: [validate-destroy, destroy-platform]
     if: |
-      always() &&
-      (needs.destroy-platform.result == 'success' || needs.destroy-platform.result == 'skipped' || github.event.inputs.force_continue_on_failure == 'true') &&
+      ((!failure() && !cancelled()) || github.event.inputs.force_continue_on_failure == 'true') &&
       contains(fromJson(needs.validate-destroy.outputs.layers_to_destroy), 'foundation')
     runs-on: ubuntu-latest
     environment: 
@@ -1038,17 +794,9 @@ jobs:
       status: ${{ steps.final_status.outputs.status }}
     steps:
       - name: Check Previous Layer Status
+        if: needs.destroy-platform.outputs.status == 'failed_forced'
         run: |
-          if [[ "${{ needs.destroy-platform.result }}" == "failure" ]]; then
-            if [[ "${{ github.event.inputs.force_continue_on_failure }}" == "true" ]]; then
-              echo "::warning::⚠️ Previous layer (platform) failed but continuing due to force flag"
-            else
-              echo "::error::❌ Previous layer (platform) failed - cannot proceed safely"
-              exit 1
-            fi
-          elif [[ "${{ needs.destroy-platform.outputs.status }}" == "failed_forced" ]]; then
-            echo "::warning::⚠️ Previous layer (platform) was force-continued after failure"
-          fi
+          echo "::warning::⚠️ Previous layer (platform) failed but continuing due to force flag"
       
       - uses: actions/checkout@v4
       
@@ -1057,13 +805,13 @@ jobs:
         run: |
           case "${{ env.ENVIRONMENT }}" in
             test)
-              echo "role_arn=${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              echo "role_arn=${{ secrets.TEST_AWS_OIDC_ROLE_ARN }}" >> "$GITHUB_OUTPUT"
               ;;
             staging)
-              echo "role_arn=${{ secrets.STAGING_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              echo "role_arn=${{ secrets.STAGING_AWS_OIDC_ROLE_ARN }}" >> "$GITHUB_OUTPUT"
               ;;
             production)
-              echo "role_arn=${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}" >> $GITHUB_OUTPUT
+              echo "role_arn=${{ secrets.PRODUCTION_AWS_OIDC_ROLE_ARN }}" >> "$GITHUB_OUTPUT"
               ;;
           esac
       
@@ -1087,88 +835,49 @@ jobs:
             -backend-config="dynamodb_table=${TF_LOCK_TABLE}" \
             -backend-config="encrypt=true"
       
-      - name: Check State for Resources
-        id: state_check
-        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        continue-on-error: true
-        run: |
-          echo "🔍 Checking for resources in state..."
-          terraform state list > state_resources.txt 2>&1 || true
-          
-          if [ ! -s state_resources.txt ] || ! grep -q . state_resources.txt; then
-            echo "⚠️ No resources found in state"
-            echo "has_resources=false" >> $GITHUB_OUTPUT
-          else
-            echo "📦 Found resources in state:"
-            cat state_resources.txt
-            echo "has_resources=true" >> $GITHUB_OUTPUT
-          fi
-      
-      - name: Refresh State
-        if: steps.state_check.outputs.has_resources == 'true'
-        working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        continue-on-error: true
-        run: |
-          echo "🔄 Refreshing Terraform state..."
-          terraform refresh -var="environment=${ENVIRONMENT}" || {
-            echo "⚠️ State refresh had issues but continuing to plan"
-          }
-      
       - name: Terraform Destroy Plan
         id: plan
-        if: steps.state_check.outputs.has_resources == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
         run: |
           set +e
           terraform plan -destroy -no-color -out=destroy.tfplan -var="environment=${ENVIRONMENT}" 2>&1 | tee destroy_plan_output.txt
           EXIT_CODE=$?
-          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
           
-          if grep -q "No changes" destroy_plan_output.txt; then
-            echo "✅ No changes needed - state is already clean"
-            echo "plan_success=true" >> $GITHUB_OUTPUT
-            echo "no_changes=true" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          if [ $EXIT_CODE -eq 0 ]; then
-            echo "plan_success=true" >> $GITHUB_OUTPUT
-            echo "no_changes=false" >> $GITHUB_OUTPUT
+          if [ $EXIT_CODE -eq 0 ] && [ -f destroy.tfplan ]; then
+            echo "plan_success=true" >> "$GITHUB_OUTPUT"
           else
-            echo "plan_success=false" >> $GITHUB_OUTPUT
-            echo "no_changes=false" >> $GITHUB_OUTPUT
-            
-            echo "::error::Destroy plan failed. Common causes:"
-            echo "::error::  - Resources have dependencies that still exist"
-            echo "::error::  - State is out of sync with actual infrastructure"
-            echo "::error::  - Resources were manually deleted outside Terraform"
+            echo "plan_success=false" >> "$GITHUB_OUTPUT"
+            if [ $EXIT_CODE -ne 0 ]; then
+              echo "❌ terraform plan failed with exit code $EXIT_CODE"
+            else
+              echo "❌ terraform plan reported success but destroy.tfplan is missing"
+            fi
           fi
           
-          exit $EXIT_CODE
+          exit 0
       
       - name: Show Destroy Plan
-        if: |
-          steps.plan.outputs.plan_success == 'true' && 
-          steps.plan.outputs.no_changes != 'true' &&
-          steps.state_check.outputs.has_resources == 'true'
+        if: steps.plan.outputs.plan_success == 'true'
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
-        run: terraform show destroy.tfplan
+        run: |
+          if [ ! -f destroy.tfplan ]; then
+            echo "::warning::destroy.tfplan not found, skipping terraform show"
+            exit 0
+          fi
+          terraform show destroy.tfplan
       
       - name: Terraform Destroy (Attempt 1)
         id: destroy_attempt1
         if: |
           steps.plan.outputs.plan_success == 'true' &&
-          steps.plan.outputs.no_changes != 'true' &&
-          steps.state_check.outputs.has_resources == 'true' &&
           (github.event.inputs.auto_approve == 'true' || github.event.inputs.environment == 'test')
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         continue-on-error: true
         run: |
           terraform apply -auto-approve destroy.tfplan 2>&1 | tee destroy_attempt1_output.txt
-          EXIT_CODE=$?
-          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
-          exit $EXIT_CODE
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
       
       - name: Wait Before Retry
         if: steps.destroy_attempt1.outcome == 'failure'
@@ -1185,52 +894,36 @@ jobs:
           echo "🔄 Refreshing state and retrying destroy..."
           terraform refresh -var="environment=${ENVIRONMENT}" || true
           terraform destroy -auto-approve -var="environment=${ENVIRONMENT}" 2>&1 | tee destroy_attempt2_output.txt
-          EXIT_CODE=$?
-          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
-          exit $EXIT_CODE
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
       
       - name: Final Status Check
         id: final_status
         if: always()
         run: |
-          if [[ "${{ steps.state_check.outputs.has_resources }}" != "true" ]]; then
-            echo "✅ No resources to destroy - layer already clean"
-            echo "status=success" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          if [[ "${{ steps.plan.outputs.no_changes }}" == "true" ]]; then
-            echo "✅ No changes needed - layer already clean"
-            echo "status=success" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
           if [[ "${{ steps.plan.outputs.plan_success }}" != "true" ]]; then
-            echo "❌ Destroy plan failed"
-            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "❌ Destroy plan failed (no valid plan available)"
+            echo "status=failed" >> "$GITHUB_OUTPUT"
             if [[ "${{ github.event.inputs.force_continue_on_failure }}" == "true" ]]; then
               echo "⚠️ Force-continue enabled, allowing workflow to proceed"
-              echo "status=failed_forced" >> $GITHUB_OUTPUT
+              echo "status=failed_forced" >> "$GITHUB_OUTPUT"
               exit 0
             fi
             exit 1
-          fi
-          
-          if [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
+          elif [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
             echo "✅ Foundation layer destroyed successfully on retry"
-            echo "status=success" >> $GITHUB_OUTPUT
+            echo "status=success" >> "$GITHUB_OUTPUT"
             exit 0
           elif [[ "${{ steps.destroy_attempt1.outcome }}" == "success" ]]; then
             echo "✅ Foundation layer destroyed successfully"
-            echo "status=success" >> $GITHUB_OUTPUT
+            echo "status=success" >> "$GITHUB_OUTPUT"
             exit 0
           elif [[ "${{ github.event.inputs.force_continue_on_failure }}" == "true" ]]; then
             echo "⚠️ Foundation layer destroy FAILED but force-continue is enabled"
-            echo "status=failed_forced" >> $GITHUB_OUTPUT
+            echo "status=failed_forced" >> "$GITHUB_OUTPUT"
             exit 0
           else
             echo "❌ Foundation layer destroy failed after retries"
-            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "status=failed" >> "$GITHUB_OUTPUT"
             echo "::error::Foundation layer destroy failed. Review logs and manually clean up if needed."
             exit 1
           fi
@@ -1240,41 +933,21 @@ jobs:
         working-directory: environments/${{ env.ENVIRONMENT }}/${{ env.LAYER }}
         shell: bash
         run: |
-          echo "## Terraform Destroy Summary - ${{ env.LAYER }} (${{ env.ENVIRONMENT }})" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          if [[ "${{ steps.state_check.outputs.has_resources }}" != "true" ]]; then
-            echo "### ✅ No Resources Found" >> $GITHUB_STEP_SUMMARY
-            echo "State file is empty or contains no resources." >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-          elif [[ "${{ steps.plan.outputs.no_changes }}" == "true" ]]; then
-            echo "### ✅ No Changes Needed" >> $GITHUB_STEP_SUMMARY
-            echo "All resources already destroyed." >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          if [ -f state_resources.txt ] && [ -s state_resources.txt ]; then
-            echo "<details><summary>Resources found in state</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat state_resources.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "## Terraform Destroy Summary - ${{ env.LAYER }} (${{ env.ENVIRONMENT }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
           
           if [ -f destroy_plan_output.txt ]; then
             PLAN_SUMMARY=$(grep -E "Plan:|No changes\." destroy_plan_output.txt | tail -1 || echo "Destroy plan completed")
-            echo "### 📋 Destroy Plan" >> $GITHUB_STEP_SUMMARY
-            echo "$PLAN_SUMMARY" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "<details><summary>View full destroy plan output</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat destroy_plan_output.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📋 Destroy Plan" >> "$GITHUB_STEP_SUMMARY"
+            echo "$PLAN_SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "<details><summary>View full destroy plan output</summary>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            cat destroy_plan_output.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
           
           if [ -f destroy_attempt1_output.txt ]; then
@@ -1282,19 +955,19 @@ jobs:
             DESTROY_SUMMARY=$(grep -E "Destroy complete!|Apply complete!" destroy_attempt1_clean.txt | tail -1 || echo "Destroy attempt 1 completed")
             
             if [[ "${{ steps.destroy_attempt1.outcome }}" == "success" ]]; then
-              echo "### ✅ Destroy (Attempt 1 - Success)" >> $GITHUB_STEP_SUMMARY
+              echo "### ✅ Destroy (Attempt 1 - Success)" >> "$GITHUB_STEP_SUMMARY"
             else
-              echo "### ❌ Destroy (Attempt 1 - Failed)" >> $GITHUB_STEP_SUMMARY
+              echo "### ❌ Destroy (Attempt 1 - Failed)" >> "$GITHUB_STEP_SUMMARY"
             fi
-            echo "$DESTROY_SUMMARY" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "<details><summary>View full destroy attempt 1 output</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat destroy_attempt1_clean.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "$DESTROY_SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "<details><summary>View full destroy attempt 1 output</summary>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            cat destroy_attempt1_clean.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
           
           if [ -f destroy_attempt2_output.txt ]; then
@@ -1302,19 +975,19 @@ jobs:
             DESTROY_SUMMARY=$(grep -E "Destroy complete!|Apply complete!" destroy_attempt2_clean.txt | tail -1 || echo "Destroy attempt 2 completed")
             
             if [[ "${{ steps.destroy_attempt2.outcome }}" == "success" ]]; then
-              echo "### ✅ Destroy (Attempt 2 - Success after retry)" >> $GITHUB_STEP_SUMMARY
+              echo "### ✅ Destroy (Attempt 2 - Success after retry)" >> "$GITHUB_STEP_SUMMARY"
             else
-              echo "### ❌ Destroy (Attempt 2 - Failed)" >> $GITHUB_STEP_SUMMARY
+              echo "### ❌ Destroy (Attempt 2 - Failed)" >> "$GITHUB_STEP_SUMMARY"
             fi
-            echo "$DESTROY_SUMMARY" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "<details><summary>View full destroy attempt 2 output</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat destroy_attempt2_clean.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "$DESTROY_SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "<details><summary>View full destroy attempt 2 output</summary>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            cat destroy_attempt2_clean.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
 
   summary:
@@ -1336,8 +1009,6 @@ jobs:
               echo "✅ Apps: Destroyed successfully"
             elif [[ "${{ needs.destroy-apps.outputs.status }}" == "failed_forced" ]]; then
               echo "⚠️ Apps: FAILED but continued due to force flag"
-            elif [[ "${{ needs.destroy-apps.result }}" == "skipped" ]]; then
-              echo "⏭️ Apps: Skipped"
             else
               echo "❌ Apps: Failed to destroy"
             fi
@@ -1388,20 +1059,4 @@ jobs:
           if [[ "${{ github.event.inputs.force_continue_on_failure }}" == "true" ]]; then
             echo "⚠️ Force-continue was enabled. Check individual layer statuses above."
             echo "⚠️ Manual cleanup may be required for failed layers."
-          fi
-          
-          # Check if any layer actually failed
-          FAILED=false
-          if [[ "${{ needs.destroy-apps.result }}" == "failure" ]] || \
-             [[ "${{ needs.destroy-data.result }}" == "failure" ]] || \
-             [[ "${{ needs.destroy-platform.result }}" == "failure" ]] || \
-             [[ "${{ needs.destroy-foundation.result }}" == "failure" ]]; then
-            FAILED=true
-          fi
-          
-          if [[ "$FAILED" == "true" ]] && [[ "${{ github.event.inputs.force_continue_on_failure }}" != "true" ]]; then
-            echo ""
-            echo "❌ One or more layers failed to destroy properly"
-            echo "📖 Review the individual job logs above for details"
-            exit 1
           fi
