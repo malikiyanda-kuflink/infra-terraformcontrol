@@ -1,0 +1,1605 @@
+{
+  "provider": "aws",
+  "docVersion": "0.1.5",
+  "resources": {},
+  "tags": {},
+  "processed": {
+    "resources": {
+      "arn:aws:autoscaling:eu-west-2:137167813802:autoScalingGroup:48fa1c19-eb07-4fa5-9ad3-28edfbddc6f3:autoScalingGroupName/awseb-e-hut22m7fc3-stack-AWSEBAutoScalingGroup-NeaeGRTeyxeB": {
+        "name": "awseb-e-hut22m7fc3-stack-AWSEBAutoScalingGroup-NeaeGRTeyxeB",
+        "type": "autoscaling:autoScalingGroup",
+        "tags": {}
+      },
+      "arn:aws:autoscaling:eu-west-2:137167813802:autoScalingGroup:c1ee4bc1-f9c9-4353-9e14-ad70a138a8ad:autoScalingGroupName/awseb-e-yichxngi7m-stack-AWSEBAutoScalingGroup-IIKx4HIsv7HE": {
+        "name": "awseb-e-yichxngi7m-stack-AWSEBAutoScalingGroup-IIKx4HIsv7HE",
+        "type": "autoscaling:autoScalingGroup",
+        "tags": {}
+      },
+      "arn:aws:cloudfront::137167813802:distribution/ER9TFV8XNY1ZX": {
+        "name": "ER9TFV8XNY1ZX",
+        "type": "cloudfront:distribution",
+        "tags": {}
+      },
+      "arn:aws:cloudfront::137167813802:distribution/E161O4F3K4ZTS2": {
+        "name": "E161O4F3K4ZTS2",
+        "type": "cloudfront:distribution",
+        "tags": {}
+      },
+      "arn:aws:cloudtrail:eu-west-2:137167813802:trail/management-events": {
+        "name": "management-events",
+        "type": "cloudtrail:trail",
+        "tags": {}
+      },
+      "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:Kuflink-Staging-DBT-High-CPU": {
+        "name": "Kuflink-Staging-DBT-High-CPU",
+        "type": "cloudwatch:alarm",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:Kuflink-Staging-DBT-High-Memory": {
+        "name": "Kuflink-Staging-DBT-High-Memory",
+        "type": "cloudwatch:alarm",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:Kuflink-Staging-DBT-High-Network-In": {
+        "name": "Kuflink-Staging-DBT-High-Network-In",
+        "type": "cloudwatch:alarm",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:Kuflink-Staging-DBT-High-Network-Out": {
+        "name": "Kuflink-Staging-DBT-High-Network-Out",
+        "type": "cloudwatch:alarm",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:Kuflink-Staging-DBT-Low-Disk-Space": {
+        "name": "Kuflink-Staging-DBT-Low-Disk-Space",
+        "type": "cloudwatch:alarm",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:Kuflink-Staging-DBT-Status-Check-Failed": {
+        "name": "Kuflink-Staging-DBT-Status-Check-Failed",
+        "type": "cloudwatch:alarm",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:awseb-e-yichxngi7m-stack-AWSEBCloudwatchAlarmHigh-xMeRk00yuL7y": {
+        "name": "awseb-e-yichxngi7m-stack-AWSEBCloudwatchAlarmHigh-xMeRk00yuL7y",
+        "type": "cloudwatch:alarm",
+        "tags": {
+          "aws:cloudformation:stack-name": "awseb-e-yichxngi7m-stack",
+          "ManagedBy": "terraform",
+          "aws:cloudformation:stack-id": "arn:aws:cloudformation:eu-west-2:137167813802:stack/awseb-e-yichxngi7m-stack/bdc0b630-8767-11f0-8527-0a2fd9a81e01",
+          "elasticbeanstalk:environment-name": "Kuflink-Staging-Web",
+          "Environment": "Staging",
+          "aws:cloudformation:logical-id": "AWSEBCloudwatchAlarmHigh",
+          "elasticbeanstalk:environment-id": "e-yichxngi7m",
+          "Application": "Kuflink",
+          "Name": "Kuflink-Staging-Web",
+          "Stack": "EB"
+        }
+      },
+      "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:awseb-e-yichxngi7m-stack-AWSEBCloudwatchAlarmLow-7YCixv9TNvHq": {
+        "name": "awseb-e-yichxngi7m-stack-AWSEBCloudwatchAlarmLow-7YCixv9TNvHq",
+        "type": "cloudwatch:alarm",
+        "tags": {
+          "aws:cloudformation:stack-name": "awseb-e-yichxngi7m-stack",
+          "ManagedBy": "terraform",
+          "aws:cloudformation:stack-id": "arn:aws:cloudformation:eu-west-2:137167813802:stack/awseb-e-yichxngi7m-stack/bdc0b630-8767-11f0-8527-0a2fd9a81e01",
+          "elasticbeanstalk:environment-name": "Kuflink-Staging-Web",
+          "Environment": "Staging",
+          "aws:cloudformation:logical-id": "AWSEBCloudwatchAlarmLow",
+          "elasticbeanstalk:environment-id": "e-yichxngi7m",
+          "Application": "Kuflink",
+          "Name": "Kuflink-Staging-Web",
+          "Stack": "EB"
+        }
+      },
+      "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:kuflink-staging-High-CPU": {
+        "name": "kuflink-staging-High-CPU",
+        "type": "cloudwatch:alarm",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:kuflink-staging-High-Connections": {
+        "name": "kuflink-staging-High-Connections",
+        "type": "cloudwatch:alarm",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:kuflink-staging-High-DiskQueueDepth": {
+        "name": "kuflink-staging-High-DiskQueueDepth",
+        "type": "cloudwatch:alarm",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:kuflink-staging-Low-Memory": {
+        "name": "kuflink-staging-Low-Memory",
+        "type": "cloudwatch:alarm",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:kuflink-staging-Low-Storage": {
+        "name": "kuflink-staging-Low-Storage",
+        "type": "cloudwatch:alarm",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:kuflink-staging-Zero-Connections": {
+        "name": "kuflink-staging-Zero-Connections",
+        "type": "cloudwatch:alarm",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:kuflink-staging-replica-High-Connections": {
+        "name": "kuflink-staging-replica-High-Connections",
+        "type": "cloudwatch:alarm",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:kuflink-staging-replica-ReplicaLag-Too-High": {
+        "name": "kuflink-staging-replica-ReplicaLag-Too-High",
+        "type": "cloudwatch:alarm",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:kuflink-staging-replica-ReplicaSync-Broken": {
+        "name": "kuflink-staging-replica-ReplicaSync-Broken",
+        "type": "cloudwatch:alarm",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:kuflink-staging-replica-Write-Detected": {
+        "name": "kuflink-staging-replica-Write-Detected",
+        "type": "cloudwatch:alarm",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:dynamodb:eu-west-2:137167813802:table/AccessManagementApplicationsTable": {
+        "name": "AccessManagementApplicationsTable",
+        "type": "dynamodb:table",
+        "tags": {
+          "Name": "AccessManagementApplicationsTable"
+        }
+      },
+      "arn:aws:dynamodb:eu-west-2:137167813802:table/AccessManagementUsersTable": {
+        "name": "AccessManagementUsersTable",
+        "type": "dynamodb:table",
+        "tags": {
+          "Name": "AccessManagementUsersTable"
+        }
+      },
+      "arn:aws:dynamodb:eu-west-2:137167813802:table/ArchivedAccessManagementUsersTable": {
+        "name": "ArchivedAccessManagementUsersTable",
+        "type": "dynamodb:table",
+        "tags": {
+          "Name": "ArchivedAccessManagementUsersTable"
+        }
+      },
+      "arn:aws:dynamodb:eu-west-2:137167813802:table/ArchivedApplicationsAccessManagementTable": {
+        "name": "ArchivedApplicationsAccessManagementTable",
+        "type": "dynamodb:table",
+        "tags": {
+          "Name": "ArchivedApplicationsAccessManagementTable"
+        }
+      },
+      "arn:aws:dynamodb:eu-west-2:137167813802:table/BackupCompletedEvents": {
+        "name": "BackupCompletedEvents",
+        "type": "dynamodb:table",
+        "tags": {}
+      },
+      "arn:aws:dynamodb:eu-west-2:137167813802:table/Deployments-Admin": {
+        "name": "Deployments-Admin",
+        "type": "dynamodb:table",
+        "tags": {}
+      },
+      "arn:aws:dynamodb:eu-west-2:137167813802:table/Deployments-Backend": {
+        "name": "Deployments-Backend",
+        "type": "dynamodb:table",
+        "tags": {}
+      },
+      "arn:aws:dynamodb:eu-west-2:137167813802:table/Deployments-Frontend": {
+        "name": "Deployments-Frontend",
+        "type": "dynamodb:table",
+        "tags": {}
+      },
+      "arn:aws:dynamodb:eu-west-2:137167813802:table/DestroyedDeployments": {
+        "name": "DestroyedDeployments",
+        "type": "dynamodb:table",
+        "tags": {}
+      },
+      "arn:aws:dynamodb:eu-west-2:137167813802:table/RequestedDeployments": {
+        "name": "RequestedDeployments",
+        "type": "dynamodb:table",
+        "tags": {}
+      },
+      "arn:aws:dynamodb:eu-west-2:137167813802:table/awseb-e-hut22m7fc3-stack-AWSEBWorkerCronLeaderRegistry-17TG0SZWSZ18J": {
+        "name": "awseb-e-hut22m7fc3-stack-AWSEBWorkerCronLeaderRegistry-17TG0SZWSZ18J",
+        "type": "dynamodb:table",
+        "tags": {
+          "ManagedBy": "terraform",
+          "elasticbeanstalk:environment-name": "Kuflink-Staging-Worker",
+          "Environment": "staging",
+          "elasticbeanstalk:environment-id": "e-hut22m7fc3",
+          "Name": "Kuflink-Staging-Worker"
+        }
+      },
+      "arn:aws:dynamodb:eu-west-2:137167813802:table/kuflink-tf-locks-staging": {
+        "name": "kuflink-tf-locks-staging",
+        "type": "dynamodb:table",
+        "tags": {}
+      },
+      "arn:aws:dynamodb:eu-west-2:137167813802:table/kuflink-tf-locks-test": {
+        "name": "kuflink-tf-locks-test",
+        "type": "dynamodb:table",
+        "tags": {}
+      },
+      "arn:aws:dynamodb:eu-west-2:137167813802:table/terraform-locks": {
+        "name": "terraform-locks",
+        "type": "dynamodb:table",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:instance/i-0f7154e2ffbcdb199": {
+        "name": "i-0f7154e2ffbcdb199",
+        "type": "ec2:instance",
+        "tags": {
+          "ManagedBy": "terraform",
+          "FORWARD_PORT": "9990",
+          "Environment": "staging",
+          "TARGET_PORT": "3306",
+          "DB_HOST": "kuff-staging-mysql.brickfin.co.uk",
+          "Name": "Kuflink-Staging-Bastion"
+        }
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:instance/i-092c7cd2d18024446": {
+        "name": "i-092c7cd2d18024446",
+        "type": "ec2:instance",
+        "tags": {
+          "ManagedBy": "terraform",
+          "DBT-Staging-DeploymentTarget": "Kuflink-Staging-DBT-Project",
+          "Environment": "staging",
+          "Name": "Kuflink-Staging-DBT"
+        }
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:instance/i-0461d83f34506928d": {
+        "name": "i-0461d83f34506928d",
+        "type": "ec2:instance",
+        "tags": {
+          "aws:autoscaling:groupName": "awseb-e-yichxngi7m-stack-AWSEBAutoScalingGroup-IIKx4HIsv7HE",
+          "aws:cloudformation:stack-name": "awseb-e-yichxngi7m-stack",
+          "ManagedBy": "terraform",
+          "aws:cloudformation:stack-id": "arn:aws:cloudformation:eu-west-2:137167813802:stack/awseb-e-yichxngi7m-stack/bdc0b630-8767-11f0-8527-0a2fd9a81e01",
+          "elasticbeanstalk:environment-name": "Kuflink-Staging-Web",
+          "Environment": "Staging",
+          "aws:cloudformation:logical-id": "AWSEBAutoScalingGroup",
+          "elasticbeanstalk:environment-id": "e-yichxngi7m",
+          "Application": "Kuflink",
+          "Name": "Kuflink-Staging-Web",
+          "Stack": "EB"
+        }
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:instance/i-03f7bf263ffc748b4": {
+        "name": "i-03f7bf263ffc748b4",
+        "type": "ec2:instance",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging",
+          "Name": "Kuflink-Staging-Redis"
+        }
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:instance/i-00b42242119f63a3f": {
+        "name": "i-00b42242119f63a3f",
+        "type": "ec2:instance",
+        "tags": {
+          "aws:autoscaling:groupName": "awseb-e-hut22m7fc3-stack-AWSEBAutoScalingGroup-NeaeGRTeyxeB",
+          "aws:cloudformation:stack-name": "awseb-e-hut22m7fc3-stack",
+          "ManagedBy": "terraform",
+          "aws:cloudformation:stack-id": "arn:aws:cloudformation:eu-west-2:137167813802:stack/awseb-e-hut22m7fc3-stack/bd6cc9d0-8767-11f0-a25d-021ac83f3d19",
+          "elasticbeanstalk:environment-name": "Kuflink-Staging-Worker",
+          "Environment": "staging",
+          "aws:cloudformation:logical-id": "AWSEBAutoScalingGroup",
+          "elasticbeanstalk:environment-id": "e-hut22m7fc3",
+          "Name": "Kuflink-Staging-Worker"
+        }
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:route-table/rtb-0f52ed87b34821dd6": {
+        "name": "rtb-0f52ed87b34821dd6",
+        "type": "ec2:route-table",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:route-table/rtb-de957ab5": {
+        "name": "rtb-de957ab5",
+        "type": "ec2:route-table",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:route-table/rtb-077c7d8dc2b9dcd12": {
+        "name": "rtb-077c7d8dc2b9dcd12",
+        "type": "ec2:route-table",
+        "tags": {
+          "Project": "Kuflink",
+          "ManagedBy": "Terraform",
+          "Environment": "staging",
+          "Name": "Kuflink-Staging-VPC-public-rt"
+        }
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:route-table/rtb-0910272ffdfc89db8": {
+        "name": "rtb-0910272ffdfc89db8",
+        "type": "ec2:route-table",
+        "tags": {
+          "Project": "Kuflink",
+          "ManagedBy": "Terraform",
+          "Environment": "staging",
+          "Name": "Kuflink-Staging-VPC-private-rt"
+        }
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:internet-gateway/igw-026082aa5c735619c": {
+        "name": "igw-026082aa5c735619c",
+        "type": "ec2:internet-gateway",
+        "tags": {
+          "Project": "Kuflink",
+          "ManagedBy": "Terraform",
+          "Environment": "staging",
+          "Name": "Kuflink-Staging-VPC-igw"
+        }
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:internet-gateway/igw-e3c1648b": {
+        "name": "igw-e3c1648b",
+        "type": "ec2:internet-gateway",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:nat-gateway/nat-061e52d2fa99b32e4": {
+        "name": "nat-061e52d2fa99b32e4",
+        "type": "ec2:nat-gateway",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:transit-gateway/tgw-0275c794fc1e5e5d9": {
+        "name": "tgw-0275c794fc1e5e5d9",
+        "type": "ec2:transit-gateway",
+        "tags": {
+          "CreatedBy": "staging-terraform",
+          "ManagedBy": "Terraform",
+          "Environment": "shared",
+          "Purpose": "multi-environment-connectivity",
+          "Name": "kuflink-core-tgw"
+        }
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:volume/vol-09e7ff37d548c2fc5": {
+        "name": "vol-09e7ff37d548c2fc5",
+        "type": "ec2:volume",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:volume/vol-08b429235ca29c63b": {
+        "name": "vol-08b429235ca29c63b",
+        "type": "ec2:volume",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:volume/vol-09ac17ffb80274113": {
+        "name": "vol-09ac17ffb80274113",
+        "type": "ec2:volume",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:volume/vol-0f0cae6af7fdbf51a": {
+        "name": "vol-0f0cae6af7fdbf51a",
+        "type": "ec2:volume",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:volume/vol-0338ed380a5280cea": {
+        "name": "vol-0338ed380a5280cea",
+        "type": "ec2:volume",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:network-acl/acl-07203d6f": {
+        "name": "acl-07203d6f",
+        "type": "ec2:network-acl",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:network-acl/acl-0b90ab25f71ef860b": {
+        "name": "acl-0b90ab25f71ef860b",
+        "type": "ec2:network-acl",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-0af649ac2f4ee21aa": {
+        "name": "eni-0af649ac2f4ee21aa",
+        "type": "ec2:network-interface",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-074cbdaf1b01d0da7": {
+        "name": "eni-074cbdaf1b01d0da7",
+        "type": "ec2:network-interface",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-016e064a796748f3f": {
+        "name": "eni-016e064a796748f3f",
+        "type": "ec2:network-interface",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-0491fc376275be591": {
+        "name": "eni-0491fc376275be591",
+        "type": "ec2:network-interface",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-07382dd9226732b34": {
+        "name": "eni-07382dd9226732b34",
+        "type": "ec2:network-interface",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-0fae9613c2b26b0e6": {
+        "name": "eni-0fae9613c2b26b0e6",
+        "type": "ec2:network-interface",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-0a0dca529933da4a6": {
+        "name": "eni-0a0dca529933da4a6",
+        "type": "ec2:network-interface",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-08562e3eae66b3ded": {
+        "name": "eni-08562e3eae66b3ded",
+        "type": "ec2:network-interface",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-0dcd015cb0f81a036": {
+        "name": "eni-0dcd015cb0f81a036",
+        "type": "ec2:network-interface",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-0f238c0c38cbe5ead": {
+        "name": "eni-0f238c0c38cbe5ead",
+        "type": "ec2:network-interface",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-0585c317e395835d9": {
+        "name": "eni-0585c317e395835d9",
+        "type": "ec2:network-interface",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-09106509d83182151": {
+        "name": "eni-09106509d83182151",
+        "type": "ec2:network-interface",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-0092c5d7c826d4006": {
+        "name": "eni-0092c5d7c826d4006",
+        "type": "ec2:network-interface",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-026b0ccfc84b75c1e": {
+        "name": "eni-026b0ccfc84b75c1e",
+        "type": "ec2:network-interface",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-01cf0cbb6d94343f6": {
+        "name": "eni-01cf0cbb6d94343f6",
+        "type": "ec2:network-interface",
+        "tags": {}
+      },
+      "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-030a05bb014ed7646": {
+        "name": "eni-030a05bb014ed7646",
+        "type": "ec2:network-interface",
+        "tags": {}
+      },
+      "arn:aws:elasticloadbalancing:eu-west-2:137167813802:loadbalancer/app/awseb--AWSEB-2rZAfdot8MDk/7a9e2f429319e445": {
+        "name": "awseb--AWSEB-2rZAfdot8MDk",
+        "type": "elasticloadbalancing:loadbalancer:application",
+        "tags": {
+          "ManagedBy": "terraform",
+          "elasticbeanstalk:environment-name": "Kuflink-Staging-Web",
+          "Environment": "Staging",
+          "elasticbeanstalk:environment-id": "e-yichxngi7m",
+          "Application": "Kuflink",
+          "Name": "Kuflink-Staging-Web",
+          "Stack": "EB"
+        }
+      },
+      "arn:aws:elasticloadbalancing:eu-west-2:137167813802:loadbalancer/app/Kuflink-Staging-DBT-docs-alb/3599127950de5d28": {
+        "name": "Kuflink-Staging-DBT-docs-alb",
+        "type": "elasticloadbalancing:loadbalancer:application",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging",
+          "Name": "Kuflink-Staging-DBT-docs-alb"
+        }
+      },
+      "arn:aws:elasticloadbalancing:eu-west-2:137167813802:targetgroup/Kuflink-Staging-DBT-docs-tg/b64331a356ab3181": {
+        "name": "Kuflink-Staging-DBT-docs-tg",
+        "type": "elasticloadbalancing:targetgroup",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging",
+          "Name": "Kuflink-Staging-DBT-docs-target-group"
+        }
+      },
+      "arn:aws:elasticloadbalancing:eu-west-2:137167813802:targetgroup/awseb-AWSEB-BOMYGUZWVA7N/de262cbe0fa9d2ab": {
+        "name": "awseb-AWSEB-BOMYGUZWVA7N",
+        "type": "elasticloadbalancing:targetgroup",
+        "tags": {
+          "ManagedBy": "terraform",
+          "elasticbeanstalk:environment-name": "Kuflink-Staging-Web",
+          "Environment": "Staging",
+          "elasticbeanstalk:environment-id": "e-yichxngi7m",
+          "Application": "Kuflink",
+          "Name": "Kuflink-Staging-Web",
+          "Stack": "EB"
+        }
+      },
+      "arn:aws:lambda:eu-west-2:137167813802:function:sns_daily_summary": {
+        "name": "sns_daily_summary",
+        "type": "lambda:function",
+        "tags": {}
+      },
+      "arn:aws:lambda:eu-west-2:137167813802:function:display_deployment": {
+        "name": "display_deployment",
+        "type": "lambda:function",
+        "tags": {}
+      },
+      "arn:aws:lambda:eu-west-2:137167813802:function:trigger_amplify": {
+        "name": "trigger_amplify",
+        "type": "lambda:function",
+        "tags": {}
+      },
+      "arn:aws:lambda:eu-west-2:137167813802:function:trigger_codepipeline": {
+        "name": "trigger_codepipeline",
+        "type": "lambda:function",
+        "tags": {}
+      },
+      "arn:aws:lambda:eu-west-2:137167813802:function:AccessManagementUsers-CRUD": {
+        "name": "AccessManagementUsers-CRUD",
+        "type": "lambda:function",
+        "tags": {
+          "Name": "AccessManagementUsersLambda"
+        }
+      },
+      "arn:aws:lambda:eu-west-2:137167813802:function:DailyBackupHandler": {
+        "name": "DailyBackupHandler",
+        "type": "lambda:function",
+        "tags": {}
+      },
+      "arn:aws:lambda:eu-west-2:137167813802:function:AccessManagementApplications-CRUD": {
+        "name": "AccessManagementApplications-CRUD",
+        "type": "lambda:function",
+        "tags": {
+          "Name": "ApplicationsManagementLambda"
+        }
+      },
+      "arn:aws:lambda:eu-west-2:137167813802:function:record_counter": {
+        "name": "record_counter",
+        "type": "lambda:function",
+        "tags": {}
+      },
+      "arn:aws:lambda:eu-west-2:137167813802:function:WebScraperFunction-tf-staging": {
+        "name": "WebScraperFunction-tf-staging",
+        "type": "lambda:function",
+        "tags": {}
+      },
+      "arn:aws:lambda:eu-west-2:137167813802:function:delete_deployment": {
+        "name": "delete_deployment",
+        "type": "lambda:function",
+        "tags": {}
+      },
+      "arn:aws:rds:eu-west-2:137167813802:db:kuflink-staging": {
+        "name": "kuflink-staging",
+        "type": "rds:db",
+        "tags": {
+          "Role": "primary",
+          "StorageAutoscaling": "enabled",
+          "ManagedBy": "terraform",
+          "StorageType": "gp3",
+          "Environment": "staging",
+          "Name": "kuflink-staging"
+        }
+      },
+      "arn:aws:rds:eu-west-2:137167813802:db:kuflink-staging-replica": {
+        "name": "kuflink-staging-replica",
+        "type": "rds:db",
+        "tags": {
+          "DatabaseInsights": "enabled",
+          "Role": "read-replica",
+          "ManagedBy": "terraform",
+          "Environment": "staging",
+          "Name": "kuflink-staging-replica"
+        }
+      },
+      "arn:aws:s3:::admin.brickfin.co.uk": {
+        "name": "admin.brickfin.co.uk",
+        "type": "s3:bucket",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "Staging",
+          "Application": "Kuflink",
+          "Name": "Kuflink-Staging-admin-bucket",
+          "Stack": "EB"
+        }
+      },
+      "arn:aws:s3:::aws-cloudtrail-logs-137167813802-e4463545": {
+        "name": "aws-cloudtrail-logs-137167813802-e4463545",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::codepipeline-eu-west-2-942352125816": {
+        "name": "codepipeline-eu-west-2-942352125816",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-bank-top-up": {
+        "name": "dev-bank-top-up",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-deal-admin-staging": {
+        "name": "dev-deal-admin-staging",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-interests-logs": {
+        "name": "dev-interests-logs",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-isa-transfer-in": {
+        "name": "dev-isa-transfer-in",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-kuflink-api-images": {
+        "name": "dev-kuflink-api-images",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-kuflink-campaign-images": {
+        "name": "dev-kuflink-campaign-images",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-kuflink-cashback": {
+        "name": "dev-kuflink-cashback",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-kuflink-deal-images2": {
+        "name": "dev-kuflink-deal-images2",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-kuflink-interest-accrual": {
+        "name": "dev-kuflink-interest-accrual",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-kuflink-interest-email": {
+        "name": "dev-kuflink-interest-email",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-kuflink-investor-cashback": {
+        "name": "dev-kuflink-investor-cashback",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-kuflink-loan-update-email": {
+        "name": "dev-kuflink-loan-update-email",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-kuflink-logos": {
+        "name": "dev-kuflink-logos",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-kuflink-sipp": {
+        "name": "dev-kuflink-sipp",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-kuflink-user-documents-2": {
+        "name": "dev-kuflink-user-documents-2",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-mob-app-assets": {
+        "name": "dev-mob-app-assets",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-onfido-applicant-photo": {
+        "name": "dev-onfido-applicant-photo",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-onfido-documents": {
+        "name": "dev-onfido-documents",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-source-of-funds": {
+        "name": "dev-source-of-funds",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-terms-of-agreement": {
+        "name": "dev-terms-of-agreement",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::dev-valuation-reports-new": {
+        "name": "dev-valuation-reports-new",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::elasticbeanstalk-3rd-party-dependencies": {
+        "name": "elasticbeanstalk-3rd-party-dependencies",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::elasticbeanstalk-eu-west-2-137167813802": {
+        "name": "elasticbeanstalk-eu-west-2-137167813802",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::invest.brickfin.co.uk": {
+        "name": "invest.brickfin.co.uk",
+        "type": "s3:bucket",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "Staging",
+          "Application": "Kuflink",
+          "Name": "Kuflink-Staging-frontend-bucket",
+          "Stack": "EB"
+        }
+      },
+      "arn:aws:s3:::kuflink-staging-admin-pipeline-artifacts": {
+        "name": "kuflink-staging-admin-pipeline-artifacts",
+        "type": "s3:bucket",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "Staging",
+          "Application": "Kuflink",
+          "Name": "Kuflink-Staging-admin-artifacts",
+          "Stack": "EB"
+        }
+      },
+      "arn:aws:s3:::kuflink-staging-alb-logs": {
+        "name": "kuflink-staging-alb-logs",
+        "type": "s3:bucket",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:s3:::kuflink-staging-cleaned": {
+        "name": "kuflink-staging-cleaned",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::kuflink-staging-codedeploy-artifacts": {
+        "name": "kuflink-staging-codedeploy-artifacts",
+        "type": "s3:bucket",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging",
+          "Purpose": "CodeDeploy application artifacts storage",
+          "Name": "Kuflink-Staging-DBT-Project-codedeploy-bucket"
+        }
+      },
+      "arn:aws:s3:::kuflink-staging-codepipline-artifacts": {
+        "name": "kuflink-staging-codepipline-artifacts",
+        "type": "s3:bucket",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging",
+          "Name": "kuflink-staging-codepipline-artifacts"
+        }
+      },
+      "arn:aws:s3:::kuflink-staging-invest-pipeline-artifacts": {
+        "name": "kuflink-staging-invest-pipeline-artifacts",
+        "type": "s3:bucket",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "Staging",
+          "Application": "Kuflink",
+          "Name": "Kuflink-Staging-frontend-artifacts",
+          "Stack": "EB"
+        }
+      },
+      "arn:aws:s3:::kuflink-staging-state": {
+        "name": "kuflink-staging-state",
+        "type": "s3:bucket",
+        "tags": {
+          "Environment": "staging",
+          "Name": "kuflink-staging-state"
+        }
+      },
+      "arn:aws:s3:::kuflink-staging-states": {
+        "name": "kuflink-staging-states",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::kuflink-test-state": {
+        "name": "kuflink-test-state",
+        "type": "s3:bucket",
+        "tags": {
+          "Environment": "test",
+          "Name": "kuflink-test-state"
+        }
+      },
+      "arn:aws:s3:::kuflink-test-states": {
+        "name": "kuflink-test-states",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::kuflink-webscraper-bucket-staging": {
+        "name": "kuflink-webscraper-bucket-staging",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::kuflink-webscrapertf-staging": {
+        "name": "kuflink-webscrapertf-staging",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::kuflink-webscrapertf-test": {
+        "name": "kuflink-webscrapertf-test",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::maintenance-staging-invest.brickfin.co.uk": {
+        "name": "maintenance-staging-invest.brickfin.co.uk",
+        "type": "s3:bucket",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "Staging",
+          "Purpose": "maintenance-page",
+          "Application": "Kuflink",
+          "Name": "Kuflink-Staging-maintenance-bucket",
+          "Stack": "EB"
+        }
+      },
+      "arn:aws:s3:::staging-elasticbeanstalk-3rd-party-dependencies": {
+        "name": "staging-elasticbeanstalk-3rd-party-dependencies",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::terraformopenbanking-staging": {
+        "name": "terraformopenbanking-staging",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:s3:::tf-kuflink-services-statefiles": {
+        "name": "tf-kuflink-services-statefiles",
+        "type": "s3:bucket",
+        "tags": {}
+      },
+      "arn:aws:sns:eu-west-2:137167813802:BackupCompletedSummary": {
+        "name": "BackupCompletedSummary",
+        "type": "sns:topic",
+        "tags": {}
+      },
+      "arn:aws:sns:eu-west-2:137167813802:CloudWatchAlerts-Kuflink-Staging-DBT": {
+        "name": "CloudWatchAlerts-Kuflink-Staging-DBT",
+        "type": "sns:topic",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:sns:eu-west-2:137167813802:ElasticBeanstalkNotifications-Deployments-Kuflink-Staging-Web": {
+        "name": "ElasticBeanstalkNotifications-Deployments-Kuflink-Staging-Web",
+        "type": "sns:topic",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "Staging",
+          "Application": "Kuflink",
+          "Stack": "EB"
+        }
+      },
+      "arn:aws:sns:eu-west-2:137167813802:ElasticBeanstalkNotifications-Environment-Kuflink-Staging-Web": {
+        "name": "ElasticBeanstalkNotifications-Environment-Kuflink-Staging-Web",
+        "type": "sns:topic",
+        "tags": {}
+      },
+      "arn:aws:sns:eu-west-2:137167813802:ElasticBeanstalkNotifications-Environment-Kuflink-Staging-Worker": {
+        "name": "ElasticBeanstalkNotifications-Environment-Kuflink-Staging-Worker",
+        "type": "sns:topic",
+        "tags": {}
+      },
+      "arn:aws:sns:eu-west-2:137167813802:Kuflink-Staging-DBT-Project-codedeploy-notifications": {
+        "name": "Kuflink-Staging-DBT-Project-codedeploy-notifications",
+        "type": "sns:topic",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging",
+          "Name": "Kuflink-Staging-DBT-Project-codedeploy-notifications"
+        }
+      },
+      "arn:aws:sns:eu-west-2:137167813802:Kuflink-Staging-admin-build-notifications": {
+        "name": "Kuflink-Staging-admin-build-notifications",
+        "type": "sns:topic",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:sns:eu-west-2:137167813802:Kuflink-Staging-frontend-build-notifications": {
+        "name": "Kuflink-Staging-frontend-build-notifications",
+        "type": "sns:topic",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:sns:eu-west-2:137167813802:RDSCloudWatchAlerts-kuflink-staging": {
+        "name": "RDSCloudWatchAlerts-kuflink-staging",
+        "type": "sns:topic",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "staging"
+        }
+      },
+      "arn:aws:sns:eu-west-2:137167813802:amplify-d2qlo9x7ylcfsa_AMPLIBRANCHSENTINEL": {
+        "name": "amplify-d2qlo9x7ylcfsa_AMPLIBRANCHSENTINEL",
+        "type": "sns:topic",
+        "tags": {}
+      },
+      "arn:aws:sns:eu-west-2:137167813802:automated-staging-delete-failure": {
+        "name": "automated-staging-delete-failure",
+        "type": "sns:topic",
+        "tags": {}
+      },
+      "arn:aws:sns:eu-west-2:137167813802:automated-staging-delete-success": {
+        "name": "automated-staging-delete-success",
+        "type": "sns:topic",
+        "tags": {}
+      },
+      "arn:aws:sns:eu-west-2:137167813802:automated-staging-deployment-failures": {
+        "name": "automated-staging-deployment-failures",
+        "type": "sns:topic",
+        "tags": {}
+      },
+      "arn:aws:sns:eu-west-2:137167813802:automated-staging-deployment-success": {
+        "name": "automated-staging-deployment-success",
+        "type": "sns:topic",
+        "tags": {}
+      },
+      "arn:aws:sns:eu-west-2:137167813802:automated-staging-notifications": {
+        "name": "automated-staging-notifications",
+        "type": "sns:topic",
+        "tags": {}
+      },
+      "arn:aws:sns:eu-west-2:137167813802:codestar-notifications-Staging-Backend-Notifications": {
+        "name": "codestar-notifications-Staging-Backend-Notifications",
+        "type": "sns:topic",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "Staging",
+          "Application": "Kuflink",
+          "Stack": "EB"
+        }
+      },
+      "arn:aws:sqs:eu-west-2:137167813802:aqib-queue": {
+        "name": "aqib-queue",
+        "type": "sqs:queue",
+        "tags": {}
+      },
+      "arn:aws:sqs:eu-west-2:137167813802:dev-queue": {
+        "name": "dev-queue",
+        "type": "sqs:queue",
+        "tags": {}
+      },
+      "arn:aws:sqs:eu-west-2:137167813802:hadees-queue": {
+        "name": "hadees-queue",
+        "type": "sqs:queue",
+        "tags": {}
+      },
+      "arn:aws:sqs:eu-west-2:137167813802:kuflink-staging-queue": {
+        "name": "kuflink-staging-queue",
+        "type": "sqs:queue",
+        "tags": {
+          "ManagedBy": "terraform",
+          "Environment": "Staging",
+          "Application": "Kuflink",
+          "Stack": "EB"
+        }
+      },
+      "arn:aws:sqs:eu-west-2:137167813802:local-queue": {
+        "name": "local-queue",
+        "type": "sqs:queue",
+        "tags": {}
+      },
+      "arn:aws:sqs:eu-west-2:137167813802:matija-queue": {
+        "name": "matija-queue",
+        "type": "sqs:queue",
+        "tags": {}
+      },
+      "arn:aws:sqs:eu-west-2:137167813802:pooja-queue": {
+        "name": "pooja-queue",
+        "type": "sqs:queue",
+        "tags": {}
+      },
+      "arn:aws:sqs:eu-west-2:137167813802:staging-queue": {
+        "name": "staging-queue",
+        "type": "sqs:queue",
+        "tags": {}
+      },
+      "arn:aws:route53:::hostedzone/Z09816471ZONDEWMH01NX": {
+        "name": "brickfin.co.uk.",
+        "type": "route53:hostedzone",
+        "tags": {}
+      }
+    },
+    "connections": [],
+    "containers": {
+      "accounts": {
+        "137167813802": {
+          "name": "Account-137167813802",
+          "children": {
+            "resources": [
+              "arn:aws:cloudfront::137167813802:distribution/ER9TFV8XNY1ZX",
+              "arn:aws:cloudfront::137167813802:distribution/E161O4F3K4ZTS2",
+              "arn:aws:route53:::hostedzone/Z09816471ZONDEWMH01NX"
+            ],
+            "regions": [
+              "137167813802/eu-west-2",
+              "137167813802/"
+            ]
+          }
+        }
+      },
+      "regions": {
+        "137167813802/eu-west-2": {
+          "name": "eu-west-2",
+          "children": {
+            "resources": [
+              "arn:aws:cloudtrail:eu-west-2:137167813802:trail/management-events",
+              "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:Kuflink-Staging-DBT-High-CPU",
+              "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:Kuflink-Staging-DBT-High-Memory",
+              "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:Kuflink-Staging-DBT-High-Network-In",
+              "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:Kuflink-Staging-DBT-High-Network-Out",
+              "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:Kuflink-Staging-DBT-Low-Disk-Space",
+              "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:Kuflink-Staging-DBT-Status-Check-Failed",
+              "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:awseb-e-yichxngi7m-stack-AWSEBCloudwatchAlarmHigh-xMeRk00yuL7y",
+              "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:awseb-e-yichxngi7m-stack-AWSEBCloudwatchAlarmLow-7YCixv9TNvHq",
+              "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:kuflink-staging-High-CPU",
+              "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:kuflink-staging-High-Connections",
+              "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:kuflink-staging-High-DiskQueueDepth",
+              "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:kuflink-staging-Low-Memory",
+              "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:kuflink-staging-Low-Storage",
+              "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:kuflink-staging-Zero-Connections",
+              "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:kuflink-staging-replica-High-Connections",
+              "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:kuflink-staging-replica-ReplicaLag-Too-High",
+              "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:kuflink-staging-replica-ReplicaSync-Broken",
+              "arn:aws:cloudwatch:eu-west-2:137167813802:alarm:kuflink-staging-replica-Write-Detected",
+              "arn:aws:dynamodb:eu-west-2:137167813802:table/AccessManagementApplicationsTable",
+              "arn:aws:dynamodb:eu-west-2:137167813802:table/AccessManagementUsersTable",
+              "arn:aws:dynamodb:eu-west-2:137167813802:table/ArchivedAccessManagementUsersTable",
+              "arn:aws:dynamodb:eu-west-2:137167813802:table/ArchivedApplicationsAccessManagementTable",
+              "arn:aws:dynamodb:eu-west-2:137167813802:table/BackupCompletedEvents",
+              "arn:aws:dynamodb:eu-west-2:137167813802:table/Deployments-Admin",
+              "arn:aws:dynamodb:eu-west-2:137167813802:table/Deployments-Backend",
+              "arn:aws:dynamodb:eu-west-2:137167813802:table/Deployments-Frontend",
+              "arn:aws:dynamodb:eu-west-2:137167813802:table/DestroyedDeployments",
+              "arn:aws:dynamodb:eu-west-2:137167813802:table/RequestedDeployments",
+              "arn:aws:dynamodb:eu-west-2:137167813802:table/awseb-e-hut22m7fc3-stack-AWSEBWorkerCronLeaderRegistry-17TG0SZWSZ18J",
+              "arn:aws:dynamodb:eu-west-2:137167813802:table/kuflink-tf-locks-staging",
+              "arn:aws:dynamodb:eu-west-2:137167813802:table/kuflink-tf-locks-test",
+              "arn:aws:dynamodb:eu-west-2:137167813802:table/terraform-locks",
+              "arn:aws:ec2:eu-west-2:137167813802:transit-gateway/tgw-0275c794fc1e5e5d9",
+              "arn:aws:lambda:eu-west-2:137167813802:function:sns_daily_summary",
+              "arn:aws:lambda:eu-west-2:137167813802:function:display_deployment",
+              "arn:aws:lambda:eu-west-2:137167813802:function:trigger_amplify",
+              "arn:aws:lambda:eu-west-2:137167813802:function:trigger_codepipeline",
+              "arn:aws:lambda:eu-west-2:137167813802:function:AccessManagementUsers-CRUD",
+              "arn:aws:lambda:eu-west-2:137167813802:function:DailyBackupHandler",
+              "arn:aws:lambda:eu-west-2:137167813802:function:AccessManagementApplications-CRUD",
+              "arn:aws:lambda:eu-west-2:137167813802:function:record_counter",
+              "arn:aws:lambda:eu-west-2:137167813802:function:WebScraperFunction-tf-staging",
+              "arn:aws:lambda:eu-west-2:137167813802:function:delete_deployment",
+              "arn:aws:s3:::admin.brickfin.co.uk",
+              "arn:aws:s3:::aws-cloudtrail-logs-137167813802-e4463545",
+              "arn:aws:s3:::codepipeline-eu-west-2-942352125816",
+              "arn:aws:s3:::dev-bank-top-up",
+              "arn:aws:s3:::dev-deal-admin-staging",
+              "arn:aws:s3:::dev-interests-logs",
+              "arn:aws:s3:::dev-isa-transfer-in",
+              "arn:aws:s3:::dev-kuflink-api-images",
+              "arn:aws:s3:::dev-kuflink-campaign-images",
+              "arn:aws:s3:::dev-kuflink-cashback",
+              "arn:aws:s3:::dev-kuflink-deal-images2",
+              "arn:aws:s3:::dev-kuflink-interest-accrual",
+              "arn:aws:s3:::dev-kuflink-interest-email",
+              "arn:aws:s3:::dev-kuflink-investor-cashback",
+              "arn:aws:s3:::dev-kuflink-loan-update-email",
+              "arn:aws:s3:::dev-kuflink-logos",
+              "arn:aws:s3:::dev-kuflink-sipp",
+              "arn:aws:s3:::dev-kuflink-user-documents-2",
+              "arn:aws:s3:::dev-mob-app-assets",
+              "arn:aws:s3:::dev-onfido-applicant-photo",
+              "arn:aws:s3:::dev-onfido-documents",
+              "arn:aws:s3:::dev-source-of-funds",
+              "arn:aws:s3:::dev-terms-of-agreement",
+              "arn:aws:s3:::dev-valuation-reports-new",
+              "arn:aws:s3:::elasticbeanstalk-3rd-party-dependencies",
+              "arn:aws:s3:::elasticbeanstalk-eu-west-2-137167813802",
+              "arn:aws:s3:::invest.brickfin.co.uk",
+              "arn:aws:s3:::kuflink-staging-admin-pipeline-artifacts",
+              "arn:aws:s3:::kuflink-staging-alb-logs",
+              "arn:aws:s3:::kuflink-staging-cleaned",
+              "arn:aws:s3:::kuflink-staging-codedeploy-artifacts",
+              "arn:aws:s3:::kuflink-staging-codepipline-artifacts",
+              "arn:aws:s3:::kuflink-staging-invest-pipeline-artifacts",
+              "arn:aws:s3:::kuflink-staging-state",
+              "arn:aws:s3:::kuflink-staging-states",
+              "arn:aws:s3:::kuflink-test-state",
+              "arn:aws:s3:::kuflink-test-states",
+              "arn:aws:s3:::kuflink-webscraper-bucket-staging",
+              "arn:aws:s3:::kuflink-webscrapertf-staging",
+              "arn:aws:s3:::kuflink-webscrapertf-test",
+              "arn:aws:s3:::maintenance-staging-invest.brickfin.co.uk",
+              "arn:aws:s3:::staging-elasticbeanstalk-3rd-party-dependencies",
+              "arn:aws:s3:::terraformopenbanking-staging",
+              "arn:aws:s3:::tf-kuflink-services-statefiles",
+              "arn:aws:sns:eu-west-2:137167813802:BackupCompletedSummary",
+              "arn:aws:sns:eu-west-2:137167813802:CloudWatchAlerts-Kuflink-Staging-DBT",
+              "arn:aws:sns:eu-west-2:137167813802:ElasticBeanstalkNotifications-Deployments-Kuflink-Staging-Web",
+              "arn:aws:sns:eu-west-2:137167813802:ElasticBeanstalkNotifications-Environment-Kuflink-Staging-Web",
+              "arn:aws:sns:eu-west-2:137167813802:ElasticBeanstalkNotifications-Environment-Kuflink-Staging-Worker",
+              "arn:aws:sns:eu-west-2:137167813802:Kuflink-Staging-DBT-Project-codedeploy-notifications",
+              "arn:aws:sns:eu-west-2:137167813802:Kuflink-Staging-admin-build-notifications",
+              "arn:aws:sns:eu-west-2:137167813802:Kuflink-Staging-frontend-build-notifications",
+              "arn:aws:sns:eu-west-2:137167813802:RDSCloudWatchAlerts-kuflink-staging",
+              "arn:aws:sns:eu-west-2:137167813802:amplify-d2qlo9x7ylcfsa_AMPLIBRANCHSENTINEL",
+              "arn:aws:sns:eu-west-2:137167813802:automated-staging-delete-failure",
+              "arn:aws:sns:eu-west-2:137167813802:automated-staging-delete-success",
+              "arn:aws:sns:eu-west-2:137167813802:automated-staging-deployment-failures",
+              "arn:aws:sns:eu-west-2:137167813802:automated-staging-deployment-success",
+              "arn:aws:sns:eu-west-2:137167813802:automated-staging-notifications",
+              "arn:aws:sns:eu-west-2:137167813802:codestar-notifications-Staging-Backend-Notifications",
+              "arn:aws:sqs:eu-west-2:137167813802:aqib-queue",
+              "arn:aws:sqs:eu-west-2:137167813802:dev-queue",
+              "arn:aws:sqs:eu-west-2:137167813802:hadees-queue",
+              "arn:aws:sqs:eu-west-2:137167813802:kuflink-staging-queue",
+              "arn:aws:sqs:eu-west-2:137167813802:local-queue",
+              "arn:aws:sqs:eu-west-2:137167813802:matija-queue",
+              "arn:aws:sqs:eu-west-2:137167813802:pooja-queue",
+              "arn:aws:sqs:eu-west-2:137167813802:staging-queue"
+            ],
+            "vpcs": [
+              "vpc-04e686ee972f59cc5",
+              "vpc-ba9facd2"
+            ],
+            "availabilityZones": [
+              "137167813802/eu-west-2c",
+              "137167813802/eu-west-2a",
+              "137167813802/eu-west-2b"
+            ]
+          }
+        },
+        "137167813802/": {
+          "name": "",
+          "children": {
+            "resources": [],
+            "vpcs": [],
+            "availabilityZones": []
+          }
+        }
+      },
+      "vpcs": {
+        "vpc-04e686ee972f59cc5": {
+          "name": "vpc-04e686ee972f59cc5",
+          "children": {
+            "resources": [
+              "arn:aws:ec2:eu-west-2:137167813802:route-table/rtb-0f52ed87b34821dd6",
+              "arn:aws:ec2:eu-west-2:137167813802:route-table/rtb-077c7d8dc2b9dcd12",
+              "arn:aws:ec2:eu-west-2:137167813802:route-table/rtb-0910272ffdfc89db8",
+              "arn:aws:ec2:eu-west-2:137167813802:internet-gateway/igw-026082aa5c735619c",
+              "arn:aws:elasticloadbalancing:eu-west-2:137167813802:targetgroup/Kuflink-Staging-DBT-docs-tg/b64331a356ab3181",
+              "arn:aws:elasticloadbalancing:eu-west-2:137167813802:targetgroup/awseb-AWSEB-BOMYGUZWVA7N/de262cbe0fa9d2ab"
+            ],
+            "subnets": [
+              "subnet-0df1ee6a32b7a0340",
+              "subnet-001e48146de882135",
+              "subnet-0020cf7a203815200",
+              "subnet-083bcef3b1a092ad8",
+              "subnet-0d2a04a847531fe78",
+              "subnet-02e5cfec29b2feb6a"
+            ],
+            "securityGroups": [
+              "sg-02f81a8627626e2ff",
+              "sg-03538b266e934462b",
+              "sg-0b8eb8030b9a23e27"
+            ]
+          }
+        },
+        "vpc-ba9facd2": {
+          "name": "vpc-ba9facd2",
+          "children": {
+            "resources": [
+              "arn:aws:ec2:eu-west-2:137167813802:route-table/rtb-de957ab5",
+              "arn:aws:ec2:eu-west-2:137167813802:internet-gateway/igw-e3c1648b"
+            ],
+            "subnets": [
+              "subnet-9346d1df",
+              "subnet-7360641a",
+              "subnet-e8e7a692"
+            ],
+            "securityGroups": []
+          }
+        }
+      },
+      "availabilityZones": {
+        "137167813802/eu-west-2c": {
+          "name": "eu-west-2c",
+          "children": {
+            "resources": [
+              "arn:aws:autoscaling:eu-west-2:137167813802:autoScalingGroup:48fa1c19-eb07-4fa5-9ad3-28edfbddc6f3:autoScalingGroupName/awseb-e-hut22m7fc3-stack-AWSEBAutoScalingGroup-NeaeGRTeyxeB",
+              "arn:aws:autoscaling:eu-west-2:137167813802:autoScalingGroup:c1ee4bc1-f9c9-4353-9e14-ad70a138a8ad:autoScalingGroupName/awseb-e-yichxngi7m-stack-AWSEBAutoScalingGroup-IIKx4HIsv7HE",
+              "arn:aws:ec2:eu-west-2:137167813802:volume/vol-08b429235ca29c63b",
+              "arn:aws:ec2:eu-west-2:137167813802:volume/vol-0338ed380a5280cea"
+            ],
+            "subnets": [
+              "subnet-001e48146de882135",
+              "subnet-7360641a",
+              "subnet-02e5cfec29b2feb6a"
+            ],
+            "securityGroups": [
+              "sg-02f81a8627626e2ff",
+              "sg-03538b266e934462b",
+              "sg-0b8eb8030b9a23e27"
+            ]
+          }
+        },
+        "137167813802/eu-west-2a": {
+          "name": "eu-west-2a",
+          "children": {
+            "resources": [
+              "arn:aws:autoscaling:eu-west-2:137167813802:autoScalingGroup:48fa1c19-eb07-4fa5-9ad3-28edfbddc6f3:autoScalingGroupName/awseb-e-hut22m7fc3-stack-AWSEBAutoScalingGroup-NeaeGRTeyxeB",
+              "arn:aws:autoscaling:eu-west-2:137167813802:autoScalingGroup:c1ee4bc1-f9c9-4353-9e14-ad70a138a8ad:autoScalingGroupName/awseb-e-yichxngi7m-stack-AWSEBAutoScalingGroup-IIKx4HIsv7HE",
+              "arn:aws:ec2:eu-west-2:137167813802:volume/vol-09e7ff37d548c2fc5"
+            ],
+            "subnets": [
+              "subnet-0df1ee6a32b7a0340",
+              "subnet-e8e7a692",
+              "subnet-0d2a04a847531fe78"
+            ],
+            "securityGroups": [
+              "sg-02f81a8627626e2ff",
+              "sg-03538b266e934462b"
+            ]
+          }
+        },
+        "137167813802/eu-west-2b": {
+          "name": "eu-west-2b",
+          "children": {
+            "resources": [
+              "arn:aws:autoscaling:eu-west-2:137167813802:autoScalingGroup:48fa1c19-eb07-4fa5-9ad3-28edfbddc6f3:autoScalingGroupName/awseb-e-hut22m7fc3-stack-AWSEBAutoScalingGroup-NeaeGRTeyxeB",
+              "arn:aws:autoscaling:eu-west-2:137167813802:autoScalingGroup:c1ee4bc1-f9c9-4353-9e14-ad70a138a8ad:autoScalingGroupName/awseb-e-yichxngi7m-stack-AWSEBAutoScalingGroup-IIKx4HIsv7HE",
+              "arn:aws:ec2:eu-west-2:137167813802:volume/vol-09ac17ffb80274113",
+              "arn:aws:ec2:eu-west-2:137167813802:volume/vol-0f0cae6af7fdbf51a"
+            ],
+            "subnets": [
+              "subnet-0020cf7a203815200",
+              "subnet-9346d1df",
+              "subnet-083bcef3b1a092ad8"
+            ],
+            "securityGroups": [
+              "sg-02f81a8627626e2ff",
+              "sg-03538b266e934462b"
+            ]
+          }
+        }
+      },
+      "securityGroups": {
+        "sg-02f81a8627626e2ff": {
+          "name": "sg-02f81a8627626e2ff",
+          "children": {
+            "resources": [
+              "arn:aws:elasticloadbalancing:eu-west-2:137167813802:loadbalancer/app/awseb--AWSEB-2rZAfdot8MDk/7a9e2f429319e445"
+            ]
+          }
+        },
+        "sg-03538b266e934462b": {
+          "name": "sg-03538b266e934462b",
+          "children": {
+            "resources": [
+              "arn:aws:elasticloadbalancing:eu-west-2:137167813802:loadbalancer/app/Kuflink-Staging-DBT-docs-alb/3599127950de5d28"
+            ]
+          }
+        },
+        "sg-0b8eb8030b9a23e27": {
+          "name": "sg-0b8eb8030b9a23e27",
+          "children": {
+            "resources": [
+              "arn:aws:rds:eu-west-2:137167813802:db:kuflink-staging",
+              "arn:aws:rds:eu-west-2:137167813802:db:kuflink-staging-replica"
+            ]
+          }
+        }
+      },
+      "subnets": {
+        "subnet-0df1ee6a32b7a0340": {
+          "name": "subnet-0df1ee6a32b7a0340",
+          "children": {
+            "resources": [
+              "arn:aws:ec2:eu-west-2:137167813802:instance/i-0f7154e2ffbcdb199",
+              "arn:aws:ec2:eu-west-2:137167813802:nat-gateway/nat-061e52d2fa99b32e4",
+              "arn:aws:ec2:eu-west-2:137167813802:network-acl/acl-0b90ab25f71ef860b",
+              "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-0dcd015cb0f81a036",
+              "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-0f238c0c38cbe5ead",
+              "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-0585c317e395835d9",
+              "arn:aws:elasticloadbalancing:eu-west-2:137167813802:loadbalancer/app/awseb--AWSEB-2rZAfdot8MDk/7a9e2f429319e445",
+              "arn:aws:elasticloadbalancing:eu-west-2:137167813802:loadbalancer/app/Kuflink-Staging-DBT-docs-alb/3599127950de5d28"
+            ]
+          },
+          "type": "private"
+        },
+        "subnet-001e48146de882135": {
+          "name": "subnet-001e48146de882135",
+          "children": {
+            "resources": [
+              "arn:aws:ec2:eu-west-2:137167813802:instance/i-092c7cd2d18024446",
+              "arn:aws:ec2:eu-west-2:137167813802:instance/i-0461d83f34506928d",
+              "arn:aws:ec2:eu-west-2:137167813802:network-acl/acl-0b90ab25f71ef860b",
+              "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-074cbdaf1b01d0da7",
+              "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-0491fc376275be591",
+              "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-07382dd9226732b34",
+              "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-0fae9613c2b26b0e6",
+              "arn:aws:rds:eu-west-2:137167813802:db:kuflink-staging",
+              "arn:aws:rds:eu-west-2:137167813802:db:kuflink-staging-replica"
+            ]
+          },
+          "type": "private"
+        },
+        "subnet-0020cf7a203815200": {
+          "name": "subnet-0020cf7a203815200",
+          "children": {
+            "resources": [
+              "arn:aws:ec2:eu-west-2:137167813802:instance/i-03f7bf263ffc748b4",
+              "arn:aws:ec2:eu-west-2:137167813802:instance/i-00b42242119f63a3f",
+              "arn:aws:ec2:eu-west-2:137167813802:network-acl/acl-0b90ab25f71ef860b",
+              "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-0092c5d7c826d4006",
+              "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-026b0ccfc84b75c1e",
+              "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-01cf0cbb6d94343f6",
+              "arn:aws:rds:eu-west-2:137167813802:db:kuflink-staging",
+              "arn:aws:rds:eu-west-2:137167813802:db:kuflink-staging-replica"
+            ]
+          },
+          "type": "private"
+        },
+        "subnet-9346d1df": {
+          "name": "subnet-9346d1df",
+          "children": {
+            "resources": [
+              "arn:aws:ec2:eu-west-2:137167813802:network-acl/acl-07203d6f"
+            ]
+          },
+          "type": "private"
+        },
+        "subnet-7360641a": {
+          "name": "subnet-7360641a",
+          "children": {
+            "resources": [
+              "arn:aws:ec2:eu-west-2:137167813802:network-acl/acl-07203d6f"
+            ]
+          },
+          "type": "private"
+        },
+        "subnet-e8e7a692": {
+          "name": "subnet-e8e7a692",
+          "children": {
+            "resources": [
+              "arn:aws:ec2:eu-west-2:137167813802:network-acl/acl-07203d6f"
+            ]
+          },
+          "type": "private"
+        },
+        "subnet-083bcef3b1a092ad8": {
+          "name": "subnet-083bcef3b1a092ad8",
+          "children": {
+            "resources": [
+              "arn:aws:ec2:eu-west-2:137167813802:network-acl/acl-0b90ab25f71ef860b",
+              "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-09106509d83182151",
+              "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-030a05bb014ed7646",
+              "arn:aws:elasticloadbalancing:eu-west-2:137167813802:loadbalancer/app/awseb--AWSEB-2rZAfdot8MDk/7a9e2f429319e445",
+              "arn:aws:elasticloadbalancing:eu-west-2:137167813802:loadbalancer/app/Kuflink-Staging-DBT-docs-alb/3599127950de5d28"
+            ]
+          },
+          "type": "private"
+        },
+        "subnet-0d2a04a847531fe78": {
+          "name": "subnet-0d2a04a847531fe78",
+          "children": {
+            "resources": [
+              "arn:aws:ec2:eu-west-2:137167813802:network-acl/acl-0b90ab25f71ef860b",
+              "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-0a0dca529933da4a6",
+              "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-08562e3eae66b3ded",
+              "arn:aws:rds:eu-west-2:137167813802:db:kuflink-staging",
+              "arn:aws:rds:eu-west-2:137167813802:db:kuflink-staging-replica"
+            ]
+          },
+          "type": "private"
+        },
+        "subnet-02e5cfec29b2feb6a": {
+          "name": "subnet-02e5cfec29b2feb6a",
+          "children": {
+            "resources": [
+              "arn:aws:ec2:eu-west-2:137167813802:network-acl/acl-0b90ab25f71ef860b",
+              "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-0af649ac2f4ee21aa",
+              "arn:aws:ec2:eu-west-2:137167813802:network-interface/eni-016e064a796748f3f",
+              "arn:aws:elasticloadbalancing:eu-west-2:137167813802:loadbalancer/app/awseb--AWSEB-2rZAfdot8MDk/7a9e2f429319e445",
+              "arn:aws:elasticloadbalancing:eu-west-2:137167813802:loadbalancer/app/Kuflink-Staging-DBT-docs-alb/3599127950de5d28"
+            ]
+          },
+          "type": "private"
+        }
+      }
+    },
+    "tags": {
+      "ManagedBy": [
+        "terraform",
+        "Terraform"
+      ],
+      "Environment": [
+        "staging",
+        "Staging",
+        "shared",
+        "test"
+      ],
+      "aws:cloudformation:stack-name": [
+        "awseb-e-yichxngi7m-stack",
+        "awseb-e-hut22m7fc3-stack"
+      ],
+      "aws:cloudformation:stack-id": [
+        "arn:aws:cloudformation:eu-west-2:137167813802:stack/awseb-e-yichxngi7m-stack/bdc0b630-8767-11f0-8527-0a2fd9a81e01",
+        "arn:aws:cloudformation:eu-west-2:137167813802:stack/awseb-e-hut22m7fc3-stack/bd6cc9d0-8767-11f0-a25d-021ac83f3d19"
+      ],
+      "elasticbeanstalk:environment-name": [
+        "Kuflink-Staging-Web",
+        "Kuflink-Staging-Worker"
+      ],
+      "aws:cloudformation:logical-id": [
+        "AWSEBCloudwatchAlarmHigh",
+        "AWSEBCloudwatchAlarmLow",
+        "AWSEBAutoScalingGroup"
+      ],
+      "elasticbeanstalk:environment-id": [
+        "e-yichxngi7m",
+        "e-hut22m7fc3"
+      ],
+      "Application": [
+        "Kuflink"
+      ],
+      "Name": [
+        "Kuflink-Staging-Web",
+        "ArchivedApplicationsAccessManagementTable",
+        "AccessManagementUsersTable",
+        "ArchivedAccessManagementUsersTable",
+        "Kuflink-Staging-Worker",
+        "AccessManagementApplicationsTable",
+        "Kuflink-Staging-Bastion",
+        "Kuflink-Staging-DBT",
+        "Kuflink-Staging-Redis",
+        "Kuflink-Staging-VPC",
+        "Kuflink-Staging-VPC-public-a",
+        "Kuflink-Staging-VPC-private-b",
+        "Kuflink-Staging-VPC-private-c",
+        "Kuflink-Staging-VPC-public-c",
+        "Kuflink-Staging-VPC-private-a",
+        "Kuflink-Staging-VPC-public-b",
+        "Kuflink-Staging-VPC-public-rt",
+        "Kuflink-Staging-VPC-private-rt",
+        "Kuflink-Staging-VPC-igw",
+        "kuflink-core-tgw",
+        "Kuflink-Staging-DBT-docs-alb",
+        "Kuflink-Staging-DBT-docs-target-group",
+        "ApplicationsManagementLambda",
+        "AccessManagementUsersLambda",
+        "kuflink-staging",
+        "kuflink-staging-replica",
+        "Kuflink-Staging-maintenance-bucket",
+        "kuflink-staging-state",
+        "Kuflink-Staging-admin-artifacts",
+        "Kuflink-Staging-frontend-artifacts",
+        "kuflink-staging-codepipline-artifacts",
+        "Kuflink-Staging-frontend-bucket",
+        "Kuflink-Staging-DBT-Project-codedeploy-bucket",
+        "Kuflink-Staging-admin-bucket",
+        "kuflink-test-state",
+        "Kuflink-Staging-DBT-Project-codedeploy-notifications"
+      ],
+      "Stack": [
+        "EB"
+      ],
+      "FORWARD_PORT": [
+        "9990"
+      ],
+      "TARGET_PORT": [
+        "3306"
+      ],
+      "DB_HOST": [
+        "kuff-staging-mysql.brickfin.co.uk"
+      ],
+      "DBT-Staging-DeploymentTarget": [
+        "Kuflink-Staging-DBT-Project"
+      ],
+      "aws:autoscaling:groupName": [
+        "awseb-e-hut22m7fc3-stack-AWSEBAutoScalingGroup-NeaeGRTeyxeB",
+        "awseb-e-yichxngi7m-stack-AWSEBAutoScalingGroup-IIKx4HIsv7HE"
+      ],
+      "Project": [
+        "Kuflink"
+      ],
+      "CreatedBy": [
+        "staging-terraform"
+      ],
+      "Purpose": [
+        "multi-environment-connectivity",
+        "maintenance-page",
+        "CodeDeploy application artifacts storage"
+      ],
+      "Role": [
+        "primary",
+        "read-replica"
+      ],
+      "StorageAutoscaling": [
+        "enabled"
+      ],
+      "StorageType": [
+        "gp3"
+      ],
+      "DatabaseInsights": [
+        "enabled"
+      ]
+    }
+  },
+  "errors": [],
+  "metadata": {
+    "account": "137167813802",
+    "regions": [
+      "eu-west-2"
+    ],
+    "startedAt": "2025-11-22T07:32:39.688Z",
+    "finishedAt": "2025-11-22T07:32:47.876Z"
+  }
+}
